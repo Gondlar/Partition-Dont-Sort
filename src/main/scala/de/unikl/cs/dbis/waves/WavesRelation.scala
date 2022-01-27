@@ -10,65 +10,70 @@ import org.apache.spark.sql.{SQLContext, Row}
 import org.apache.spark.util.SerializableConfiguration
 import org.apache.spark.TaskContext
 
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer,ListBuffer}
+import java.nio.charset.StandardCharsets
 
-class WavesRelation(
+import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import de.unikl.cs.dbis.waves.partitions.CollectBucketsVisitor
+import de.unikl.cs.dbis.waves.partitions.Bucket
+import de.unikl.cs.dbis.waves.partitions.PartitionByInnerNode
+
+class WavesRelation private (
     override val sqlContext: SQLContext,
-    val basePath : Path,
-    var globalSchema : StructType,
+    val basePath : String,
+    private var partitionTree : PartitionTree,
+    private val fs : FileSystem,
+    private val schemaPath : Path
 ) extends BaseRelation with Serializable with TableScan {
 
-  private val fs = basePath.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
-  private val schemaPath = new Path(basePath.toString + WavesRelation.SCHEMA_FILE_NAME)
-  private var partitions : Map[String,WavesPartition] = {
-    if(fs.exists(schemaPath)) {
-      WavesPartition.fromJson(fs.open(schemaPath).readUTF())
-    } else {
-      Map()
-    }
-  }
-
-  if (globalSchema == null) {
-    globalSchema = partitions.get(WavesRelation.SPILL_PARTITION_NAME)
-                             .map(partition => partition.schema)
-                             .getOrElse(null)
-  }
+  // if (globalSchema == null) {
+  //   globalSchema = partitions.get(WavesRelation.SPILL_PARTITION_NAME)
+  //                            .map(partition => partition.schema)
+  //                            .getOrElse(null)
+  // }
   assert(sqlContext != null)
 
-  override def schema: StructType = globalSchema
+  override def schema: StructType = partitionTree.globalSchema
 
-  def getOrCreatePartition(name : String, schema : StructType) : WavesPartition = {
-    if (!partitions.contains(name)) {
-      partitions += (name -> new WavesPartition(name, schema))
-    }
-    partitions(name)
-  }
+  def fastInsertLocation = partitionTree.fastInsertLocation
+  // def getOrCreatePartition(name : String, schema : StructType) : WavesPartition = {
+  //   if (!partitions.contains(name)) {
+  //     partitions += (name -> new WavesPartition(name, schema))
+  //   }
+  //   partitions(name)
+  // }
 
   def writePartitionScheme() = {
-    val jsonString = WavesPartition.toJson(partitions)
+    val json = partitionTree.toJson.getBytes(StandardCharsets.UTF_8)
     val out = fs.create(schemaPath)
-    out.writeUTF(jsonString)
+    out.write(json)
     out.close()
   }
 
-  def repartition(partition: String, key: String) = {
-    val partitionSchema = partitions(partition).schema
-    val partitionWithKey = PartitionFolder.makeFolder(basePath.toString(), fs)
-    val partitionWithoutKey = PartitionFolder.makeFolder(basePath.toString(), fs)
+  def repartition(partitionName: String, key: String) = {
+    //This is inefficient for very large trees
+    val partition = partitionTree.getBuckets().find(bucket => bucket.name == partitionName).get
+
+    val partitionSchema = schema //TODO, I guess
+    val partitionWithKey = PartitionFolder.makeFolder(basePath, fs)
+    val partitionWithoutKey = PartitionFolder.makeFolder(basePath, fs)
+    val newPartitionTree = PartitionByInnerNode(key, partitionWithKey.name, partitionWithoutKey.name)
+    partitionTree.replace(partition, newPartitionTree)
 
     val error = sqlContext.sparkContext
-                          .runJob(buildScan(), WavesRelation.makeRepartitionJob(partitionSchema,
-                                                                                key,
-                                                                                partitionWithKey.filename,
-                                                                                partitionWithoutKey.filename,
-                                                                                sqlContext.sparkContext.hadoopConfiguration))
+                          .runJob( scanPartition(partition)
+                                 , WavesRelation.makeRepartitionJob( partitionSchema
+                                                                   , key
+                                                                   , partitionWithKey.filename
+                                                                   , partitionWithoutKey.filename
+                                                                   , sqlContext.sparkContext.hadoopConfiguration))
                           .reduce((lhs, rhs) => lhs.orElse(rhs))
     
     error match {
       case None => {
         partitionWithKey.moveFromTempToFinal(fs)
         partitionWithoutKey.moveFromTempToFinal(fs)
-        //TODO write new schema.json
+        writePartitionScheme()
       }
       case Some(exception) => {
         partitionWithKey.delete(fs)
@@ -79,18 +84,49 @@ class WavesRelation(
   }
 
   override def buildScan(): RDD[Row] = {
-    if (partitions.isEmpty) sqlContext.sparkContext.emptyRDD[Row];
-    else {
-      val folders = partitions.values.map(partition => partition.folder(basePath.toString()).filename).toSeq
+    val folders = partitionTree.getBuckets().map(bucket => bucket.folder(basePath).filename).toSeq
+    if (folders.isEmpty) {
+      sqlContext.sparkContext.emptyRDD[Row];
+    } else {
       sqlContext.sparkSession.read.format("parquet").load(folders:_*).rdd
     }
   }
+
+  private def scanPartition(partition: Bucket) : RDD[Row]
+    = scanPartition(partition.folder(basePath))
+  private def scanPartition(folder: PartitionFolder): RDD[Row]
+    = sqlContext.sparkSession.read.format("parquet").load(folder.filename).rdd
 
 }
 
 object WavesRelation {
   val SPILL_PARTITION_NAME = "spill"
   val SCHEMA_FILE_NAME = "/schema.json"
+
+  private def readSchema(schemaPath: Path, fs: FileSystem) = {
+    val res = ArrayBuffer.empty[Byte]
+    val buffer = new Array[Byte](256*256) // Possibly use differing size
+    val reader = fs.open(schemaPath)
+    var read = 0
+    while ({read = reader.read(buffer); read != -1}) {
+      res.addAll(buffer.slice(0, read))
+    }
+    new String(res.toArray, StandardCharsets.UTF_8)
+  }
+
+  def apply(sqlContext: SQLContext, basePath: String, globalSchema: StructType) = {
+    val fs = new Path(basePath).getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
+    val schemaPath = new Path(basePath + SCHEMA_FILE_NAME)
+    val partitionTree = if (fs.exists(schemaPath)) {
+        assert(globalSchema == null)
+        val schema = readSchema(schemaPath, fs)
+        println(s"'${schema.last.toHexString}'")
+        PartitionTree.fromJson(schema)
+      } else {
+        new PartitionTree(globalSchema)
+      }
+    new WavesRelation(sqlContext, basePath, partitionTree, fs, schemaPath)
+  }
 
   private def makeRepartitionJob(partitionSchema: StructType, key: String, partitionWithKey: String, partitionWithoutKey: String, hadoopConfiguration: Configuration) = {
     val conf = new SerializableConfiguration(hadoopConfiguration)
@@ -99,33 +135,22 @@ object WavesRelation {
       var error = Option.empty[Exception]
       try {
         val writerFactory = (name: String) => LocalSchemaWriteSupport.newWriter(partitionSchema,
-                                                                      schema => SchemaTransforms.alwaysAbsent(pathKey, schema),
+                                                                      //schema => SchemaTransforms.alwaysAbsent(pathKey, schema),
+                                                                      schema => schema,
                                                                       conf.value,
                                                                       name,
                                                                       ctx.taskAttemptId().toHexString)
 
-        val missingRows = List.fill(pathKey.maxDefinitionLevel+1)(ArrayBuffer.empty[Row])
-        val presentRows = ArrayBuffer.empty[Row]
+        val absentPartition = writerFactory(partitionWithoutKey)
+        val presentPartition = writerFactory(partitionWithKey)
 
         for (row <- partition) {
           pathKey.retrieveFrom(row) match {
-            case Left(definitionLevel) => missingRows(definitionLevel).append(row)
-            case Right(_) => presentRows.append(row)
+            case Left(definitionLevel) => absentPartition.write(null, row)
+            case Right(_) => presentPartition.write(null, row)
           }
         }
 
-        val absentPartition = writerFactory(partitionWithoutKey)
-        for (group <- missingRows) {
-          for (row <- group) {
-            absentPartition.write(null, row)
-          }
-        }
-
-        val presentPartition = writerFactory(partitionWithKey)
-        for (row <- presentRows) {
-          presentPartition.write(null, row)
-        }
-        
         absentPartition.close(null)
         presentPartition.close(null)
 

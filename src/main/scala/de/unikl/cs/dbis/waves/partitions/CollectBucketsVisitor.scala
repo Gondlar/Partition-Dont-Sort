@@ -12,11 +12,9 @@ final class CollectBucketsVisitor() extends PartitionTreeVisitor {
         node.presentKey.accept(this)
     }
 
-    override def visit(root: PartitionTree) : Unit = {
-        buckets.addOne(root.spill)
-        if (root.hasTree) {
-            root.tree.accept(this)
-        }
+    override def visit(spill: Spill) : Unit = {
+        buckets.addOne(spill.rest)
+        spill.partitioned.accept(this)
     }
 
     def iter = buckets.iterator

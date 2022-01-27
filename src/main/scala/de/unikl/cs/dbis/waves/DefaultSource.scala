@@ -16,14 +16,15 @@ class DefaultSource extends RelationProvider
   override def createRelation(sqlContext: SQLContext, parameters: Map[String,String], schema: StructType): BaseRelation = {
       parameters.get("path") match {
           case None => throw new IllegalArgumentException("No Basepath specified")
-          case Some(basePath) => new WavesRelation(sqlContext, new Path(basePath), schema)
+          case Some(basePath) => WavesRelation(sqlContext, basePath, schema)
       }
   }
 
   override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String,String], data: DataFrame): BaseRelation = {
-      val path = new Path(parameters.getOrElse("path", {
+      val baseDir = parameters.getOrElse("path", {
           throw new IllegalArgumentException("No Basepath specified");
-      }))
+      })
+      val path = new Path(baseDir)
       val fs = path.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
       if (fs.exists(path)) {
           mode match {
@@ -36,14 +37,14 @@ class DefaultSource extends RelationProvider
           fs.mkdirs(path)
       }
 
-      var relation = new WavesRelation(sqlContext, path, data.schema)
-      val spillPartition = relation.getOrCreatePartition(WavesRelation.SPILL_PARTITION_NAME, data.schema)
+      var relation = WavesRelation(sqlContext, baseDir, data.schema)
+      val insertLocation = relation.fastInsertLocation.get //TODO create spill if necessary
       relation.writePartitionScheme();
       data.repartition(1)
           .write
           .mode(mode)
           //.option("maxRecordsPerFile", 100000) //TODO proper estimate for records per file
-          .parquet(spillPartition.folder(path.toString()).filename)
+          .parquet(insertLocation.folder(baseDir).filename)
       relation
   }
   

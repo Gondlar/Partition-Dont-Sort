@@ -4,7 +4,7 @@ import org.apache.hadoop.fs.{FileSystem,Path}
 import scala.util.Random
 import java.io.IOException
 
-class PartitionFolder(baseDir: String, name: String, var isTemporary: Boolean) {
+class PartitionFolder(val baseDir: String, val name: String, var isTemporary: Boolean) {
     private def tempFilename = baseDir + PartitionFolder.TEMP_DIR + '/' + name
     private def tempFile = new Path(tempFilename)
     private def finalFilename = baseDir + '/' + name

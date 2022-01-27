@@ -35,6 +35,16 @@ object Bucket {
     val NAME_KEY = "name"
 }
 
+case class Spill(partitioned: TreeNode, rest: Bucket) extends TreeNode {
+    override def accept(visitor: PartitionTreeVisitor) = visitor.visit(this)
+}
+
+object Spill {
+    val KIND = "spill"
+    val REST_KEY = "spill"
+    val PARTIOTIONED_KEY = "tree"
+}
+
 case class PartitionByInnerNode(key: PathKey, presentKey: TreeNode, absentKey: TreeNode) extends TreeNode {
     override def accept(visitor: PartitionTreeVisitor) = visitor.visit(this)
 }
@@ -47,6 +57,9 @@ object PartitionByInnerNode {
 
     def apply(key: String, presentKey: TreeNode, absentKey: TreeNode) : PartitionByInnerNode
         = PartitionByInnerNode(PathKey(key), presentKey, absentKey)
+
+    def apply(key: String, present: String, absent: String) : PartitionByInnerNode
+        = apply(key, Bucket(present), Bucket(absent))
 }
 
 //TODO PartitionByCondition
@@ -60,6 +73,16 @@ object BucketSerializer extends JsonSerializer[Bucket] {
         val obj = new JsonObject()
         obj.addProperty(TreeNode.KIND_KEY, Bucket.KIND)
         obj.addProperty(Bucket.NAME_KEY, bucket.name)
+        obj
+    }
+}
+
+object SpillSerializer extends JsonSerializer[Spill] {
+    override def serialize(node: Spill, t: Type, ctx: JsonSerializationContext): JsonElement = {
+        val obj = new JsonObject()
+        obj.addProperty(TreeNode.KIND_KEY, Spill.KIND)
+        obj.add(Spill.REST_KEY, ctx.serialize(node.rest.name))
+        obj.add(Spill.PARTIOTIONED_KEY, ctx.serialize(node.partitioned))
         obj
     }
 }
@@ -80,6 +103,7 @@ object TreeNodeSerializer extends JsonSerializer[TreeNode] {
       node match {
           case bucket@Bucket(_) => ctx.serialize(bucket)
           case node@PartitionByInnerNode(_, _, _) => ctx.serialize(node)
+          case spill@Spill(_,_) => ctx.serialize(spill)
       }
   }
 }
@@ -94,8 +118,8 @@ object TreeNodeDeserializer extends JsonDeserializer[TreeNode] {
           case obj: JsonObject => {
               val kind = obj.get(TreeNode.KIND_KEY).getAsString()
               kind match {
-                  case Bucket.KIND => ctx.deserialize[Bucket](obj, Bucket.getClass())
-                  case PartitionByInnerNode.KIND => ctx.deserialize[PartitionByInnerNode](obj, PartitionByInnerNode.getClass())
+                  case Bucket.KIND => ctx.deserialize[Bucket](obj, classOf[Bucket])
+                  case PartitionByInnerNode.KIND => ctx.deserialize[PartitionByInnerNode](obj, classOf[PartitionByInnerNode])
                   case unknown => throw new JsonParseException(s"kind \"$unknown\" is unknown")
               }
           }
@@ -117,14 +141,28 @@ object BucketDeserializer extends JsonDeserializer[Bucket] {
   }
 }
 
+object SpillDeserializer extends JsonDeserializer[Spill] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): Spill = {
+        json match {
+          case obj: JsonObject => {//TODO hier aufgehört
+              assert(obj.get(TreeNode.KIND_KEY).getAsString() == Spill.KIND)
+              val rest = Bucket(obj.get(Spill.REST_KEY).getAsString())
+              val partitioned = ctx.deserialize[TreeNode](obj.get(Spill.PARTIOTIONED_KEY), classOf[TreeNode])
+              Spill(partitioned, rest)
+          }
+          case _ => throw new JsonParseException(s"$json is not an object")
+      }
+  }
+}
+
 object PartitionByInnerNodeDeserializer extends JsonDeserializer[PartitionByInnerNode] {
     override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): PartitionByInnerNode = {
         json match {
           case obj: JsonObject => {
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == PartitionByInnerNode.KIND)
               val key = obj.get(PartitionByInnerNode.KEY_KEY).getAsString()
-              val presentKey = ctx.deserialize[TreeNode](obj.get(PartitionByInnerNode.PRESENT_KEY), TreeNode.getClass())
-              val absentKey = ctx.deserialize[TreeNode](obj.get(PartitionByInnerNode.ABSENT_KEY), TreeNode.getClass())
+              val presentKey = ctx.deserialize[TreeNode](obj.get(PartitionByInnerNode.PRESENT_KEY), classOf[TreeNode])
+              val absentKey = ctx.deserialize[TreeNode](obj.get(PartitionByInnerNode.ABSENT_KEY), classOf[TreeNode])
               PartitionByInnerNode(key, presentKey, absentKey)
           }
           case _ => throw new JsonParseException(s"$json is not an object")

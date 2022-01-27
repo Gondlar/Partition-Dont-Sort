@@ -52,35 +52,17 @@ object Main extends App {
   val conf = new SparkConf().setAppName("waves-test")
   val spark = SparkSession.builder().config(conf).master("local").getOrCreate()
 
-  //val df = spark.read.format("json").load("/media/ssd/json-benchmark/twitter-300")
+  val df = spark.read.format("json").load("/home/patrick/Twitterdaten/twitter")
   //println(df.agg("user.id" -> "avg").head().apply(0))    // 269260424025919552
-  // df.write.mode(SaveMode.Overwrite).format("de.unikl.cs.dbis.waves").save("out/")
-  // println("=============")
-  // val df2 = spark.read.format("de.unikl.cs.dbis.waves").load("out/")
-  // println(df.count())
-  // println(df2.count())
-  // Exp 1
-  // val partitionColumn = "retweeted_status"
-  // val pred = (row : org.apache.spark.sql.Row) => {
-  //   val index = row.fieldIndex("retweeted_status")
-  //   row.isNullAt(index)
-  // }
-  // Exp 2
-  // val partitionColumn = "user.id"
-  // val pred : (org.apache.spark.sql.Row) => Boolean = (row : org.apache.spark.sql.Row) => {
-  //   val index = row.fieldIndex("user")
-  //   if (row.isNullAt(index)) false
-  //   else {
-  //     val innerRow = row.getStruct(index)
-  //     val innerIndex = innerRow.fieldIndex("id")
-  //     if (innerRow.isNullAt(innerIndex)) false
-  //     else innerRow.getLong(innerIndex) < 269260424025919552l
-  //   }
-  // }
-  // val schema = df2.schema // here
-  //println(spark.read.format("parquet").load("out/exp3/").count())
+  df.write.mode(SaveMode.Overwrite).format("de.unikl.cs.dbis.waves").save("out/")
+
   val relation = new waves.DefaultSource().createRelation(spark.sqlContext, Map("path" -> "out")).asInstanceOf[waves.WavesRelation]
-  relation.repartition("spill", "retweeted_status")
+  relation.repartition("spill", "quoted_status")
+  
+  val df2 = spark.read.format("de.unikl.cs.dbis.waves").load("out/")
+  val realCount = df.count()
+  val myCount = df2.count()
+  println(s"count on JSON: $realCount\ncount on waves: $myCount")
 
   spark.close()
 }

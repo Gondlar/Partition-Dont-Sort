@@ -120,9 +120,7 @@ object WavesRelation {
     val schemaPath = new Path(basePath + SCHEMA_FILE_NAME)
     val partitionTree = if (fs.exists(schemaPath)) {
         assert(globalSchema == null)
-        val schema = readSchema(schemaPath, fs)
-        println(s"'${schema.last.toHexString}'")
-        PartitionTree.fromJson(schema)
+        PartitionTree.fromJson(readSchema(schemaPath, fs))
       } else {
         new PartitionTree(globalSchema)
       }

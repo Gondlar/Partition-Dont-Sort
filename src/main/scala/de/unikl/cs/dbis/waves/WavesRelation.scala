@@ -36,12 +36,7 @@ class WavesRelation private (
   override def schema: StructType = partitionTree.globalSchema
 
   def fastInsertLocation = partitionTree.fastInsertLocation
-  // def getOrCreatePartition(name : String, schema : StructType) : WavesPartition = {
-  //   if (!partitions.contains(name)) {
-  //     partitions += (name -> new WavesPartition(name, schema))
-  //   }
-  //   partitions(name)
-  // }
+  def createSpillPartition() = partitionTree.createSpillPartition(() => PartitionFolder.makeFolder(basePath, fs, false).name)
 
   def writePartitionScheme() = {
     val json = partitionTree.toJson.getBytes(StandardCharsets.UTF_8)

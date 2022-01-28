@@ -38,7 +38,10 @@ class DefaultSource extends RelationProvider
       }
 
       var relation = WavesRelation(sqlContext, baseDir, data.schema)
-      val insertLocation = relation.fastInsertLocation.get //TODO create spill if necessary
+      val insertLocation = relation.fastInsertLocation match {
+          case Some(value) => value
+          case None => relation.createSpillPartition()
+      }
       relation.writePartitionScheme();
       data.repartition(1)
           .write

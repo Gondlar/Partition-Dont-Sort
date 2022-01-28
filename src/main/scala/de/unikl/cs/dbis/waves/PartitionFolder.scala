@@ -26,10 +26,10 @@ class PartitionFolder(val baseDir: String, val name: String, var isTemporary: Bo
 object PartitionFolder {
     val TEMP_DIR = "/tmp"
 
-    def makeFolder(baseDir: String, fs: FileSystem) = {
+    def makeFolder(baseDir: String, fs: FileSystem, temp: Boolean = true) = {
         val name = Random.nextLong().toHexString
-        val partition = new PartitionFolder(baseDir, name, true)
-        if(!fs.mkdirs(partition.tempFile)) {
+        val partition = new PartitionFolder(baseDir, name, temp)
+        if(!fs.mkdirs(partition.file)) {
             throw new IOException("mkdir failed")
         }
         partition

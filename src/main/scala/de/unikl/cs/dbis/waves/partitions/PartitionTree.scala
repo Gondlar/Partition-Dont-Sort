@@ -29,6 +29,16 @@ class PartitionTree(
         case _ => None
     }
 
+    def createSpillPartition(getter: () => String) = root match {
+        case bucket@Bucket(_) => bucket
+        case Spill(_, rest) => rest
+        case other => {
+            val rest = Bucket(getter())
+            root = Spill(root, rest)
+            rest
+        }
+    }
+
     def getBuckets() = {
         val visitor = new CollectBucketsVisitor()
         root.accept(visitor)

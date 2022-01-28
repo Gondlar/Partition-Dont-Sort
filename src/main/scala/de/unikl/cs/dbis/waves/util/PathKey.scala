@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves
+package de.unikl.cs.dbis.waves.util
 
 import org.apache.spark.sql.Row
 

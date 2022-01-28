@@ -4,6 +4,8 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.Row
 import org.apache.parquet.ShouldNeverHappenException
 
+import de.unikl.cs.dbis.waves.util.PathKey
+
 /**
   * All transformations maintain the order of keys throughout the schema tree
   */

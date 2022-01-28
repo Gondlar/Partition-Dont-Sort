@@ -21,8 +21,7 @@ import org.apache.spark.sql.sources.{
     AlwaysFalse
 }
 import scala.collection.mutable.ArrayBuffer
-import de.unikl.cs.dbis.waves.PathKey
-import de.unikl.cs.dbis.waves.util.{Ternary,TernarySet}
+import de.unikl.cs.dbis.waves.util.{PathKey,Ternary,TernarySet}
 
 final class CollectFilteredBucketsVisitor(val filters: Array[Filter]) extends PartitionTreeVisitor {
     private val buckets = ArrayBuffer.empty[Bucket]

@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.PartitionByInnerNode
+import de.unikl.cs.dbis.waves.util.PathKey
 
 class WavesRelation private (
     override val sqlContext: SQLContext,

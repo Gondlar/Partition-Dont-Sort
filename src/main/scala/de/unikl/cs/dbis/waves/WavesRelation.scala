@@ -4,7 +4,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem,Path}
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.sources.{BaseRelation,TableScan}
+import org.apache.spark.sql.sources.{BaseRelation,TableScan,PrunedFilteredScan,Filter}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{SQLContext, Row}
 import org.apache.spark.util.SerializableConfiguration
@@ -14,7 +14,6 @@ import scala.collection.mutable.{ArrayBuffer,ListBuffer}
 import java.nio.charset.StandardCharsets
 
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
-import de.unikl.cs.dbis.waves.partitions.CollectBucketsVisitor
 import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.PartitionByInnerNode
 
@@ -24,13 +23,7 @@ class WavesRelation private (
     private var partitionTree : PartitionTree,
     private val fs : FileSystem,
     private val schemaPath : Path
-) extends BaseRelation with Serializable with TableScan {
-
-  // if (globalSchema == null) {
-  //   globalSchema = partitions.get(WavesRelation.SPILL_PARTITION_NAME)
-  //                            .map(partition => partition.schema)
-  //                            .getOrElse(null)
-  // }
+) extends BaseRelation with Serializable with TableScan with PrunedFilteredScan {
   assert(sqlContext != null)
 
   override def schema: StructType = partitionTree.globalSchema
@@ -79,7 +72,19 @@ class WavesRelation private (
   }
 
   override def buildScan(): RDD[Row] = {
+    println("Performing Complete Scan")
     val folders = partitionTree.getBuckets().map(bucket => bucket.folder(basePath).filename).toSeq
+    if (folders.isEmpty) {
+      sqlContext.sparkContext.emptyRDD[Row];
+    } else {
+      sqlContext.sparkSession.read.format("parquet").load(folders:_*).rdd
+    }
+  }
+
+  override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
+    println("Performing Partial Scan")
+    val folders = partitionTree.getBuckets(filters).map(bucket => bucket.folder(basePath).filename).toSeq
+    println(s"Scanning partitions: ${folders.mkString(";")}")
     if (folders.isEmpty) {
       sqlContext.sparkContext.emptyRDD[Row];
     } else {

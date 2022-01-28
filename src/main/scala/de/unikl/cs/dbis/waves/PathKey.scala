@@ -13,6 +13,21 @@ final case class PathKey(identifiers: Seq[String]) {
     def tail = PathKey(identifiers.tail)
     def hasSteps = identifiers.size > 1
 
+    def contains(other : PathKey) : Boolean = {
+        if (other.maxDefinitionLevel < maxDefinitionLevel) false else {
+            for (index <- 0 to identifiers.size-1) {
+                if (identifiers(index) != other.identifiers(index))
+                    return false
+            }
+            true
+        }
+    }
+
+    def equals(other : PathKey) : Boolean = {
+        if (identifiers.length == other.identifiers.length) contains(other)
+        else false
+    }
+
     def retrieveFrom(row: Row) : Either[Int,Any] = {
         var currentRow = row
         var res : Option[Any] = Option.empty

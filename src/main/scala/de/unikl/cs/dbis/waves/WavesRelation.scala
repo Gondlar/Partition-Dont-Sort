@@ -17,6 +17,7 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.PartitionByInnerNode
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.Logger
 
 class WavesRelation private (
     override val sqlContext: SQLContext,
@@ -73,24 +74,28 @@ class WavesRelation private (
   }
 
   override def buildScan(): RDD[Row] = {
-    println("Performing Complete Scan")
+    Logger.log("complete-scan")
     val folders = partitionTree.getBuckets().map(bucket => bucket.folder(basePath).filename).toSeq
-    if (folders.isEmpty) {
+    val res = if (folders.isEmpty) {
       sqlContext.sparkContext.emptyRDD[Row];
     } else {
       sqlContext.sparkSession.read.format("parquet").load(folders:_*).rdd
     }
+    Logger.log("complete-scan-built")
+    res
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
-    println("Performing Partial Scan")
+    Logger.log("partial-scan")
     val folders = partitionTree.getBuckets(filters).map(bucket => bucket.folder(basePath).filename).toSeq
-    println(s"Scanning partitions: ${folders.mkString(";")}")
-    if (folders.isEmpty) {
+    Logger.log("chose-buckets", folders.mkString(";"))
+    val res = if (folders.isEmpty) {
       sqlContext.sparkContext.emptyRDD[Row];
     } else {
       sqlContext.sparkSession.read.format("parquet").load(folders:_*).rdd
     }
+    Logger.log("partial-scan-built")
+    res
   }
 
   private def scanPartition(partition: Bucket) : RDD[Row]

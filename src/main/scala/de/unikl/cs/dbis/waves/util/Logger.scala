@@ -18,7 +18,7 @@ object Logger {
     private val events = ListBuffer.empty[Event]
 
     private def now = Calendar.getInstance().getTime()
-    private val dateFormat = new SimpleDateFormat("yyyy-mm-dd-HH-mm-ss")
+    private val dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
 
     def log(name : String, payload: Any = "") = {
         events.addOne(Event(name, now.getTime(), payload.toString))

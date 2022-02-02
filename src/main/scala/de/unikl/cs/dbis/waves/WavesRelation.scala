@@ -13,11 +13,9 @@ import org.apache.spark.TaskContext
 import scala.collection.mutable.{ArrayBuffer,ListBuffer}
 import java.nio.charset.StandardCharsets
 
-import de.unikl.cs.dbis.waves.partitions.PartitionTree
-import de.unikl.cs.dbis.waves.partitions.Bucket
-import de.unikl.cs.dbis.waves.partitions.PartitionByInnerNode
-import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.util.Logger
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,PartitionByInnerNode}
+import de.unikl.cs.dbis.waves.parquet.LocalSchemaWriteSupport
+import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
 
 class WavesRelation private (
     override val sqlContext: SQLContext,

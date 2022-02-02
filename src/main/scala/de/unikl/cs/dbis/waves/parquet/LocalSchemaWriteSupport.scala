@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves
+package de.unikl.cs.dbis.waves.parquet
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path

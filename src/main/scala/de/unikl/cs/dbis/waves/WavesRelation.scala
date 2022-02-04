@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,PartitionByInnerNode}
 import de.unikl.cs.dbis.waves.parquet.LocalSchemaWriteSupport
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
+import de.unikl.cs.dbis.waves.util.ValByNeed
 
 class WavesRelation private (
     override val sqlContext: SQLContext,
@@ -143,18 +144,18 @@ object WavesRelation {
                                                                       name,
                                                                       ctx.taskAttemptId().toHexString)
 
-        val absentPartition = writerFactory(partitionWithoutKey)
-        val presentPartition = writerFactory(partitionWithKey)
+        val absentPartition = new ValByNeed(() => writerFactory(partitionWithoutKey))
+        val presentPartition = new ValByNeed(() => writerFactory(partitionWithKey))
 
         for (row <- partition) {
           pathKey.retrieveFrom(row) match {
-            case Left(definitionLevel) => absentPartition.write(null, row)
-            case Right(_) => presentPartition.write(null, row)
+            case Left(definitionLevel) => absentPartition.modify(v => v.write(null, row))
+            case Right(_) => presentPartition.modify(v => v.write(null, row))
           }
         }
 
-        absentPartition.close(null)
-        presentPartition.close(null)
+        absentPartition.optionalModify(v => v.close(null))
+        presentPartition.optionalModify(v => v.close(null))
 
       } catch {
         case e: Exception => {

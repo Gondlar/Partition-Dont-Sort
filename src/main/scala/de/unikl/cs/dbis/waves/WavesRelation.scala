@@ -14,7 +14,7 @@ import scala.collection.mutable.{ArrayBuffer,ListBuffer}
 import java.nio.charset.StandardCharsets
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,PartitionByInnerNode}
-import de.unikl.cs.dbis.waves.parquet.LocalSchemaWriteSupport
+import de.unikl.cs.dbis.waves.parquet.{LocalSchemaInputFormat,LocalSchemaWriteSupport}
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
 import de.unikl.cs.dbis.waves.util.ValByNeed
 
@@ -74,33 +74,30 @@ class WavesRelation private (
 
   override def buildScan(): RDD[Row] = {
     Logger.log("complete-scan")
-    val folders = partitionTree.getBuckets().map(bucket => bucket.folder(basePath).filename).toSeq
-    val res = if (folders.isEmpty) {
-      sqlContext.sparkContext.emptyRDD[Row];
-    } else {
-      sqlContext.sparkSession.read.format("parquet").load(folders:_*).rdd
-    }
+    val res = scanPartition(partitionTree.getBuckets().toSeq:_*)
     Logger.log("complete-scan-built")
     res
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     Logger.log("partial-scan")
-    val folders = partitionTree.getBuckets(filters).map(bucket => bucket.folder(basePath).filename).toSeq
-    Logger.log("chose-buckets", folders.mkString(";"))
-    val res = if (folders.isEmpty) {
-      sqlContext.sparkContext.emptyRDD[Row];
-    } else {
-      sqlContext.sparkSession.read.format("parquet").load(folders:_*).rdd
-    }
+    val res = scanPartition(partitionTree.getBuckets(filters).toSeq:_*)
     Logger.log("partial-scan-built")
     res
   }
 
-  private def scanPartition(partition: Bucket) : RDD[Row]
-    = scanPartition(partition.folder(basePath))
-  private def scanPartition(folder: PartitionFolder): RDD[Row]
-    = sqlContext.sparkSession.read.format("parquet").load(folder.filename).rdd
+  private def scanPartition(partitions: Bucket*) : RDD[Row]
+    = scanFolder(partitions.map(bucket => bucket.folder(basePath)):_*)
+
+  private def scanFolder(folders: PartitionFolder*) : RDD[Row] = {
+    Logger.log("chose-buckets", folders.mkString(";"))
+    val rdds = folders.map(folder => LocalSchemaInputFormat.read(sqlContext.sparkContext, schema, folder))
+    rdds.length match {
+      case 0 => sqlContext.sparkContext.emptyRDD[Row]
+      case 1 => rdds(0)
+      case _ => sqlContext.sparkContext.union(rdds)
+    }
+  }
 
 }
 

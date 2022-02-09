@@ -16,7 +16,7 @@ object CompleteScanWaves {
       
       Logger.log("completeWaves-start")
       val df = spark.read.format(JobConfig.wavesFormat).load(JobConfig.wavesPath)
-      val count = df.filter(col(JobConfig.completeScanColumn).startsWith("xx")).count()
+      val count = df.filter(col(JobConfig.completeScanColumn).startsWith(JobConfig.completeScanValue)).count()
       Logger.log("completeWaves-end", count)
 
       Logger.log("job-end")

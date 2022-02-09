@@ -16,7 +16,7 @@ object CompleteScanNormal {
       
       Logger.log("completeParquet-start")
       val df = spark.read.format(JobConfig.parquetFormat).load(JobConfig.parquetPath)
-      val count = df.filter(col(JobConfig.completeScanColumn).startsWith("xx")).count()
+      val count = df.filter(col(JobConfig.completeScanColumn).startsWith(JobConfig.completeScanValue)).count()
       Logger.log("completeParquet-end", count)
 
       Logger.log("job-end")

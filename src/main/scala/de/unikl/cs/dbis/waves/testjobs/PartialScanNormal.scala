@@ -16,7 +16,7 @@ object PartialScanNormal {
       
       Logger.log("partialParquet-start")
       val df = spark.read.format(JobConfig.parquetFormat).load(JobConfig.parquetPath)
-      val count = df.filter(col(JobConfig.partialScanColumn).startsWith("xx")).count()
+      val count = df.filter(col(JobConfig.partialScanColumn).startsWith(JobConfig.partialScanValue)).count()
       Logger.log("partialParquet-end", count)
 
       Logger.log("job-end")

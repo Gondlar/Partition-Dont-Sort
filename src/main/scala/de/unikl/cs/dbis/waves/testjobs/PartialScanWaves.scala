@@ -16,7 +16,7 @@ object PartialScanWaves {
       
       Logger.log("partialWaves-start")
       val df = spark.read.format(JobConfig.wavesFormat).load(JobConfig.wavesPath)
-      val count = df.filter(col(JobConfig.partialScanColumn).startsWith("xx")).count()
+      val count = df.filter(col(JobConfig.partialScanColumn).startsWith(JobConfig.partialScanValue)).count()
       Logger.log("partialWaves-end", count)
 
       Logger.log("job-end")

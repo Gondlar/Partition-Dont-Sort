@@ -8,5 +8,7 @@ object JobConfig {
   val wavesFormat = "de.unikl.cs.dbis.waves"
 
   val completeScanColumn = "user.name"
+  val completeScanValue = "xx"
   val partialScanColumn = "quoted_status.user.name"
+  val partialScanValue = "xx"
 }

@@ -50,7 +50,7 @@ class WavesRelation private (
     partitionTree.replace(partition, newPartitionTree)
 
     val error = sqlContext.sparkContext
-                          .runJob( scanPartition(partition)
+                          .runJob( scanPartition(Array.empty, partition)
                                  , WavesRelation.makeRepartitionJob( partitionSchema
                                                                    , key
                                                                    , partitionWithKey.filename
@@ -74,24 +74,24 @@ class WavesRelation private (
 
   override def buildScan(): RDD[Row] = {
     Logger.log("complete-scan")
-    val res = scanPartition(partitionTree.getBuckets().toSeq:_*)
+    val res = scanPartition(Array.empty, partitionTree.getBuckets().toSeq:_*)
     Logger.log("complete-scan-built")
     res
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     Logger.log("partial-scan")
-    val res = scanPartition(partitionTree.getBuckets(filters).toSeq:_*)
+    val res = scanPartition(filters, partitionTree.getBuckets(filters).toSeq:_*)
     Logger.log("partial-scan-built")
     res
   }
 
-  private def scanPartition(partitions: Bucket*) : RDD[Row]
-    = scanFolder(partitions.map(bucket => bucket.folder(basePath)):_*)
+  private def scanPartition(filters: Array[Filter], partitions: Bucket*) : RDD[Row]
+    = scanFolder(filters, partitions.map(bucket => bucket.folder(basePath)):_*)
 
-  private def scanFolder(folders: PartitionFolder*) : RDD[Row] = {
+  private def scanFolder(filters: Array[Filter], folders: PartitionFolder*) : RDD[Row] = {
     Logger.log("chose-buckets", folders.mkString(";"))
-    val rdds = folders.map(folder => LocalSchemaInputFormat.read(sqlContext.sparkContext, schema, folder))
+    val rdds = folders.map(folder => LocalSchemaInputFormat.read(sqlContext.sparkContext, schema, folder, filters))
     rdds.length match {
       case 0 => sqlContext.sparkContext.emptyRDD[Row]
       case 1 => rdds(0)

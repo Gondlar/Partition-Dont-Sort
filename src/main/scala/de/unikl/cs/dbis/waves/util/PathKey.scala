@@ -1,6 +1,8 @@
 package de.unikl.cs.dbis.waves.util
 
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.DataType
 
 final case class PathKey(identifiers: Seq[String]) {
     //assert(!identifiers.empty)
@@ -47,6 +49,22 @@ final case class PathKey(identifiers: Seq[String]) {
             }
         }
         Right(res.orElse(Some(currentRow)).get)
+    }
+
+    def retrieveFrom(tpe : StructType) : Option[DataType] = {
+        var currentType : Option[DataType] = Some(tpe)
+        for (step <- identifiers) {
+            currentType = currentType.flatMap(tpe => {
+                try {
+                    val struct = tpe.asInstanceOf[StructType]
+                    Some(struct.fieldIndex(step))
+                } catch {
+                    case e: IllegalArgumentException => None
+                    case e: ClassCastException => None
+                }
+            }).map(index => currentType.get.asInstanceOf[StructType].fields(index).dataType)
+        }
+        currentType
     }
 }
 

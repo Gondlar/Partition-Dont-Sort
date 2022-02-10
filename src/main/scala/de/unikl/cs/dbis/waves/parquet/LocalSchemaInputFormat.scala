@@ -36,12 +36,15 @@ class LocalSchemaInputFormat
 extends ParquetInputFormat[Row](classOf[LocalScheaReadSupport])
 
 object LocalSchemaInputFormat {
-    def read(sc : SparkContext, globalSchema : StructType, folder : PartitionFolder, filters : Array[Filter] = Array.empty) : RDD[Row] = {
+    def read(sc : SparkContext, globalSchema : StructType, folder : PartitionFolder, projection : Array[Int] = null, filters : Array[Filter] = Array.empty) : RDD[Row] = {
         val conf = new Configuration(sc.hadoopConfiguration)
         conf.set(LocalSchemaRecordMaterializer.CONFIG_KEY_SCHEMA, globalSchema.toDDL)
         sparkToParquetFilter(filters, globalSchema) match {
             case Some(filter) => ParquetInputFormat.setFilterPredicate(conf, filter)
             case None => ()
+        }
+        if (projection != null) {
+            conf.set(LocalSchemaRecordMaterializer.CONFIG_KEY_PROJECTION, projection.mkString(","))
         }
         //TODO predicate pushdown
         sc.newAPIHadoopFile( folder.filename

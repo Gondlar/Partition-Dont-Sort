@@ -19,12 +19,26 @@ class LocalSchemaRecordMaterializer private (val root : RowConverter = null) ext
 object  LocalSchemaRecordMaterializer {
     def apply(config : Configuration) : LocalSchemaRecordMaterializer = {
         val globalSchema = StructType.fromDDL(config.get(CONFIG_KEY_SCHEMA))
-        val materializer = new LocalSchemaRecordMaterializer(RowConverter(globalSchema))
+        val projectedSchema = loadProjectedSchema(config, globalSchema).getOrElse(globalSchema)
+        val materializer = new LocalSchemaRecordMaterializer(RowConverter(projectedSchema))
         materializer.root.setPush((result : Any) => {
             materializer.row = result.asInstanceOf[Row]
         })
         materializer
     }
 
+    def loadProjectedSchema(config : Configuration) : Option[StructType] = {
+        val globalSchema = StructType.fromDDL(config.get(CONFIG_KEY_SCHEMA))
+        loadProjectedSchema(config, globalSchema)
+    }
+
+    def loadProjectedSchema(config : Configuration, globalSchema : StructType) : Option[StructType] = {
+        if (config.get(LocalSchemaRecordMaterializer.CONFIG_KEY_PROJECTION) != null) {
+            val indices = config.getInts(LocalSchemaRecordMaterializer.CONFIG_KEY_PROJECTION)
+            Some(StructType(indices.map(index => globalSchema(index))))
+        } else None
+    }
+
     val CONFIG_KEY_SCHEMA = "waves.globalschema"
+    val CONFIG_KEY_PROJECTION = "waves.projection"
 }

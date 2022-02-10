@@ -4,7 +4,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem,Path}
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.sources.{BaseRelation,TableScan,PrunedFilteredScan,Filter}
+import org.apache.spark.sql.sources.{BaseRelation,TableScan,PrunedScan,PrunedFilteredScan,Filter}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{SQLContext, Row}
 import org.apache.spark.util.SerializableConfiguration
@@ -24,7 +24,7 @@ class WavesRelation private (
     private var partitionTree : PartitionTree,
     private val fs : FileSystem,
     private val schemaPath : Path
-) extends BaseRelation with Serializable with TableScan with PrunedFilteredScan {
+) extends BaseRelation with Serializable with TableScan with PrunedScan with PrunedFilteredScan {
   assert(sqlContext != null)
 
   override def schema: StructType = partitionTree.globalSchema
@@ -50,7 +50,7 @@ class WavesRelation private (
     partitionTree.replace(partition, newPartitionTree)
 
     val error = sqlContext.sparkContext
-                          .runJob( scanPartition(Array.empty, partition)
+                          .runJob( scanPartition(partition)
                                  , WavesRelation.makeRepartitionJob( partitionSchema
                                                                    , key
                                                                    , partitionWithKey.filename
@@ -74,24 +74,36 @@ class WavesRelation private (
 
   override def buildScan(): RDD[Row] = {
     Logger.log("complete-scan")
-    val res = scanPartition(Array.empty, partitionTree.getBuckets().toSeq:_*)
+    val res = scanPartition(partitionTree.getBuckets().toSeq:_*)
     Logger.log("complete-scan-built")
+    res
+  }
+
+  override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
+    Logger.log("pruned-scan")
+    val indexes = requiredColumns.map(name => schema.fieldIndex(name))
+    val res = scanPartition(indexes, Array.empty[Filter], partitionTree.getBuckets().toSeq.toSeq:_*)
+    Logger.log("pruned-scan-built")
     res
   }
 
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
     Logger.log("partial-scan")
-    val res = scanPartition(filters, partitionTree.getBuckets(filters).toSeq:_*)
+    val indexes = requiredColumns.map(name => schema.fieldIndex(name))
+    val res = scanPartition(indexes, filters, partitionTree.getBuckets(filters).toSeq:_*)
     Logger.log("partial-scan-built")
     res
   }
 
-  private def scanPartition(filters: Array[Filter], partitions: Bucket*) : RDD[Row]
-    = scanFolder(filters, partitions.map(bucket => bucket.folder(basePath)):_*)
+  private def scanPartition(partitions: Bucket*) : RDD[Row]
+    = scanPartition(Array.empty[Int], Array.empty[Filter], partitions:_*)
 
-  private def scanFolder(filters: Array[Filter], folders: PartitionFolder*) : RDD[Row] = {
+  private def scanPartition(projection : Array[Int], filters: Array[Filter], partitions: Bucket*) : RDD[Row]
+    = scanFolder(projection, filters, partitions.map(bucket => bucket.folder(basePath)):_*)
+
+  private def scanFolder(projection : Array[Int], filters: Array[Filter], folders: PartitionFolder*) : RDD[Row] = {
     Logger.log("chose-buckets", folders.mkString(";"))
-    val rdds = folders.map(folder => LocalSchemaInputFormat.read(sqlContext.sparkContext, schema, folder, filters))
+    val rdds = folders.map(folder => LocalSchemaInputFormat.read(sqlContext.sparkContext, schema, folder, projection, filters))
     rdds.length match {
       case 0 => sqlContext.sparkContext.emptyRDD[Row]
       case 1 => rdds(0)

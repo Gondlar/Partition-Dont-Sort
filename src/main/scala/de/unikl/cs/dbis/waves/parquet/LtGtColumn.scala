@@ -13,6 +13,7 @@ import org.apache.parquet.filter2.predicate.{FilterApi,FilterPredicate}
 import org.apache.parquet.io.api.Binary
 
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.DataType
 
 import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.parquet.filter2.predicate.UserDefinedPredicate
@@ -65,15 +66,18 @@ object LtGtColumn {
         override def makeColumn(name: String): ColumnType = FilterApi.binaryColumn(name)
     }
 
-    def filter(name : String, value : Any, schema : StructType, filter : LtGtFilter) : Option[FilterPredicate]
-        = PathKey(name).retrieveFrom(schema).flatMap(tpe => tpe.typeName match {
+    def filter(name : String, value : Any, schema : StructType, f : LtGtFilter) : Option[FilterPredicate]
+        = PathKey(name).retrieveFrom(schema).flatMap(tpe => filter(name, value, tpe, f))
+
+    def filter(name : String, value : Any, tpe : DataType, filter : LtGtFilter) : Option[FilterPredicate]
+        = tpe.typeName match {
             case "string" => Some(filter[String](name, value))
             case "int" => Some(filter[Int](name, value)) //TODO currect type string?
             case "long" => Some(filter[Long](name, value))
             case "float" => Some(filter[Float](name, value))
             case "double" => Some(filter[Double](name, value))
             case _ => None // Boolean does not support LtGt
-        })
+        }
 }
 
 sealed trait LtGtFilter {
@@ -140,8 +144,11 @@ case class StartWithFilter(start: Binary) extends UserDefinedPredicate[Binary] {
 object StartWithFilter {
     def apply(start : String) = new StartWithFilter(Binary.fromString(start))
 
-    def filter(name : String, value : String, schema : StructType) : Option[FilterPredicate] = {
-        assert(PathKey(name).retrieveFrom(schema).map(tpe => tpe.typeName == "string").getOrElse(false))
+    def filter(name : String, value : String, schema : StructType) : Option[FilterPredicate]
+        = PathKey(name).retrieveFrom(schema).flatMap(tpe => filter(name, value, tpe))
+
+    def filter(name : String, value : String, tpe : DataType) : Option[FilterPredicate] = {
+        assert(tpe.typeName == "string")
         val col = FilterApi.binaryColumn(name)
         Some(FilterApi.userDefined(col, StartWithFilter(value)))
     }

@@ -13,7 +13,7 @@ import org.apache.hadoop.shaded.com.google.gson.{
 }
 import java.lang.reflect.Type
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.sources.Filter
+import org.apache.spark.sql.catalyst.expressions.Expression
 
 import de.unikl.cs.dbis.waves.PartitionFolder
 
@@ -47,7 +47,7 @@ class PartitionTree(
         visitor.iter
     }
 
-    def getBuckets(filters: Array[Filter]) = {
+    def getBuckets(filters: Iterable[Expression]) = {
         val visitor = new CollectFilteredBucketsVisitor(filters)
         root.accept(visitor)
         visitor.iter

@@ -15,7 +15,6 @@ import org.apache.parquet.io.api.Binary
 import org.apache.spark.sql.types.StructType
 
 import de.unikl.cs.dbis.waves.util.PathKey
-import org.apache.spark.sql.types.DataType
 
 sealed trait EqNeqColumn[T] {
     type ParquetType <: Comparable[ParquetType]
@@ -70,11 +69,8 @@ object EqNeqColumn {
         override def makeColumn(name: String): ColumnType = FilterApi.booleanColumn(name)
     }
 
-    def filter(name : String, value : Any, schema : StructType, f : EqNeqFilter) : Option[FilterPredicate]
-        = PathKey(name).retrieveFrom(schema).flatMap(tpe => filter(name, value, tpe, f))
-
-    def filter(name : String, value : Any, tpe : DataType, filter : EqNeqFilter) : Option[FilterPredicate]
-        = tpe.typeName match {
+    def filter(name : String, value : Any, schema : StructType, filter : EqNeqFilter) : Option[FilterPredicate]
+        = PathKey(name).retrieveFrom(schema).flatMap(tpe => tpe.typeName match {
             case "string" => Some(filter[String](name, value))
             case "int" => Some(filter[Int](name, value)) //TODO currect type string?
             case "long" => Some(filter[Long](name, value))
@@ -82,7 +78,7 @@ object EqNeqColumn {
             case "double" => Some(filter[Double](name, value))
             case "boolean" => Some(filter[Boolean](name, value))
             case _ => None
-        }
+        })
 }
 
 sealed trait EqNeqFilter {

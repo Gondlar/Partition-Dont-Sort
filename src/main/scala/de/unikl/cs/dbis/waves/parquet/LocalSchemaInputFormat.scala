@@ -6,14 +6,28 @@ import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.catalyst.CatalystTypeConverters
-import org.apache.spark.sql.catalyst.CatalystTypeConverters.convertToScala
-import org.apache.spark.sql.execution.datasources.PushableColumnAndNestedColumn
+import org.apache.spark.sql.sources.Filter
+import org.apache.spark.sql.sources.{ EqualTo
+                                    , EqualNullSafe
+                                    , GreaterThan
+                                    , GreaterThanOrEqual
+                                    , LessThan
+                                    , LessThanOrEqual
+                                    , In
+                                    , IsNull
+                                    , IsNotNull
+                                    , And
+                                    , Or
+                                    , Not
+                                    , StringStartsWith
+                                    , StringEndsWith
+                                    , StringContains
+                                    , AlwaysTrue
+                                    , AlwaysFalse
+}
 
 import org.apache.parquet.filter2.predicate.{FilterApi,FilterPredicate}
 import org.apache.parquet.hadoop.ParquetInputFormat
-import org.apache.parquet.ShouldNeverHappenException
 
 import de.unikl.cs.dbis.waves.PartitionFolder
 import de.unikl.cs.dbis.waves.util.PathKey
@@ -22,7 +36,7 @@ class LocalSchemaInputFormat
 extends ParquetInputFormat[Row](classOf[LocalScheaReadSupport])
 
 object LocalSchemaInputFormat {
-    def read(sc : SparkContext, globalSchema : StructType, folder : PartitionFolder, projection : Iterable[Int] = null, filters : Iterable[Expression] = Iterable.empty) : RDD[Row] = {
+    def read(sc : SparkContext, globalSchema : StructType, folder : PartitionFolder, projection : Array[Int] = null, filters : Array[Filter] = Array.empty) : RDD[Row] = {
         val conf = new Configuration(sc.hadoopConfiguration)
         conf.set(LocalSchemaRecordMaterializer.CONFIG_KEY_SCHEMA, globalSchema.toDDL)
         sparkToParquetFilter(filters, globalSchema) match {
@@ -44,53 +58,47 @@ object LocalSchemaInputFormat {
     def sqlEqFilter(unknownIsFalse : Boolean) : EqNeqFilter
         = if (unknownIsFalse) EqNeqFilter.eqFilter else EqNeqFilter.eqOrNullFilter
 
-    def sparkToParquetFilter(filter : Expression, schema : StructType, topLevel : Boolean) : Option[FilterPredicate] = {
-        val column = PushableColumnAndNestedColumn
+    def sparkToParquetFilter(filter : Filter, schema : StructType, unknownIsFalse : Boolean) : Option[FilterPredicate] = {
         val res = filter match {
-            case And(left, right) => for { lhs <- sparkToParquetFilter(left, schema, topLevel)
-                                                     ; rhs <- sparkToParquetFilter(right, schema, topLevel)}
-                                                 yield FilterApi.and(lhs, rhs)
+            case EqualTo(attribute, value) => EqNeqColumn.filter(attribute, value, schema, sqlEqFilter(unknownIsFalse))
+            case EqualNullSafe(attribute, value) => EqNeqColumn.filter(attribute, value, schema, EqNeqFilter.eqFilter)
+            case IsNull(attribute) => EqNeqColumn.filter(attribute, null, schema, EqNeqFilter.eqFilter)
+            case IsNotNull(attribute) => EqNeqColumn.filter(attribute, null, schema, EqNeqFilter.notEqFilter)
+            case In(attribute, values) => values.map(value => EqNeqColumn.filter(attribute, value, schema, EqNeqFilter.eqFilter))
+                                                .reduce((lhs, rhs) => for {lhsVal <- lhs; rhsVal <- rhs} yield FilterApi.or(lhsVal, rhsVal))
+            case GreaterThan(attribute, value) => LtGtColumn.filter(attribute, value, schema, LtGtFilter.gtFilter)
+            case GreaterThanOrEqual(attribute, value) => LtGtColumn.filter(attribute, value, schema, LtGtFilter.gtEqFilter)
+            case LessThan(attribute, value) => LtGtColumn.filter(attribute, value, schema, LtGtFilter.ltFilter)
+            case LessThanOrEqual(attribute, value) => LtGtColumn.filter(attribute, value, schema, LtGtFilter.gtEqFilter)
+            case StringStartsWith(attribute, value) => StartWithFilter.filter(attribute, value, schema)
+            case StringEndsWith(attribute, value) => None //TODO custom implementation?
+            case StringContains(attribute, value) => None //TODO custom implementation?
+            case And(left, right) => {
+                val lhs = sparkToParquetFilter(left, schema, false) 
+                val rhs = sparkToParquetFilter(right, schema, false)
+                lhs match {
+                    case None => rhs
+                    case Some(left_filter) => rhs match {
+                        case None => lhs
+                        case Some(right_filter) => Some(FilterApi.and(left_filter, right_filter))
+                    }
+                }
+            }
             case Or(left, right) => for { lhs <- sparkToParquetFilter(left, schema, false)
-                                                    ; rhs <- sparkToParquetFilter(right, schema, false)}
-                                                yield FilterApi.or(lhs, rhs)
+                                        ; rhs <- sparkToParquetFilter(right, schema, false)}
+                                    yield FilterApi.or(lhs, rhs)
             case Not(child) => sparkToParquetFilter(child, schema, false).map(filter => FilterApi.not(filter))
-            case EqualTo(column(name), Literal(v, t)) => EqNeqColumn.filter(name, convertToScala(v,t), schema, sqlEqFilter(topLevel))
-            case EqualTo(Literal(v, t), column(name)) => EqNeqColumn.filter(name, convertToScala(v,t), schema, sqlEqFilter(topLevel))
-            case EqualNullSafe(column(name), Literal(v, t)) => EqNeqColumn.filter(name, convertToScala(v,t), schema, EqNeqFilter.eqFilter)
-            case EqualNullSafe(Literal(v, t), column(name)) => EqNeqColumn.filter(name, convertToScala(v,t), schema, EqNeqFilter.eqFilter)
-            case IsNull(column(name)) => EqNeqColumn.filter(name, null, schema, EqNeqFilter.eqFilter) //TODO: NullIntolerant transformations
-            case IsNotNull(column(name)) => EqNeqColumn.filter(name, null, schema, EqNeqFilter.notEqFilter)
-            case In(c@column(name), values) if values.forall(_.isInstanceOf[Literal]) => {
-                val convert = CatalystTypeConverters.createToScalaConverter(c.dataType)
-                values.map(_ match {
-                    case Literal(v, _) => EqNeqColumn.filter(name, convert(v), schema, sqlEqFilter(topLevel))
-                    case _ => throw new ShouldNeverHappenException("if above assures all expressions are Literals")
-                }).reduce(for {lhs <- _; rhs <- _} yield FilterApi.or(lhs, rhs))
-            }
-            case InSet(c@column(name), values) => {
-                val convert = CatalystTypeConverters.createToScalaConverter(c.dataType)
-                values.map(v => EqNeqColumn.filter(name, convert(v), schema, sqlEqFilter(topLevel)))
-                      .reduce(for {lhs <- _; rhs <- _} yield FilterApi.or(lhs, rhs))
-            }
-            case GreaterThan(column(name), Literal(v, t)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.gtFilter)
-            case GreaterThan(Literal(v, t), column(name)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.ltFilter)
-            case LessThan(column(name), Literal(v, t)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.ltFilter)
-            case LessThan(Literal(v, t), column(name)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.gtFilter)
-            case GreaterThanOrEqual(column(name), Literal(v, t)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.gtEqFilter)
-            case GreaterThanOrEqual(Literal(v, t), column(name)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.ltEqFilter)
-            case LessThanOrEqual(column(name), Literal(v, t)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.ltEqFilter)
-            case LessThanOrEqual(Literal(v, t), column(name)) => LtGtColumn.filter(name, convertToScala(v,t), schema, LtGtFilter.gtEqFilter)
-            case StartsWith(column(name), Literal(v, t)) => StartWithFilter.filter(name, convertToScala(v,t).toString(), schema)
-            case _ => None
+            case AlwaysTrue() => None
+            case AlwaysFalse() => None //TODO can't be encoded but technically, we can skip reading, if we encounter this toplevel?
         }
         println(s"Converted $filter to $res")
         res
     }
 
-    def sparkToParquetFilter(filters : Iterable[Expression], schema : StructType) : Option[FilterPredicate] = {
+    def sparkToParquetFilter(filters : Array[Filter], schema : StructType) : Option[FilterPredicate] = {
         println(s"Pushed Filters: ${filters.mkString(" + ")}")
         val parquetFilters = filters.flatMap(f => sparkToParquetFilter(f, schema, true))
         if (parquetFilters.isEmpty) None
-        else Some(parquetFilters.reduce(FilterApi.and(_,_)))
+        else Some(parquetFilters.reduce((lhs, rhs) => FilterApi.and(lhs, rhs)))
     }
 }

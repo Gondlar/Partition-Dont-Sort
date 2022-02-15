@@ -47,7 +47,7 @@ class PartitionTree(
         visitor.iter
     }
 
-    def getBuckets(filters: Array[Filter]) = {
+    def getBuckets(filters: Iterable[Filter]) = {
         val visitor = new CollectFilteredBucketsVisitor(filters)
         root.accept(visitor)
         visitor.iter

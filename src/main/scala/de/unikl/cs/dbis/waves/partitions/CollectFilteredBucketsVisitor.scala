@@ -23,7 +23,7 @@ import org.apache.spark.sql.sources.{
 import scala.collection.mutable.ArrayBuffer
 import de.unikl.cs.dbis.waves.util.{PathKey,Ternary,TernarySet}
 
-final class CollectFilteredBucketsVisitor(val filters: Array[Filter]) extends PartitionTreeVisitor {
+final class CollectFilteredBucketsVisitor(val filters: Iterable[Filter]) extends PartitionTreeVisitor {
     private val buckets = ArrayBuffer.empty[Bucket]
 
     override def visit(bucket: Bucket) : Unit = buckets.addOne(bucket)
@@ -51,7 +51,7 @@ object CollectFilteredBucketsVisitor {
         else TernarySet.any
     }
 
-    def eval(key : PathKey, present : Boolean, filters: Array[Filter]) : TernarySet
+    def eval(key : PathKey, present : Boolean, filters: Iterable[Filter]) : TernarySet
         = filters.map(filter => eval(key, present,filter)).fold(TernarySet.any)((lhs, rhs) => lhs && rhs)
 
     def eval(key : PathKey, present : Boolean, filter: Filter) : TernarySet = filter match {

@@ -66,6 +66,9 @@ object LtGtColumn {
         override def makeColumn(name: String): ColumnType = FilterApi.binaryColumn(name)
     }
 
+    def filter(name : String, value : Any, schema : StructType, f : LtGtFilter) : Option[FilterPredicate]
+        = PathKey(name).retrieveFrom(schema).flatMap(tpe => filter(name, value, tpe, f))
+
     def filter(name : String, value : Any, tpe : DataType, filter : LtGtFilter) : Option[FilterPredicate]
         = tpe.typeName match {
             case "string" => Some(filter[String](name, value))
@@ -140,6 +143,9 @@ case class StartWithFilter(start: Binary) extends UserDefinedPredicate[Binary] {
 
 object StartWithFilter {
     def apply(start : String) = new StartWithFilter(Binary.fromString(start))
+
+    def filter(name : String, value : String, schema : StructType) : Option[FilterPredicate]
+        = PathKey(name).retrieveFrom(schema).flatMap(tpe => filter(name, value, tpe))
 
     def filter(name : String, value : String, tpe : DataType) : Option[FilterPredicate] = {
         assert(tpe.typeName == "string")

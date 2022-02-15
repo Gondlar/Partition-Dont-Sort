@@ -70,6 +70,9 @@ object EqNeqColumn {
         override def makeColumn(name: String): ColumnType = FilterApi.booleanColumn(name)
     }
 
+    def filter(name : String, value : Any, schema : StructType, f : EqNeqFilter) : Option[FilterPredicate]
+        = PathKey(name).retrieveFrom(schema).flatMap(tpe => filter(name, value, tpe, f))
+
     def filter(name : String, value : Any, tpe : DataType, filter : EqNeqFilter) : Option[FilterPredicate]
         = tpe.typeName match {
             case "string" => Some(filter[String](name, value))

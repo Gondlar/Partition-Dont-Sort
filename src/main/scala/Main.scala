@@ -1,11 +1,10 @@
-import SchemaAssumptionFactory._
-
-import de.unikl.cs.dbis.waves.{DefaultSource,WavesRelation}
+import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.Logger
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
 import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 object Main extends App {
   val conf = new SparkConf().setAppName("waves-test")
@@ -16,7 +15,7 @@ object Main extends App {
   //println(df.agg("user.id" -> "avg").head().apply(0))    // 269260424025919552
   //df.write.mode(SaveMode.Overwrite).format("de.unikl.cs.dbis.waves").save("out/")
 
-  // val relation = new DefaultSource().createRelation(spark.sqlContext, Map("path" -> "out")).asInstanceOf[WavesRelation]
+  // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())
   // Logger.log("repartition-start")
   // relation.repartition("spill", "quoted_status")
   // Logger.log("repartition-end")

@@ -1,54 +1,72 @@
 package de.unikl.cs.dbis.waves
 
-import org.apache.hadoop.fs.Path
-
-import org.apache.spark.sql.sources.{RelationProvider, BaseRelation, SchemaRelationProvider,CreatableRelationProvider}
-import org.apache.spark.sql.{SQLContext,SaveMode,DataFrame}
+import org.apache.spark.sql.connector.catalog.{Table, TableProvider}
+import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.errors.QueryExecutionErrors
+import org.apache.spark.sql.execution.datasources.FileFormat
+import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
+import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.SparkSession
 
-class DefaultSource extends RelationProvider
-                    with SchemaRelationProvider
-                    with CreatableRelationProvider {
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import java.{util => ju}
 
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String,String]): BaseRelation
-        = createRelation(sqlContext, parameters, null)
+/**
+  * Most of this class reimplements FileDataSourceV2 because we need many
+  * of its features but cannot provide a working Fallback Data Source
+  * 
+  * @see org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2
+  */
+case class DefaultSource() extends TableProvider with DataSourceRegister {
+    lazy val sparkSession = SparkSession.active
 
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String,String], schema: StructType): BaseRelation = {
-      parameters.get("path") match {
-          case None => throw new IllegalArgumentException("No Basepath specified")
-          case Some(basePath) => WavesRelation(sqlContext, basePath, schema)
-      }
-  }
+    override def shortName(): String = "waves"
 
-  override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String,String], data: DataFrame): BaseRelation = {
-      val baseDir = parameters.getOrElse("path", {
-          throw new IllegalArgumentException("No Basepath specified");
-      })
-      val path = new Path(baseDir)
-      val fs = path.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
-      if (fs.exists(path)) {
-          mode match {
-              case SaveMode.Overwrite => fs.delete(path, true)
-              case SaveMode.ErrorIfExists => sys.error("Path already exists: " + path)
-              case SaveMode.Ignore => sys.exit()
-              case SaveMode.Append => {}
-          }
-      } else {
-          fs.mkdirs(path)
-      }
+    override def supportsExternalMetadata() = true
+    override def inferPartitioning(options: CaseInsensitiveStringMap): Array[Transform]
+        = Array.empty
 
-      var relation = WavesRelation(sqlContext, baseDir, data.schema)
-      val insertLocation = relation.fastInsertLocation match {
-          case Some(value) => value
-          case None => relation.createSpillPartition()
-      }
-      relation.writePartitionScheme();
-      data.repartition(1)
-          .write
-          .mode(mode)
-          //.option("maxRecordsPerFile", 100000) //TODO proper estimate for records per file
-          .parquet(insertLocation.folder(baseDir).filename)
-      relation
-  }
-  
+    protected def getPaths(map: CaseInsensitiveStringMap): Seq[String] = {
+        val objectMapper = new ObjectMapper()
+        val paths = Option(map.get("paths")).map(pathStr =>
+            objectMapper.readValue(pathStr, classOf[Array[String]]).toSeq
+        ).getOrElse(Seq.empty)
+        paths ++ Option(map.get("path")).toSeq
+    }
+
+    private def getParameters(options : CaseInsensitiveStringMap) = {
+        val paths = getPaths(options)
+        val path = paths.size match {
+            case 0 => throw QueryExecutionErrors.dataPathNotSpecifiedError()
+            case 1 => paths(0)
+            case _ => throw QueryExecutionErrors.multiplePathsSpecifiedError(paths)
+        }
+        (path, s"waves $path")
+    }
+
+    private var table : Option[WavesTable] = None
+
+    override def inferSchema(options: CaseInsensitiveStringMap): StructType
+        = table match {
+            case Some(value) => value.schema()
+            case None => {
+                val (path, name) = getParameters(options)
+                val tbl = WavesTable(name, sparkSession, path, options)
+                val res = tbl.schema()
+                table = Some(tbl)
+                res
+            }
+        }
+
+    override def getTable(schema: StructType, transform: Array[Transform], options: ju.Map[String,String]): Table
+        = table match {
+            case Some(value) => value
+            case None => {
+                val opt = new CaseInsensitiveStringMap(options)
+                val (path, name) = getParameters(opt)
+                WavesTable(name, sparkSession, path, opt, schema)
+            }
+        }
 }

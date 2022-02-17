@@ -21,6 +21,7 @@ import java.{util => ju}
 import java.nio.charset.StandardCharsets
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ArrayBuffer
+import de.unikl.cs.dbis.waves.partitions.Bucket
 
 class WavesTable private (
     override val name : String,
@@ -80,10 +81,12 @@ class WavesTable private (
         insertLocation()
     }
 
-    def repartition(partitionName: String, key: String) = {
+    def repartition(key: String, path : String *) = {
         // Find partition
-        //This is inefficient for very large trees
-        val partition = partitionTree.getBuckets().find(bucket => bucket.name == partitionName).get
+        val partition = partitionTree.find(path) match {
+            case Some(bucket@Bucket(_)) => bucket
+            case _ => throw new RuntimeException("Partition not found")
+        }
 
         // Modify partition tree
         val partitionWithKey = PartitionFolder.makeFolder(basePath, fs)

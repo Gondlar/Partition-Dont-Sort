@@ -17,7 +17,9 @@ object Main extends App {
 
   // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())
   // Logger.log("repartition-start")
-  // relation.repartition("spill", "quoted_status")
+  // relation.repartition("quoted_status")
+  // relation.repartition("retweeted_status", "absent")
+  // relation.repartition("delete", "absent", "absent")
   // Logger.log("repartition-end")
   
   val df2 = spark.read.format("de.unikl.cs.dbis.waves").load("out/")

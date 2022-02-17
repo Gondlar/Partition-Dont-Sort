@@ -53,6 +53,12 @@ class PartitionTree(
         visitor.iter
     }
 
+    def find(path : Iterable[String]) = {
+        val visitor = new FindByPathVisitor(path)
+        root.accept(visitor)
+        visitor.result
+    }
+
     def replace(needle: TreeNode, replacement: TreeNode) = {
         val visitor = new ReplaceSubtreeVisitor(needle, replacement)
         root.accept(visitor)

@@ -120,7 +120,7 @@ object TreeNodeDeserializer extends JsonDeserializer[TreeNode] {
               kind match {
                   case Bucket.KIND => ctx.deserialize[Bucket](obj, classOf[Bucket])
                   case PartitionByInnerNode.KIND => ctx.deserialize[PartitionByInnerNode](obj, classOf[PartitionByInnerNode])
-                  case unknown => throw new JsonParseException(s"kind \"$unknown\" is unknown")
+                  case unknown => throw new JsonParseException(s"kind '$unknown' is unknown")
               }
           }
           case _ => throw new JsonParseException(s"$json is not an object")

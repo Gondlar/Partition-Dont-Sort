@@ -3,7 +3,7 @@
 
 val sparkVersion = "3.2.0"
 
-scalaVersion := "2.13.7"
+scalaVersion := "2.12.15"
 
 // That is, to create a valid sbt build, all you've got to do is define the
 // version of Scala you'd like your project to use.

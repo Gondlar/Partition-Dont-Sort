@@ -19,7 +19,7 @@ import de.unikl.cs.dbis.waves.partitions.{PartitionTree,PartitionByInnerNode}
 
 import java.{util => ju}
 import java.nio.charset.StandardCharsets
-import scala.jdk.CollectionConverters._
+import collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import de.unikl.cs.dbis.waves.partitions.Bucket
 
@@ -144,7 +144,7 @@ object WavesTable {
         val reader = fs.open(schemaPath)
         var read = 0
         while ({read = reader.read(buffer); read != -1}) {
-        res.addAll(buffer.slice(0, read))
+            res ++= buffer.slice(0, read)
         }
         new String(res.toArray, StandardCharsets.UTF_8)
     }

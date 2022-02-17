@@ -5,7 +5,7 @@ import scala.collection.mutable.ArrayBuffer
 final class CollectBucketsVisitor() extends PartitionTreeVisitor {
     private val buckets = ArrayBuffer.empty[Bucket]
 
-    override def visit(bucket: Bucket) : Unit = buckets.addOne(bucket)
+    override def visit(bucket: Bucket) : Unit = buckets += bucket
 
     override def visit(node: PartitionByInnerNode) : Unit = {
         node.absentKey.accept(this)
@@ -13,7 +13,7 @@ final class CollectBucketsVisitor() extends PartitionTreeVisitor {
     }
 
     override def visit(spill: Spill) : Unit = {
-        buckets.addOne(spill.rest)
+        buckets += spill.rest
         spill.partitioned.accept(this)
     }
 

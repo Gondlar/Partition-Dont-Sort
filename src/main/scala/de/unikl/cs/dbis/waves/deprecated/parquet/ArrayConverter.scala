@@ -18,7 +18,7 @@ class ArrayConverter[T] private (
     }
 
     private val contents = ArrayBuffer.empty[T]
-    innerConverter.setPush(v => contents.addOne(v.asInstanceOf[T]))
+    innerConverter.setPush(v => contents += v.asInstanceOf[T])
 
     override def getConverter(index: Int): Converter = {
         assert(index == 0)

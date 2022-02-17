@@ -12,7 +12,7 @@ object Logger {
     val logDir = "log"
 
     protected case class Event(name: String, time: Long, payload: String) {
-        override def toString() = s"$time,\"$name\",\"$payload\""
+        override def toString() = s"$time,'$name','$payload'"
     }
 
     private val events = ListBuffer.empty[Event]
@@ -21,7 +21,7 @@ object Logger {
     private val dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
 
     def log(name : String, payload: Any = "") = {
-        events.addOne(Event(name, now.getTime(), payload.toString))
+        events += Event(name, now.getTime(), payload.toString)
     }
 
     override def toString(): String = events.mkString("\n")

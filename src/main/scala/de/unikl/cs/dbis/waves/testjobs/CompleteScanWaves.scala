@@ -9,7 +9,7 @@ import de.unikl.cs.dbis.waves.util.Logger
 object CompleteScanWaves {
   def main(args: Array[String]) : Unit = {
       Logger.log("job-start")
-      val appName = "SystemSetupTestJob"
+      val appName = "CompleteScanWaves"
       val conf = new SparkConf().setAppName(appName)
       // conf.setMaster("local") // comment this line to run on the cluster
       val spark = SparkSession.builder().config(conf).getOrCreate()

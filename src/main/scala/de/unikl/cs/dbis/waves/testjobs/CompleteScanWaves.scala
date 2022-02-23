@@ -11,7 +11,7 @@ object CompleteScanWaves {
       Logger.log("job-start")
       val appName = "SystemSetupTestJob"
       val conf = new SparkConf().setAppName(appName)
-      conf.setMaster("local") // comment this line to run on the cluster
+      // conf.setMaster("local") // comment this line to run on the cluster
       val spark = SparkSession.builder().config(conf).getOrCreate()
       
       Logger.log("completeWaves-start")

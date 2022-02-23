@@ -8,7 +8,7 @@ object SystemSetupTestJob {
       Logger.log("job-start")
       val appName = "SystemSetupTestJob"
       val conf = new SparkConf().setAppName(appName)
-      conf.setMaster("local") // comment this line to run on the cluster
+      //conf.setMaster("local") // comment this line to run on the cluster
       val sc = new SparkContext(conf)
 
       Logger.log("test-start")

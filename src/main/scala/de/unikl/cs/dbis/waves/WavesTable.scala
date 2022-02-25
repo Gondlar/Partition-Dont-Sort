@@ -89,32 +89,34 @@ class WavesTable private (
         }
 
         // Modify partition tree
-        val partitionWithKey = PartitionFolder.makeFolder(basePath, fs)
-        val partitionWithoutKey = PartitionFolder.makeFolder(basePath, fs)
+        val partitionWithKey = PartitionFolder.makeFolder(basePath, fs, false)
+        val partitionWithoutKey = PartitionFolder.makeFolder(basePath, fs, false)
         val newNode = PartitionByInnerNode(key, partitionWithKey.name, partitionWithoutKey.name)
         partitionTree.replace(partition, newNode)
 
         // Repartition
+        val repartitionHelperColumn = "__WavesRepartitionCol__"
+        val tempFolder = PartitionFolder.makeFolder(basePath, fs)
         val df = spark.read.format("parquet").load(partition.folder(basePath).filename)
-        //This is inefficient because it neds two scans
-        val dfWithoutKey = df.filter(col(key).isNull)
-        val dfWithKey = df.filter(col(key).isNotNull)
-        var success = false
         try {
-            dfWithoutKey.write.mode(SaveMode.Overwrite).format("parquet").save(partitionWithoutKey.filename)
-            dfWithKey.write.mode(SaveMode.Overwrite).format("parquet").save(partitionWithKey.filename)
-            success = true
-        } finally {
-            if (success) {
-                partitionWithKey.moveFromTempToFinal(fs)
-                partitionWithoutKey.moveFromTempToFinal(fs)
-                //TODO delete mechanism for old folders
-                writePartitionScheme()
-            } else {
+            df.withColumn(repartitionHelperColumn, col(key).isNull)
+              .write.format("parquet")
+                    .mode(SaveMode.Overwrite)
+                    .partitionBy(repartitionHelperColumn)
+                    .save(tempFolder.filename)
+            fs.rename(new Path(s"${tempFolder.filename}/$repartitionHelperColumn=true"), partitionWithoutKey.file)
+            fs.rename(new Path(s"${tempFolder.filename}/$repartitionHelperColumn=false"), partitionWithKey.file)
+        } catch {
+            case e : Throwable => {
                 partitionWithKey.delete(fs)
                 partitionWithoutKey.delete(fs) 
+                throw e
             }
+        } finally {
+            tempFolder.delete(fs)
         }
+        //TODO delete mechanism for old folders
+        writePartitionScheme()
     }
 }
 

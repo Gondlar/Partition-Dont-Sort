@@ -29,9 +29,6 @@ object PartitionFolder {
     def makeFolder(baseDir: String, fs: FileSystem, temp: Boolean = true) = {
         val name = Random.nextLong().toHexString
         val partition = new PartitionFolder(baseDir, name, temp)
-        if(!fs.mkdirs(partition.file)) {
-            throw new IOException("mkdir failed")
-        }
         partition
     }
 }

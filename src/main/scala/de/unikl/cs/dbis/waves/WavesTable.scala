@@ -208,12 +208,23 @@ class WavesTable private (
 }
 
 object WavesTable {
+    /**
+      * Key for the partition tree option.
+      * If it is set, it must contan a JSON serialized partition tree to use with the Table. Compatibility with the given schema is
+      * not checked, use with caution.
+      */
+    val PARTITION_TREE_OPTION = "waves.schema"
+
     def makeSchemaPath(basePath : String) = new Path(s"$basePath/schema.json")
 
     def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap) = {
         val schemaPath = makeSchemaPath(basePath)
         val fs = schemaPath.getFileSystem(spark.sparkContext.hadoopConfiguration)
-        val partitionTree = if (fs.exists(schemaPath)) {
+        val schemaOption = options.get(PARTITION_TREE_OPTION)
+        val partitionTree = if (schemaOption != null) {
+            // partition tree overrides schema
+            PartitionTree.fromJson(schemaOption)
+        } else if (fs.exists(schemaPath)) {
             PartitionTree.fromJson(readSchema(schemaPath, fs))
         } else {
             throw QueryCompilationErrors.dataSchemaNotSpecifiedError("waves")
@@ -222,7 +233,13 @@ object WavesTable {
     }
 
     def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap, schema : StructType) = {
-        val partitionTree = new PartitionTree(schema)
+        val schemaOption = options.get(PARTITION_TREE_OPTION)
+        val partitionTree = if (schemaOption != null) {
+            // partition tree overrides schema
+            PartitionTree.fromJson(schemaOption)
+        } else {
+            new PartitionTree(schema)
+        }
         val fs = new Path(basePath).getFileSystem(spark.sparkContext.hadoopConfiguration)
         new WavesTable(name, spark, basePath, fs, options, partitionTree)
     }

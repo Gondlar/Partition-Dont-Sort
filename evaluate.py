@@ -118,6 +118,8 @@ total = np.sum(results, axis=0)
 totalWithoutInit = total - results[0]
 print("Complete Scan Speedup: " + str((total[0]/total[1])) + " / " + str((totalWithoutInit[0]/totalWithoutInit[1])))
 print("Partial Scan Speedup: " + str((total[2]/total[3])) + " / " + str((totalWithoutInit[2]/totalWithoutInit[3])))
+print(total)
+print(totalWithoutInit)
 
 # Plot
 plt.figure(num=None, figsize=(4,3), dpi=150)
@@ -126,7 +128,7 @@ plt.bar(ind, results[1], plot_width, label='Choose Buckets', bottom=results[0], 
 plt.bar(ind, results[2], plot_width, label='Build Scan', bottom=results[0]+results[1], capsize=3, color="gold")
 plt.bar(ind, results[3], plot_width, label='Run Query', bottom=results[0]+results[1]+results[2], capsize=3, color="tab:green")
 #plt.xticks(ind, [exp.getName() for exp in experiments])
-plt.xticks(ind, ["Complete\nParquet", "Complete\nPartitioned", "Partial\nParquet", "Partial\nPartitioned"])
+plt.xticks(ind, ["Q1\nNormal", "Q1\nPartitioned", "Q2\nNormal", "Q2\nPartitioned"])
 
 ax = plt.gca()
 formatter = matplotlib.ticker.FuncFormatter(lambda ms, x: time.strftime('%M:%S', time.gmtime(ms // 1000)))

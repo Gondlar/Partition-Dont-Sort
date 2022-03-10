@@ -39,7 +39,7 @@ class WavesTable private (
         = Set( TableCapability.BATCH_READ
              , TableCapability.BATCH_WRITE
              , TableCapability.TRUNCATE
-             ).asJava //TODO Truncate
+             ).asJava
 
     override def schema(): StructType = partitionTree.globalSchema
 

@@ -13,7 +13,7 @@ import org.apache.spark.sql.connector.write.{
 }
 import org.apache.spark.sql.sources.Filter
 
-case class WavesWriteBuilder (
+case class WavesFastWriteBuilder (
     table : WavesTable,
     logicalInfo : LogicalWriteInfo
 ) extends WriteBuilder

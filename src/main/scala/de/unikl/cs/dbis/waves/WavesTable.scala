@@ -33,6 +33,7 @@ class WavesTable private (
     options : CaseInsensitiveStringMap,
     private var partitionTree : PartitionTree
 ) extends Table with SupportsRead with SupportsWrite {
+    private val fastWrite = options.getBoolean(WavesTable.FAST_WRITE_OPTION, true)
 
     override def capabilities(): ju.Set[TableCapability]
         = Set( TableCapability.BATCH_READ
@@ -46,7 +47,8 @@ class WavesTable private (
         = new WavesScanBuilder(this, options)
     
     override def newWriteBuilder(options: LogicalWriteInfo): WriteBuilder
-        = WavesWriteBuilder(this, options)
+        = if (fastWrite) WavesFastWriteBuilder(this, options)
+          else null //TODO slow write
 
     private[waves] def makeDelegateTable(partitions : PartitionFolder*) : ParquetTable = {
         val paths = partitions.map(_.filename)
@@ -214,6 +216,8 @@ object WavesTable {
       * not checked, use with caution.
       */
     val PARTITION_TREE_OPTION = "waves.schema"
+
+    val FAST_WRITE_OPTION = "waves.fastWrite"
 
     def makeSchemaPath(basePath : String) = new Path(s"$basePath/schema.json")
 

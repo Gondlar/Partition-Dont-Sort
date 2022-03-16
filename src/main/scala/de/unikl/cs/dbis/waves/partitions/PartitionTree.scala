@@ -16,6 +16,7 @@ import org.apache.spark.sql.types.{StructType, DataType}
 import org.apache.spark.sql.sources.Filter
 
 import de.unikl.cs.dbis.waves.PartitionFolder
+import org.apache.spark.sql.catalyst.InternalRow
 
 /**
   * A partition tree represent a partitionging schema
@@ -83,6 +84,18 @@ class PartitionTree(
         val visitor = new CollectFilteredBucketsVisitor(filters)
         root.accept(visitor)
         visitor.iter
+    }
+
+    /**
+      * Find the Bucket a Row belongs to
+      *
+      * @param row the row
+      * @return the bucket
+      */
+    def getBucket(row : InternalRow) = {
+        val visitor = new FindBucketVisitor(row, globalSchema)
+        root.accept(visitor)
+        visitor.result
     }
 
     /**

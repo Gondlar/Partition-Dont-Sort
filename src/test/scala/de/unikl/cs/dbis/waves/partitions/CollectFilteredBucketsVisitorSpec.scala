@@ -20,7 +20,7 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                 visitor.iter.toStream should contain theSameElementsAs (visitor2.iter.toStream)
             }
             "find that bucket with filters" in {
-                val visitor = new CollectFilteredBucketsVisitor(Seq(IsNull("foo.bar")))
+                val visitor = new CollectFilteredBucketsVisitor(Seq(IsNull("b.d")))
                 bucket.accept(visitor)
                 visitor.iter.toStream should equal (Seq(bucket))
             }
@@ -42,7 +42,7 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                 visitor.iter.toStream should contain theSameElementsAs (visitor2.iter.toStream)
             }
             "find the split's child with filters" in {
-                val visitor = new CollectFilteredBucketsVisitor(Seq(IsNull("foo.bar")))
+                val visitor = new CollectFilteredBucketsVisitor(Seq(IsNull("b.d")))
                 split.accept(visitor)
                 visitor.iter.toStream should contain theSameElementsAs (Seq(split.absentKey))
             }
@@ -71,7 +71,7 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                 val leafs = Seq( spill.rest
                                   , spill.partitioned.asInstanceOf[SplitByPresence].absentKey
                                   )
-                val visitor = new CollectFilteredBucketsVisitor(Seq(IsNull("foo.bar")))
+                val visitor = new CollectFilteredBucketsVisitor(Seq(IsNull("b.d")))
                 spill.accept(visitor)
                 visitor.iter.toStream should contain theSameElementsAs (leafs)
             }

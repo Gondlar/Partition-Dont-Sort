@@ -93,7 +93,7 @@ class PartitionTreeSpec extends WavesSpec
             }
             "be extendable by replacing" in {
                 splitTree.replace(split.absentKey, bucket)
-                splitTree.root should equal (SplitByPresence("foo.bar", "bar2", "foo"))
+                splitTree.root should equal (SplitByPresence("b.d", "bar2", "foo"))
             }
         }
         "it starts with a spill" should {

@@ -21,8 +21,8 @@ trait PartitionTrees extends BeforeAndAfterEach
     super.beforeEach()
 
     bucket = Bucket("foo")
-    split = SplitByPresence("foo.bar", "bar2", "baz2")
-    spill = Spill(SplitByPresence("foo.bar", "bar2", "baz2"), Bucket("foo3"))
+    split = SplitByPresence("b.d", "bar2", "baz2")
+    spill = Spill(SplitByPresence("b.d", "bar2", "baz2"), Bucket("foo3"))
 
     bucketTree = new PartitionTree(schema, bucket)
     splitTree = new PartitionTree(schema, split)

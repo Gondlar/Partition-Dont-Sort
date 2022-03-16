@@ -62,7 +62,7 @@ class WavesTable private (
                        .toSeq
     
     private[waves] def createSpillPartition()
-        = partitionTree.createSpillPartition(() => PartitionFolder.makeFolder(basePath, fs, false).name)
+        = partitionTree.createSpillPartition(() => PartitionFolder.makeFolder(basePath, false).name)
     
     private[waves] def writePartitionScheme() = {
         val json = partitionTree.toJson.getBytes(StandardCharsets.UTF_8)
@@ -89,14 +89,14 @@ class WavesTable private (
         }
 
         // Modify partition tree
-        val partitionWithKey = PartitionFolder.makeFolder(basePath, fs, false)
-        val partitionWithoutKey = PartitionFolder.makeFolder(basePath, fs, false)
+        val partitionWithKey = PartitionFolder.makeFolder(basePath, false)
+        val partitionWithoutKey = PartitionFolder.makeFolder(basePath, false)
         val newNode = PartitionByInnerNode(key, partitionWithKey.name, partitionWithoutKey.name)
         partitionTree.replace(partition, newNode)
 
         // Repartition
         val repartitionHelperColumn = "__WavesRepartitionCol__"
-        val tempFolder = PartitionFolder.makeFolder(basePath, fs)
+        val tempFolder = PartitionFolder.makeFolder(basePath)
         val df = spark.read.format("parquet").load(partition.folder(basePath).filename)
         try {
             df.withColumn(repartitionHelperColumn, col(key).isNull)

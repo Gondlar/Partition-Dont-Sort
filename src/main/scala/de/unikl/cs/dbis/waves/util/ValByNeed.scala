@@ -10,12 +10,13 @@ class ValByNeed[T](
         case None => f(init())
     })
 
-    def modify(f : T => Unit) = contents match {
+    def modify[R](f : T => R) : R = contents match {
         case Some(value) => f(value)
         case None => {
             val v = init()
-            f(v)
+            val res = f(v)
             contents = Some(v)
+            res
         }
     }
 
@@ -24,8 +25,8 @@ class ValByNeed[T](
         case None => None
     }
 
-    def optionalModify(f : T => Unit) = contents match {
-        case Some(value) => f(value)
-        case None => ()
+    def optionalModify[R](f : T => R) : Option[R] = contents match {
+        case Some(value) => Some(f(value))
+        case None => None
     }
 }

@@ -4,12 +4,17 @@ import org.scalatest.BeforeAndAfterEach
 import org.apache.spark.sql.types.{StructType, StructField, IntegerType}
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.scalatest.Suite
+import org.apache.spark.sql.catalyst.CatalystTypeConverters
+import org.apache.spark.sql.catalyst.InternalRow
 
 trait Schema extends BeforeAndAfterEach { this: Suite =>
 
   var schema : StructType = null
   var innerSchema : StructType = null
   var data : Seq[GenericRowWithSchema] = null
+  var internalData : Seq[InternalRow] = null
+
+  var encoder : GenericRowWithSchema => InternalRow = null
 
   var innerSchemaNonoptional : StructType = null
   var schemaNonoptional : StructType = null
@@ -35,6 +40,7 @@ trait Schema extends BeforeAndAfterEach { this: Suite =>
                            , StructField("b", innerSchema, true)
                            , StructField("e", IntegerType, false)
                            ))
+    encoder = CatalystTypeConverters.createToCatalystConverter(schema)(_).asInstanceOf[InternalRow]
     data = Seq( makeEntry(true,  true,  true)
               , makeEntry(true,  true,  false)
               , makeEntry(true,  false, true)
@@ -44,6 +50,7 @@ trait Schema extends BeforeAndAfterEach { this: Suite =>
               , makeEntry(false, false, true)
               , makeEntry(false, false, false)
               )
+    internalData = data.map(encoder)
     innerSchemaNonoptional = StructType(Seq( StructField("c", IntegerType, false)
                                            , StructField("d", IntegerType, false)
                                            ))

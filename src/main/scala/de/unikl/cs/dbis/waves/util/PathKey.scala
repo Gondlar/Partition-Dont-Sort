@@ -3,6 +3,7 @@ package de.unikl.cs.dbis.waves.util
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.catalyst.InternalRow
 
 /**
   * This class represents a Path into a structured object
@@ -96,38 +97,27 @@ final case class PathKey(identifiers: Seq[String]) {
     }
 
     /**
-      * Retrieve the node referred to by this PathKey in the given Row.
-      * 
-      * If the node is absent (because it or one of its ancestors is optional)
-      * return its definition level instead. The definition level is the number
-      * steps in the path that were actually present. Note that the that value
-      * may differ from the definition level recorded in Parquet because we count
-      * all steps rather than only optional ones.
+      * Retrieve the node referred to by this PathKey in the given Row and its schema.
       *
       * @param row The row to retrieve data from
-      * @return The definition level if the referenced node is absent, otherwise
-      *         its data.
+      * @param schema The schema of that row
+      * @return The data if it is present, otherwise None
       * @throws IllegalArgumentException if this path is not part of the row's schema
       */
-    def retrieveFrom(row: Row) : Either[Int,Any] = {
-        var currentRow = row
-        var res : Option[Any] = Option.empty
-        var definitionLevel = 0
+    def retrieveFrom(row: InternalRow, schema : StructType) : Option[Any] = {
+        var currentType : DataType = schema
+        var currentData : Any = row
         for (step <- identifiers) {
-            currentRow.get(currentRow.fieldIndex(step)) match {
-                case null => return Left(definitionLevel)
-                case subrow: Row => {
-                    currentRow = subrow
-                    definitionLevel += 1
+            currentType match {
+                case struct@StructType(_) if currentData != null => {
+                    val index = struct.fieldIndex(step)
+                    currentData = currentData.asInstanceOf[InternalRow].get(index, currentType)
+                    currentType = struct.fields(index).dataType
                 }
-                case value => {
-                    currentRow = null
-                    definitionLevel += 1
-                    res = Some(value)
-                }
+                case _ => return None
             }
         }
-        Right(res.orElse(Some(currentRow)).get)
+        Option.apply(currentData)
     }
 
     /**
@@ -152,6 +142,8 @@ final case class PathKey(identifiers: Seq[String]) {
         }
         currentType
     }
+
+    def present(row: InternalRow, schema: StructType) = retrieveFrom(row, schema).isDefined
 }
 
 object PathKey {

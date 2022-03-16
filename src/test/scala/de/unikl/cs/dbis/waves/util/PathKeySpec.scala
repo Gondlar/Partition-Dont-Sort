@@ -3,6 +3,8 @@ package de.unikl.cs.dbis.waves.util
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.Schema
 import org.apache.spark.sql.types.IntegerType
+import org.apache.spark.sql.catalyst.CatalystTypeConverters
+import org.apache.spark.sql.catalyst.InternalRow
 
 class PathKeySpec extends WavesSpec 
     with Schema {
@@ -69,11 +71,11 @@ class PathKeySpec extends WavesSpec
 
             "retrieve the data from a row" in {
                 When("the key exists")
-                PathKey("a").retrieveFrom(data(0)) should equal (Right(5))
+                PathKey("a").retrieveFrom(internalData(0), schema) should equal (Some(5))
                 When("the key does not exist")
-                PathKey("a").retrieveFrom(data(4)) should equal (Left(0))
+                PathKey("a").retrieveFrom(internalData(4), schema) should equal (None)
                 When("the key is not part of the schema")
-                an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(data(0)))
+                an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(internalData(0), schema))
             }
 
             "retrieve a schema element from a schema" in {
@@ -140,12 +142,12 @@ class PathKeySpec extends WavesSpec
 
             "retrieve the data from a row" in {
                 When("the key exists")
-                PathKey("b.d").retrieveFrom(data(0)) should equal (Right(5))
+                PathKey("b.d").retrieveFrom(internalData(0), schema) should equal (Some(5))
                 When("the key does not exist")
-                PathKey("b.d").retrieveFrom(data(7)) should equal (Left(0))
-                PathKey("b.d").retrieveFrom(data(5)) should equal (Left(1))
+                PathKey("b.d").retrieveFrom(internalData(7), schema) should equal (None)
+                PathKey("b.d").retrieveFrom(internalData(5), schema) should equal (None)
                 When("the key is not part of the schema")
-                an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(data(0)))
+                an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(internalData(0), schema))
             }
 
             "retrieve a schema element from a schema" in {

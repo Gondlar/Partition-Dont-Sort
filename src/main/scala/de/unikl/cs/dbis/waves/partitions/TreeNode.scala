@@ -43,6 +43,11 @@ case class Bucket(name: String) extends TreeNode {
 object Bucket {
     val KIND = "bucket"
     val NAME_KEY = "name"
+
+    /**
+      * Create a new Bucket with a random name according to the PartitionFolder name chooser
+      */
+    def apply() : Bucket = Bucket(PartitionFolder.makeFolder("").name)
 }
 
 /**

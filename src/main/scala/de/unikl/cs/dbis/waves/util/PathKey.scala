@@ -15,6 +15,8 @@ final case class PathKey(identifiers: Seq[String]) {
     def tail = PathKey(identifiers.tail)
     def hasSteps = identifiers.size > 1
 
+    def prepend(step : String) = PathKey(step +: identifiers)
+
     def contains(other : PathKey) : Boolean = {
         if (other.maxDefinitionLevel < maxDefinitionLevel) false else {
             for (index <- 0 to identifiers.size-1) {

@@ -15,13 +15,13 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
-import de.unikl.cs.dbis.waves.partitions.{PartitionTree,PartitionByInnerNode}
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,PartitionByInnerNode,Bucket}
+import de.unikl.cs.dbis.waves.util.{PathKey,SchemaMetric,Logger}
 
 import java.{util => ju}
 import java.nio.charset.StandardCharsets
 import collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-import de.unikl.cs.dbis.waves.partitions.Bucket
 
 class WavesTable private (
     override val name : String,
@@ -81,13 +81,16 @@ class WavesTable private (
         insertLocation()
     }
 
-    def repartition(key: String, path : String *) = {
+    def repartition(key: String, path : String *) : Unit = {
         // Find partition
         val partition = partitionTree.find(path) match {
             case Some(bucket@Bucket(_)) => bucket
             case _ => throw new RuntimeException("Partition not found")
         }
+        repartition(key, partition)
+    }
 
+    private def repartition(key: String, partition : Bucket) : (PartitionFolder, PartitionFolder) = {
         // Modify partition tree
         val partitionWithKey = PartitionFolder.makeFolder(basePath, false)
         val partitionWithoutKey = PartitionFolder.makeFolder(basePath, false)
@@ -104,8 +107,10 @@ class WavesTable private (
                     .mode(SaveMode.Overwrite)
                     .partitionBy(repartitionHelperColumn)
                     .save(tempFolder.filename)
-            fs.rename(new Path(s"${tempFolder.filename}/$repartitionHelperColumn=true"), partitionWithoutKey.file)
-            fs.rename(new Path(s"${tempFolder.filename}/$repartitionHelperColumn=false"), partitionWithKey.file)
+            val absent = new PartitionFolder(tempFolder.filename, s"$repartitionHelperColumn=true", false)
+            if (absent.exists(fs)) absent.mv(fs, partitionWithoutKey) else partitionWithoutKey.mkdir(fs)
+            val present = new PartitionFolder(tempFolder.filename, s"$repartitionHelperColumn=false", false)
+            if (absent.exists(fs)) absent.mv(fs, partitionWithKey) else partitionWithKey.mkdir(fs)
         } catch {
             case e : Throwable => {
                 partitionWithKey.delete(fs)
@@ -117,6 +122,38 @@ class WavesTable private (
         }
         //TODO delete mechanism for old folders
         writePartitionScheme()
+        (partitionWithKey, partitionWithoutKey)
+    }
+
+    def partition(threshold : Long, sampleSize : Long) : Unit = {
+        assert(partitionTree.root.isInstanceOf[Bucket])
+
+        partition(threshold, sampleSize, Seq.empty, Seq.empty, Seq.empty)
+    }
+
+    private def partition(threshold : Long, sampleSize : Long, knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
+        // Get Current Partition data
+        val currentPartition = partitionTree.find(path).get.asInstanceOf[Bucket]
+        val currentFolder = currentPartition.folder(basePath)
+        val rate = sampleSize.toDouble/currentFolder.diskSize(fs)
+
+        // read data, calculate metric and repartition
+        var df = {
+            val tmp = spark.read.format("parquet").load(currentFolder.filename)
+            if (rate < 1) tmp.sample(rate) else tmp
+        }
+        var (_, best) = SchemaMetric.missingMetric(df.collect(), knownAbsent, knownPresent).head
+        Logger.log("partition-by", best.toString)
+        var (presentFolder, absentFolder) = repartition(best.toString, currentPartition)
+
+        // recurse if data is larger than threshold
+        val adaptedThreshold = if (rate < 1) threshold * rate else threshold
+        Logger.log("partiton-present")
+        if (presentFolder.diskSize(fs) > adaptedThreshold)
+            partition(threshold, sampleSize, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
+        Logger.log("partition-absent")
+        if (absentFolder.diskSize(fs) > adaptedThreshold)
+            partition(threshold, sampleSize, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
     }
 }
 

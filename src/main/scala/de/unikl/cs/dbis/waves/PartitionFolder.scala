@@ -52,6 +52,9 @@ class PartitionFolder(val baseDir: String, val name: String, var isTemporary: Bo
         val loc = file
         fs.exists(loc) && fs.getFileStatus(loc).isDirectory()
     }
+    def mv(fs: FileSystem, destination : PartitionFolder) = fs.rename(file, destination.file)
+
+    def diskSize(fs: FileSystem) = fs.getContentSummary(file).getLength()
 }
 
 object PartitionFolder {

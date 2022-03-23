@@ -142,8 +142,13 @@ class WavesTable private (
             val tmp = spark.read.format("parquet").load(currentFolder.filename)
             if (rate < 1) tmp.sample(rate) else tmp
         }
-        var (_, best) = SchemaMetric.missingMetric(df.collect(), knownAbsent, knownPresent).head
-        Logger.log("partition-by", best.toString)
+        var (metric, best) = SchemaMetric.missingMetric(df.collect(), knownAbsent, knownPresent).head
+        Logger.log("partition-by", s"${best.toString} with $metric")
+        if (metric == 0) {
+            // best metricis 0, no further improvements possible
+            Logger.log("partition-abort")
+            return
+        }
         var (presentFolder, absentFolder) = repartition(best.toString, currentPartition)
 
         // recurse if data is larger than threshold

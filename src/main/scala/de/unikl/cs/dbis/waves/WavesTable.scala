@@ -113,9 +113,9 @@ class WavesTable private (
                     .partitionBy(repartitionHelperColumn)
                     .save(tempFolder.filename)
             val absent = new PartitionFolder(tempFolder.filename, s"$repartitionHelperColumn=true", false)
-            if (absent.exists(fs)) absent.mv(fs, partitionWithoutKey) else partitionWithoutKey.mkdir(fs)
+            partitionWithoutKey.moveFrom(absent, fs)
             val present = new PartitionFolder(tempFolder.filename, s"$repartitionHelperColumn=false", false)
-            if (absent.exists(fs)) absent.mv(fs, partitionWithKey) else partitionWithKey.mkdir(fs)
+            partitionWithKey.moveFrom(present, fs)
         } catch {
             case e : Throwable => {
                 partitionWithKey.delete(fs)

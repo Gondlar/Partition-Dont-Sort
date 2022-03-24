@@ -33,6 +33,14 @@ class PartitionFolder(val baseDir: String, val name: String, var isTemporary: Bo
         isTemporary = false
     }
 
+    /**
+      * Moves the contents of the source here. If the source does not
+      * exist, create an empty folder instead
+      */
+    def moveFrom(source: PartitionFolder, fs: FileSystem) = {
+        if (source.exists(fs)) source.mv(fs, this) else mkdir(fs)
+    }
+
     def copyContentsFrom(other: PartitionFolder, fs: FileSystem) = {
         assert(other != this)
 

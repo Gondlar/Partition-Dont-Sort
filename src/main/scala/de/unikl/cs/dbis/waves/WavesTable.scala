@@ -81,6 +81,11 @@ class WavesTable private (
         insertLocation()
     }
 
+    def diskSize() : Long = {
+        val foo = partitionTree.getBuckets()
+        foo.map(_.folder(basePath).diskSize(fs)).sum
+    }
+
     def repartition(key: String, path : String *) : Unit = {
         // Find partition
         val partition = partitionTree.find(path) match {

@@ -21,6 +21,7 @@ object Main extends App {
   // relation.partition( 2*1024*1024 //spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)
   //                   , 10*1024*1024
   //                   , SchemaMetric.switchMetric _)
+  // relation.defrag()
   // relation.repartition("quoted_status")
   // relation.repartition("retweeted_status", "absent")
   // relation.repartition("delete", "absent", "absent")

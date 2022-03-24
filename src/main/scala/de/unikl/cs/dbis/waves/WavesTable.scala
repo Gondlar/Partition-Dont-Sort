@@ -168,6 +168,31 @@ class WavesTable private (
             }
         }
     }
+
+    def defrag() = {
+        for (bucket <-partitionTree.getBuckets()) {
+            val defraggedPartition = PartitionFolder.makeFolder(basePath, false)
+            try {
+                spark.read
+                    .format("parquet")
+                    .schema(partitionTree.globalSchema)
+                    .load(bucket.folder(basePath).filename)
+                    .repartition(1)
+                    .write
+                    .mode(SaveMode.Overwrite)
+                    .format("parquet")
+                    .save(defraggedPartition.filename)
+                val newNode = Bucket(defraggedPartition.name)
+                partitionTree.replace(bucket, newNode)
+                writePartitionScheme()
+            } catch {
+                case e : Throwable => {
+                    defraggedPartition.delete(fs)
+                    throw e
+                }
+            }
+        }
+    }
 }
 
 object WavesTable {

@@ -1,5 +1,6 @@
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.Logger
+import de.unikl.cs.dbis.waves.util.SchemaMetric
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
@@ -18,7 +19,8 @@ object Main extends App {
   // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())
   // Logger.log("repartition-start")
   // relation.partition( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)/372
-  //                   , 10*1024*1024)
+  //                   , 10*1024*1024
+  //                   , SchemaMetric.switchMetric(_,_,_))
   // relation.repartition("quoted_status")
   // relation.repartition("retweeted_status", "absent")
   // relation.repartition("delete", "absent", "absent")

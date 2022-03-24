@@ -2,7 +2,7 @@ package de.unikl.cs.dbis.waves
 
 import org.apache.hadoop.fs.{Path,FileSystem}
 
-import org.apache.spark.sql.{SparkSession,SaveMode}
+import org.apache.spark.sql.{SparkSession,SaveMode,Row}
 import org.apache.spark.sql.connector.catalog.{Table,TableCapability,SupportsRead,SupportsWrite}
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo,WriteBuilder,SupportsTruncate}
@@ -125,13 +125,13 @@ class WavesTable private (
         (partitionWithKey, partitionWithoutKey)
     }
 
-    def partition(threshold : Long, sampleSize : Long) : Unit = {
+    def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey]) => Seq[(Int, PathKey)]) : Unit = {
         assert(partitionTree.root.isInstanceOf[Bucket])
 
-        partition(threshold, sampleSize, Seq.empty, Seq.empty, Seq.empty)
+        partition(threshold, sampleSize, metric, Seq.empty, Seq.empty, Seq.empty)
     }
 
-    private def partition(threshold : Long, sampleSize : Long, knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
+    private def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey]) => Seq[(Int, PathKey)], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
         // Get Current Partition data
         val currentPartition = partitionTree.find(path).get.asInstanceOf[Bucket]
         val currentFolder = currentPartition.folder(basePath)
@@ -142,9 +142,9 @@ class WavesTable private (
             val tmp = spark.read.format("parquet").load(currentFolder.filename)
             if (rate < 1) tmp.sample(rate) else tmp
         }
-        var (metric, best) = SchemaMetric.missingMetric(df.collect(), knownAbsent, knownPresent).head
+        var (value, best) = metric(df.collect(), knownAbsent, knownPresent).head
         Logger.log("partition-by", s"${best.toString} with $metric")
-        if (metric == 0) {
+        if (value == 0) {
             // best metricis 0, no further improvements possible
             Logger.log("partition-abort")
             return
@@ -155,10 +155,10 @@ class WavesTable private (
         val adaptedThreshold = if (rate < 1) threshold * rate else threshold
         Logger.log("partiton-present")
         if (presentFolder.diskSize(fs) > adaptedThreshold)
-            partition(threshold, sampleSize, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
+            partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
         Logger.log("partition-absent")
         if (absentFolder.diskSize(fs) > adaptedThreshold)
-            partition(threshold, sampleSize, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
+            partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
     }
 }
 

@@ -193,6 +193,19 @@ class WavesTable private (
             }
         }
     }
+
+    def vacuum() = {
+        val partitions = partitionTree.getBuckets().map(_.name).toSeq
+        println(partitions)
+        for (file <- fs.listStatus(new Path(basePath))) {
+            val path = file.getPath()
+            println(path)
+            if (file.isDirectory() && !partitions.contains(path.getName())) {
+                println("deleting...")
+                fs.delete(path, true)
+            }
+        }
+    }
 }
 
 object WavesTable {

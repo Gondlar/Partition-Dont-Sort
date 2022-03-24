@@ -22,6 +22,7 @@ object Main extends App {
   //                   , 10*1024*1024
   //                   , SchemaMetric.switchMetric _)
   // relation.defrag()
+  // relation.vacuum()
   // relation.repartition("quoted_status")
   // relation.repartition("retweeted_status", "absent")
   // relation.repartition("delete", "absent", "absent")

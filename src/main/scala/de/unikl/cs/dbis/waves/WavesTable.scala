@@ -143,26 +143,29 @@ class WavesTable private (
         val rate = sampleSize.toDouble/currentFolder.diskSize(fs)
 
         // read data, calculate metric and repartition
-        var df = {
-            val tmp = spark.read.format("parquet").load(currentFolder.filename)
+        val data = {
+            val tmp = spark.read.format("parquet").schema(partitionTree.globalSchema).load(currentFolder.filename)
             if (rate < 1) tmp.sample(rate) else tmp
+        }.collect()
+        println(s"$path -> ${currentFolder.name}: ${currentFolder.diskSize(fs)} / $threshold with ${data.size} entries")
+        if (data.size < 2) {
+            Logger.log("partition-abort", "less than 2 entries in partition")
+            return
         }
-        var (value, best) = metric(df.collect(), knownAbsent, knownPresent).head
+        var (value, best) = metric(data, knownAbsent, knownPresent).head
         Logger.log("partition-by", s"${best.toString} with $metric")
         if (value == 0) {
-            // best metricis 0, no further improvements possible
-            Logger.log("partition-abort")
+            Logger.log("partition-abort", "metric shows no improvement")
             return
         }
         var (presentFolder, absentFolder) = repartition(best.toString, currentPartition)
 
         // recurse if data is larger than threshold
-        val adaptedThreshold = if (rate < 1) threshold * rate else threshold
         Logger.log("partiton-present")
-        if (presentFolder.diskSize(fs) > adaptedThreshold)
+        if (presentFolder.diskSize(fs) > threshold)
             partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
         Logger.log("partition-absent")
-        if (absentFolder.diskSize(fs) > adaptedThreshold)
+        if (absentFolder.diskSize(fs) > threshold)
             partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
     }
 }

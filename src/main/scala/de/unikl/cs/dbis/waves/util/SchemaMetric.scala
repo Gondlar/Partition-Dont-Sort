@@ -105,13 +105,29 @@ object SchemaMetric {
     def scale(obj: SchemaMetric[Int]) : SchemaMetric[Int]
         = SchemaMetric.mult(obj, obj.leafCounts)
 
-    def missingMetric(data: Array[Row], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey]) = {
-        val counts = data.map(row => SchemaMetric.presentToCount(SchemaMetric(row)))
-                         .reduce(SchemaMetric.sum(_,_))
-        SchemaMetric.getPaths(counts, knownAbsent, knownPresent)
+    private def allowableSplits(data: Array[Row], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], min: Int) = {
+        val max = data.size - min
+        data.map(row => SchemaMetric.presentToCount(SchemaMetric(row)))
+            .reduce(SchemaMetric.sum(_,_))
+            .toSeq
+            .filter({case (count, path) => {
+               count > min && count < max &&
+               !knownAbsent.map(_.contains(path)).fold(false)(_||_) && !knownPresent.map(_==path).fold(false)(_||_)
+            }})
     }
 
-    def switchMetric(data: Array[Row], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey]) = {
+    def evenSplitMetric(data: Array[Row], knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], min: Int) : Option[PathKey] = {
+        val splits = allowableSplits(data, knownAbsent, knownPresent, min)
+        val size = data.size
+        splits.map({case (count, path) => (count-size, path)})
+              .sortWith({case ((v1, p1), (v2, p2)) => if (v1==v2) p1.contains(p2) else v1 < v2})
+              .headOption
+              .map(_._2)
+    }
+
+    def switchMetric(data: Array[Row], knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], min: Int) : Option[PathKey] = {
+        if (data.size < 2) return None
+
         val present = data.map(SchemaMetric(_))
         var prev = present.head
         val counts = (for (row <- present.tail) yield {
@@ -119,22 +135,12 @@ object SchemaMetric {
             prev = row
             switchcount
         }).reduce(SchemaMetric.sum(_,_))
-        SchemaMetric.getPaths(counts, knownAbsent, knownPresent)
-    }
-
-    private def lt(lhs: (Int, PathKey), rhs: (Int, PathKey)) : Boolean = {
-        val (v1, p1) = lhs
-        val (v2, p2) = rhs
-        val diff = v2 - v1
-        if (diff < 0) false
-        else if (diff > 0) true
-        else p2.contains(p1)
-    }
-
-    private def getPaths(metric : SchemaMetric[Int], knownAbsent : Seq[PathKey], knownPresent : Seq[PathKey]) = {
-        val filtered = SchemaMetric.scale(metric).toSeq.filter({
-            case (_, path) => !knownAbsent.map(_.contains(path)).fold(false)(_||_) && !knownPresent.map(_==path).fold(false)(_||_)
-        })
-        filtered.sortWith(SchemaMetric.lt(_,_)).reverse
+        val splits = allowableSplits(data, knownAbsent, knownPresent, min).map(_._2)
+        SchemaMetric.scale(counts)
+                    .toSeq
+                    .filter(split => splits.contains(split._2))
+                    .sortWith({case ((v1, p1), (v2, p2)) => if (v1==v2) p1.contains(p2) else v1 > v2})
+                    .headOption
+                    .map(_._2)
     }
 }

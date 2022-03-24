@@ -130,43 +130,43 @@ class WavesTable private (
         (partitionWithKey, partitionWithoutKey)
     }
 
-    def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey]) => Seq[(Int, PathKey)]) : Unit = {
+    def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey], Int) => Option[PathKey]) : Unit = {
         assert(partitionTree.root.isInstanceOf[Bucket])
 
         partition(threshold, sampleSize, metric, Seq.empty, Seq.empty, Seq.empty)
     }
 
-    private def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey]) => Seq[(Int, PathKey)], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
+    private def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey], Int) => Option[PathKey], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
         // Get Current Partition data
         val currentPartition = partitionTree.find(path).get.asInstanceOf[Bucket]
         val currentFolder = currentPartition.folder(basePath)
-        val rate = sampleSize.toDouble/currentFolder.diskSize(fs)
+        val diskSize = currentFolder.diskSize(fs)
+        val sampleRate = sampleSize.toDouble/diskSize
+        val cutoff = (threshold*0.9)/diskSize
 
         // read data, calculate metric and repartition
         val data = {
             val tmp = spark.read.format("parquet").schema(partitionTree.globalSchema).load(currentFolder.filename)
-            if (rate < 1) tmp.sample(rate) else tmp
+            if (sampleRate < 1) tmp.sample(sampleRate) else tmp
         }.collect()
-        println(s"$path -> ${currentFolder.name}: ${currentFolder.diskSize(fs)} / $threshold with ${data.size} entries")
-        if (data.size < 2) {
-            Logger.log("partition-abort", "less than 2 entries in partition")
-            return
-        }
-        var (value, best) = metric(data, knownAbsent, knownPresent).head
-        Logger.log("partition-by", s"${best.toString} with $metric")
-        if (value == 0) {
-            Logger.log("partition-abort", "metric shows no improvement")
-            return
-        }
-        var (presentFolder, absentFolder) = repartition(best.toString, currentPartition)
+        println(s"$path -> ${currentFolder.name}: ${diskSize.toDouble/threshold} with ${data.size} entries")
+        metric(data, knownAbsent, knownPresent, (cutoff*data.size).toInt) match {
+            case None => Logger.log("partition-abort", "metric shows no improvement")
+            case Some(best) => {
+                Logger.log("partition-by", best.toString)
+                var (presentFolder, absentFolder) = repartition(best.toString, currentPartition)
 
-        // recurse if data is larger than threshold
-        Logger.log("partiton-present")
-        if (presentFolder.diskSize(fs) > threshold)
-            partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
-        Logger.log("partition-absent")
-        if (absentFolder.diskSize(fs) > threshold)
-            partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
+                // recurse if data is larger than threshold
+                val presentSize = presentFolder.diskSize(fs)
+                Logger.log("partiton-present", presentSize/threshold.toDouble)
+                if (presentSize > threshold)
+                    partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
+                val absentSize = absentFolder.diskSize(fs)
+                Logger.log("partition-absent", presentSize/threshold.toDouble)
+                if (absentSize > threshold)
+                    partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
+            }
+        }
     }
 }
 

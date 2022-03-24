@@ -18,9 +18,9 @@ object Main extends App {
 
   // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())
   // Logger.log("repartition-start", relation.diskSize())
-  // relation.partition( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)/372
+  // relation.partition( 2*1024*1024 //spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)
   //                   , 10*1024*1024
-  //                   , SchemaMetric.switchMetric(_,_,_))
+  //                   , SchemaMetric.switchMetric _)
   // relation.repartition("quoted_status")
   // relation.repartition("retweeted_status", "absent")
   // relation.repartition("delete", "absent", "absent")

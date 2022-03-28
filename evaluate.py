@@ -131,11 +131,12 @@ plt.bar(ind, results[3], plot_width, label='Run Query', bottom=results[0]+result
 plt.xticks(ind, ["Q1\nNormal", "Q1\nPartitioned", "Q2\nNormal", "Q2\nPartitioned"])
 
 ax = plt.gca()
-formatter = matplotlib.ticker.FuncFormatter(lambda ms, x: time.strftime('%M:%S', time.gmtime(ms // 1000)))
+formatter = matplotlib.ticker.FuncFormatter(lambda ms, x: time.strftime('%S', time.gmtime(ms // 1000)))
 ax.yaxis.set_major_formatter(formatter)
 plt.ylabel('Runtime in Seconds')
 
 ax.legend(loc="upper right", bbox_to_anchor=(1.57, 1.03), ncol=1)
 
 plt.savefig("evaluate.png", format="png", bbox_inches='tight')
+plt.savefig("evaluate.pdf", format="pdf", bbox_inches='tight')
 plt.show()

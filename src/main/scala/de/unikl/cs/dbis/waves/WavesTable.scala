@@ -195,7 +195,7 @@ class WavesTable private (
     }
 
     def vacuum() = {
-        val partitions = partitionTree.getBuckets().map(_.name).toSeq
+        val partitions = partitionTree.getBuckets().map(_.name).toSeq :+ "spill" // leave initial spill partition for benchmark purposes
         println(partitions)
         for (file <- fs.listStatus(new Path(basePath))) {
             val path = file.getPath()

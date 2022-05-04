@@ -4,7 +4,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.Row
 import de.unikl.cs.dbis.waves.util.PathKey
 
-class ObjectCounter private (
+class ObjectCounter private[autosplit] (
     private[autosplit] val values : Array[Int]
 ) {
     def combine(other : ObjectCounter, f : (Int, Int) => Int) = {
@@ -15,7 +15,7 @@ class ObjectCounter private (
     }
 
     def map(f : Int => Int) = {
-        for (i <- 0 to values.length) {
+        for (i <- 0 to values.length-1) {
             values(i) = f(values(i))
         }
     }

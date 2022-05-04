@@ -2,6 +2,7 @@
 // The simplest possible sbt build file is just one line:
 
 val sparkVersion = "3.2.0"
+val scalatestVersion = "3.2.11"
 
 scalaVersion := "2.12.15"
 
@@ -16,7 +17,7 @@ scalaVersion := "2.12.15"
 
 // It's possible to define many kinds of settings, such as:
 
-name := "test"
+name := "Waves"
 organization := "de.uni-kl.cs.dbis"
 version := "1.0"
 
@@ -30,6 +31,8 @@ version := "1.0"
 
 libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
 libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
+libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % "test"
+libraryDependencies += "org.scalatest" %% "scalatest-wordspec" % scalatestVersion % "test"
 
 // Here, `libraryDependencies` is a set of dependencies, and by using `+=`,
 // we're adding the scala-parser-combinators dependency to the set of dependencies
@@ -43,6 +46,8 @@ libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
 // "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
+
+logBuffered in Test := false
 
 // You can use Scaladex, an index of all known published Scala libraries. There,
 // after you find the library you want, you can just copy/paste the dependency

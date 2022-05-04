@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.autosplit
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.DataType
 
 trait Metric {
     def measure(results : Array[Int])
@@ -14,7 +15,6 @@ case class PresentMetric(subject : Row) extends Metric {
     }
 
     private def setToPresenceIn(row : Row, results : Array[Int], offset : Int) : Int = {
-        assert(offset < results.length)
         var index = offset
         val schema = row.schema
         for (fieldIndex <- 0 to schema.length-1) {
@@ -55,30 +55,29 @@ case class SwitchMetric(
 
 case class LeafMetric(subject : StructType) extends Metric {
     override def measure(results: Array[Int]): Unit = {
-        val next = countLeafs(results.length-1, results, subject)
-        assert(next == -1)
+        val (pos, _) = countLeafs(subject, false, results.length-1, results)
+        assert(pos == -1)
     }
 
-    private def countLeafs(offset : Int, results: Array[Int], schema : StructType) : Int = {
-        assert(offset >= 0 && offset < results.length)
-        var pos = offset
-        var leafs = 0
-        for (field <- schema.fields.reverseIterator) {
-            field.dataType match {
-                case child : StructType => {
-                    pos = countLeafs(pos, results, child)
-                    leafs += results(pos+1)
-                }
-                case _ => {
-                    leafs += 1
-                    if (field.nullable) {
-                        results(pos) = 1
-                        pos -= 1
-                    }
+    private def countLeafs(schema : DataType, nullable : Boolean, pos: Int, results: Array[Int]) : (Int, Int) = {
+        var resultPos = pos
+        var count = 0
+        schema match {
+            case StructType(fields) => {
+                for (field <- fields.reverseIterator) {
+                    val (newPos, partCount) = countLeafs(field.dataType, field.nullable, resultPos, results)
+                    count += partCount
+                    resultPos = newPos
                 }
             }
+            case _ => {
+                count = 1
+            }
         }
-        results(pos) = leafs
-        pos - 1
+        if (nullable) {
+            results(resultPos) = count
+            resultPos -=1
+        }
+        (resultPos, count)
     }
 }

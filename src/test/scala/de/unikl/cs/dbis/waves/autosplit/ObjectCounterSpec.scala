@@ -28,7 +28,7 @@ class ObjectCounterSpec extends WavesSpec
                 When("Schema is empty")
                 val paths2 = ObjectCounter(StructType(Seq()))
                 Then("no paths are found")
-                paths2.values.length should equal (0)
+                paths2.values should have length (0)
             }
         }
         "not empty" should {

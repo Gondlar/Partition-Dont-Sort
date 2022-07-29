@@ -2,7 +2,7 @@ package de.unikl.cs.dbis.waves
 
 import org.apache.hadoop.fs.{Path,FileSystem}
 
-import org.apache.spark.sql.{SparkSession,SaveMode,Row}
+import org.apache.spark.sql.{SparkSession,SaveMode,Row,DataFrame}
 import org.apache.spark.sql.connector.catalog.{Table,TableCapability,SupportsRead,SupportsWrite}
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo,WriteBuilder,SupportsTruncate}
@@ -16,7 +16,7 @@ import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,PartitionByInnerNode,Bucket}
-import de.unikl.cs.dbis.waves.util.{PathKey,SchemaMetric,Logger}
+import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
 
 import java.{util => ju}
 import java.nio.charset.StandardCharsets
@@ -130,13 +130,13 @@ class WavesTable private (
         (partitionWithKey, partitionWithoutKey)
     }
 
-    def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey], Int) => Option[PathKey]) : Unit = {
+    def partition(threshold : Long, sampleSize : Long, metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey]) : Unit = {
         assert(partitionTree.root.isInstanceOf[Bucket])
 
         partition(threshold, sampleSize, metric, Seq.empty, Seq.empty, Seq.empty)
     }
 
-    private def partition(threshold : Long, sampleSize : Long, metric: (Array[Row], Seq[PathKey], Seq[PathKey], Int) => Option[PathKey], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
+    private def partition(threshold : Long, sampleSize : Long, metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
         // Get Current Partition data
         val currentPartition = partitionTree.find(path).get.asInstanceOf[Bucket]
         val currentFolder = currentPartition.folder(basePath)
@@ -148,9 +148,9 @@ class WavesTable private (
         val data = {
             val tmp = spark.read.format("parquet").schema(partitionTree.globalSchema).load(currentFolder.filename)
             if (sampleRate < 1) tmp.sample(sampleRate) else tmp
-        }.collect()
-        println(s"$path -> ${currentFolder.name}: ${diskSize.toDouble/threshold} with ${data.size} entries")
-        metric(data, knownAbsent, knownPresent, (cutoff*data.size).toInt) match {
+        }
+        println(s"$path -> ${currentFolder.name}: ${diskSize.toDouble/threshold}")
+        metric(data, knownAbsent, knownPresent, cutoff) match {
             case None => Logger.log("partition-abort", "metric shows no improvement")
             case Some(best) => {
                 Logger.log("partition-by", best.toString)

@@ -1,6 +1,6 @@
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.Logger
-import de.unikl.cs.dbis.waves.util.SchemaMetric
+import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
@@ -20,7 +20,7 @@ object Main extends App {
   // Logger.log("repartition-start", relation.diskSize())
   // relation.partition( 2*1024*1024 //spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)
   //                   , 10*1024*1024
-  //                   , SchemaMetric.switchMetric _)
+  //                   , AutosplitCalculator.evenHeuristic _)
   // relation.defrag()
   // relation.vacuum()
   // relation.repartition("quoted_status")

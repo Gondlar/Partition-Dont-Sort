@@ -6,7 +6,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.WavesTable
-import de.unikl.cs.dbis.waves.util.SchemaMetric
+import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
 
 object AutopartitionWavesDataSwitch {
     def main(args: Array[String]) : Unit = {
@@ -23,7 +23,7 @@ object AutopartitionWavesDataSwitch {
         Logger.log("convert-done", relation.diskSize())
         relation.partition( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
                           , JobConfig.sampleSize
-                          , SchemaMetric.switchMetric _)
+                          , AutosplitCalculator.switchHeuristic _)
         Logger.log("partition-done", relation.diskSize())
         relation.defrag()
         relation.vacuum()

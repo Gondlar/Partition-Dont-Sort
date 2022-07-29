@@ -88,13 +88,14 @@ object AutosplitCalculator {
         leafCount <-- LeafMetric(schema)
         switchCount *= leafCount
         presentCount -= (size/2)
+        presentCount.map(_.abs)
 
         val cutoff = (size/2) - min
         ObjectCounter.paths(schema)
                      .zip(presentCount.values)
                      .zip(switchCount.values)
                      .filter({ case ((path,present),_) =>
-                         present.abs < cutoff &&
+                         present < cutoff &&
                          !knownAbsent.map(_.contains(path)).fold(false)(_||_) && !knownPresent.map(_==path).fold(false)(_||_)
                      })
                      .map({ case ((path, present), switch) => (path, present, switch)})

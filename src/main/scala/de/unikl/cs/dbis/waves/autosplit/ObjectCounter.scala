@@ -12,9 +12,10 @@ import de.unikl.cs.dbis.waves.util.PathKey
   * @param values An array which holds the values for each node.
   *               The array index corresponds to an optional node's position in pre-order. 
   */
+  @SerialVersionUID(100L)
 class ObjectCounter private[autosplit] (
     private[autosplit] val values : Array[Int]
-) {
+) extends Serializable {
     /**
       * Combine two ObjectCounters by applying a function to the values of two matching nodes.
       * The results override this ObjectCounter's data. The other one stays unchanged.

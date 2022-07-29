@@ -69,20 +69,21 @@ object AutosplitCalculator {
       *
       * @param data the data to analyze
       * @param knownAbsent paths known to be absent, i.e., a path is allowable if
-                           it does not contain any of these paths as a prefix
+      *                    it does not contain any of these paths as a prefix
       * @param knownPresent paths known to be present, i.e., a path is allowable if
-                            it is not equal to one of these paths
-      * @param min threshold for path presence and absence, i.e., a path is allowable
-                   if it is present in at least min documents and absent in at least
-                   min documents 
+      *                     it is not equal to one of these paths
+      * @param thresh threshold for path presence and absence, i.e., a path is allowable
+      *               if it is present in at least thresh percent of documents and absent in
+      *               at least thresh percent of documents 
       * @return A list of allowable paths and their heuristics
       */
-    def calculate(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], min : Int) = {
+    def calculate(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
         val schema = data.schema
         val optionalCount = ObjectCounter.countOptional(schema)
         var (size, presentCount, switchCount) = data.rdd
             .mapPartitions(combine(_, optionalCount))
             .reduce(reduce _)
+        val min = (thresh*size).ceil.toInt
         
         val leafCount = ObjectCounter(optionalCount)
         leafCount <-- LeafMetric(schema)
@@ -111,8 +112,8 @@ object AutosplitCalculator {
       * @return the best path using the switch heuristic if such a path exists, otherwise None
       * @see [[calculate]] for the parameter documentation
       */
-    def switchHeuristic(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], min : Int) = {
-        val paths = calculate(data, knownAbsent, knownPresent, min)
+    def switchHeuristic(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
+        val paths = calculate(data, knownAbsent, knownPresent, thresh)
         if (paths.isEmpty) None else {
             Some(paths.maxBy({case (_, _, switch) => switch})._1)
         }
@@ -128,8 +129,8 @@ object AutosplitCalculator {
       * @return the best path using the even heuristic if such a path exists, otherwise None
       * @see [[calculate]] for the parameter documentation
       */
-    def evenHeuristic(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], min : Int) = {
-        val paths = calculate(data, knownAbsent, knownPresent, min)
+    def evenHeuristic(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
+        val paths = calculate(data, knownAbsent, knownPresent, thresh)
         if (paths.isEmpty) None else {
             Some(paths.minBy({case (_, even, _) => even})._1)
         }

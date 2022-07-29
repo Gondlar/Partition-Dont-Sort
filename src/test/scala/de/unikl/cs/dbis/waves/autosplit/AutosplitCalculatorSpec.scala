@@ -39,7 +39,7 @@ class AutosplitCalculatorSpec extends WavesSpec
             }
 
             "skip paths outside threshold" in {
-                val res = AutosplitCalculator.calculate(df, Seq.empty, Seq.empty, 3)
+                val res = AutosplitCalculator.calculate(df, Seq.empty, Seq.empty, 3/8d)
                 res should equal (Seq(
                     (PathKey("a"),   0, 0),
                     (PathKey("b"),   0, 4)

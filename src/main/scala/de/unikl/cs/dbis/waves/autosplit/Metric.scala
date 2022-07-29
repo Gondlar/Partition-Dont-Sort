@@ -4,10 +4,30 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 
+/**
+  * A Metric represents an assignment of a per-node value. 
+  */
 trait Metric {
     def measure(results : Array[Int])
 }
 
+// This design is an ugly quick-and-dirty solution.
+// The main difficulty in finding a good represenation for metrics is that they
+// need to bridge the gap between the recursive structure of a schema-tree and a 
+// linear array. Depending on the computation, the order in which nodes are
+// processed varies.
+// A better design define pre/post-order visitors for schemas and rows whose
+// functions also take state from their parent/children and can return a result for
+// optional nodes. From the outside, they can be used by an Iterator to provide values
+// in the respective order and hides the logic of doing the actual traversal.
+// This results in a nice separaton of metric calculation and storage.
+
+/**
+  * The PresentMetric measures whether a given node is present or not.
+  * The value of all present nodes is 1, all absent nodes are 0.
+  *
+  * @param subject The row to measure
+  */
 case class PresentMetric(subject : Row) extends Metric {
     override def measure(results: Array[Int]): Unit = {
         val lastIndex = setToPresenceIn(subject, results, 0)
@@ -40,6 +60,12 @@ case class PresentMetric(subject : Row) extends Metric {
     }
 }
 
+/**
+  * The SwitchMetric determines whether the presence state of corresponding nodes in two documents differs
+  *
+  * @param lhs The ObjectCounter storing the first document's [[PresentMetric]].
+  * @param rhs The ObjectCounter storing the second document's [[PresentMetric]].
+  */
 case class SwitchMetric(
     lhs : ObjectCounter,
     rhs : ObjectCounter
@@ -53,6 +79,11 @@ case class SwitchMetric(
     }
 }
 
+/**
+  * The leaf metric determines how many optional leafs are in the schema subtree rooted in the respective node
+  *
+  * @param subject the schema 
+  */
 case class LeafMetric(subject : StructType) extends Metric {
     override def measure(results: Array[Int]): Unit = {
         val (pos, _) = countLeafs(subject, false, results.length-1, results)

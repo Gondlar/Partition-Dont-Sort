@@ -53,6 +53,4 @@ trait Schema extends BeforeAndAfterEach { this: Suite =>
                                       ))
     super.beforeEach() // To be stackable, must call super.beforeEach
   }
-
-  override def afterEach() {}
 }

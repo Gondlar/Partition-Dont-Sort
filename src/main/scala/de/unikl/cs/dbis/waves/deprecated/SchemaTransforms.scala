@@ -35,7 +35,7 @@ object SchemaTransforms {
     * @return a copy of schema with the given replacement applied
     */
   private def modifyDeep(key: PathKey, schema: StructType, f: (String, StructType) => StructType) : StructType
-    = if (key.hasSteps) {
+    = if (key.isNested) {
       modifyOne(key.head, schema, partial => modifyDeep(key.tail, partial, f))
     } else f(key.head, schema)
 

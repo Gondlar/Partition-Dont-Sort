@@ -14,7 +14,7 @@ class PathKeySpec extends WavesSpec
             }
         }
         "it is not nested" should {
-            "have have that node as head" in {
+            "have that node as head" in {
                 PathKey("foo").head should equal ("foo")
             }
 

@@ -29,9 +29,9 @@ final class CollectFilteredBucketsVisitor(val filters: Iterable[Filter]) extends
     override def visit(bucket: Bucket) : Unit = buckets += bucket
 
     override def visit(node: PartitionByInnerNode) : Unit = {
-        if (CollectFilteredBucketsVisitor.eval(node.key, true, filters).canBeTrue)
+        if (CollectFilteredBucketsVisitor.eval(node.key, true, filters).isFulfillable)
             node.presentKey.accept(this)
-        if (CollectFilteredBucketsVisitor.eval(node.key, false, filters).canBeTrue)
+        if (CollectFilteredBucketsVisitor.eval(node.key, false, filters).isFulfillable)
             node.absentKey.accept(this)
     }
 

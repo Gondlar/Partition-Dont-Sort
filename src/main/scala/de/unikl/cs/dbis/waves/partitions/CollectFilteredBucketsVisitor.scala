@@ -23,6 +23,13 @@ import org.apache.spark.sql.sources.{
 import scala.collection.mutable.ArrayBuffer
 import de.unikl.cs.dbis.waves.util.{PathKey,Ternary,TernarySet}
 
+/**
+  * Find all Buckets in a PartitionTree that can contain entries
+  * satisfying a list of predicates.
+  * If no predicates are given, it behvaes like a [[CollectBucketsVisitor]]
+  *
+  * @param filters the predicates
+  */
 final class CollectFilteredBucketsVisitor(val filters: Iterable[Filter]) extends PartitionTreeVisitor {
     private val buckets = ArrayBuffer.empty[Bucket]
 

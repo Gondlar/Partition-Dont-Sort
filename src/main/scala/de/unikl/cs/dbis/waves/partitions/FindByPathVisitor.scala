@@ -1,5 +1,10 @@
 package de.unikl.cs.dbis.waves.partitions
 
+/**
+  * Find the node referenced by a path
+  *
+  * @param path the path
+  */
 final class FindByPathVisitor(
     path : Iterable[PartitionTreePath]
 ) extends PartitionTreeVisitor {

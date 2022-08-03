@@ -92,7 +92,7 @@ class PartitionTree(
       * @param path the path
       * @return the node at the end of the path or None of no such node exists
       */
-    def find(path : Iterable[String]) = {
+    def find(path : Iterable[PartitionTreePath]) = {
         val visitor = new FindByPathVisitor(path)
         root.accept(visitor)
         visitor.result

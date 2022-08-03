@@ -4,6 +4,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
+import de.unikl.cs.dbis.waves.partitions.Absent
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.WavesTable
 
@@ -22,9 +23,9 @@ object InitializeWavesData {
         Logger.log("convert-done", relation.diskSize())
         relation.repartition("quoted_status")
         Logger.log("repartition-1", relation.diskSize())
-        relation.repartition("retweeted_status", "absent")
+        relation.repartition("retweeted_status", Absent)
         Logger.log("repartition-2", relation.diskSize())
-        relation.repartition("delete", "absent", "absent")
+        relation.repartition("delete", Absent, Absent)
         Logger.log("repartition-3", relation.diskSize())
         relation.vacuum()
         Logger.log("initialize-end")

@@ -15,7 +15,9 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
-import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket}
+import de.unikl.cs.dbis.waves.partitions.{
+    PartitionTree,SplitByPresence,Bucket,PartitionTreePath,Present,Absent
+}
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
 
 import java.{util => ju}
@@ -83,7 +85,7 @@ class WavesTable private (
         foo.map(_.folder(basePath).diskSize(fs)).sum
     }
 
-    def repartition(key: String, path : String *) : Unit = {
+    def repartition(key: String, path : PartitionTreePath *) : Unit = {
         // Find partition
         val partition = partitionTree.find(path) match {
             case Some(bucket@Bucket(_)) => bucket
@@ -133,7 +135,7 @@ class WavesTable private (
         partition(threshold, sampleSize, metric, Seq.empty, Seq.empty, Seq.empty)
     }
 
-    private def partition(threshold : Long, sampleSize : Long, metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[String]) : Unit = {
+    private def partition(threshold : Long, sampleSize : Long, metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[PartitionTreePath]) : Unit = {
         // Get Current Partition data
         val currentPartition = partitionTree.find(path).get.asInstanceOf[Bucket]
         val currentFolder = currentPartition.folder(basePath)
@@ -157,11 +159,11 @@ class WavesTable private (
                 val presentSize = presentFolder.diskSize(fs)
                 Logger.log("partiton-present", presentSize/threshold.toDouble)
                 if (presentSize > threshold)
-                    partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ SplitByPresence.PRESENT_KEY)
+                    partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ Present)
                 val absentSize = absentFolder.diskSize(fs)
                 Logger.log("partition-absent", presentSize/threshold.toDouble)
                 if (absentSize > threshold)
-                    partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ SplitByPresence.ABSENT_KEY)
+                    partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ Absent)
             }
         }
     }

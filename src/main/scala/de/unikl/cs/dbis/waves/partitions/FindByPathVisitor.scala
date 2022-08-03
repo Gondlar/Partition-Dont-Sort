@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.partitions
 
 final class FindByPathVisitor(
-    path : Iterable[String]
+    path : Iterable[PartitionTreePath]
 ) extends PartitionTreeVisitor {
     private var iterator = path.iterator
     
@@ -15,10 +15,8 @@ final class FindByPathVisitor(
     override def visit(node: SplitByPresence): Unit
         = if (iterator.hasNext) {
             iterator.next match {
-                case SplitByPresence.PRESENT_KEY
-                    => node.presentKey.accept(this)
-                case SplitByPresence.ABSENT_KEY
-                    => node.absentKey.accept(this)
+                case Present => node.presentKey.accept(this)
+                case Absent => node.absentKey.accept(this)
                 case _ => res = None
             }
         } else res = Some(node)
@@ -26,10 +24,8 @@ final class FindByPathVisitor(
     override def visit(root: Spill): Unit
         = if (iterator.hasNext) {
             iterator.next match {
-                case Spill.PARTIOTIONED_KEY
-                    => root.partitioned.accept(this)
-                case Spill.REST_KEY
-                    => root.rest.accept(this)
+                case Partitioned => root.partitioned.accept(this)
+                case Rest => root.rest.accept(this)
                 case _ => res = None
             }
         } else res = Some(root)

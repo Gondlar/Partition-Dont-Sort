@@ -6,6 +6,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import de.unikl.cs.dbis.waves.partitions.Absent
 
 object Main extends App {
   val conf = new SparkConf().setAppName("waves-test")
@@ -24,8 +25,8 @@ object Main extends App {
   // relation.defrag()
   // relation.vacuum()
   // relation.repartition("quoted_status")
-  // relation.repartition("retweeted_status", "absent")
-  // relation.repartition("delete", "absent", "absent")
+  // relation.repartition("retweeted_status", Absent)
+  // relation.repartition("delete", Absent, Absent)
   // Logger.log("repartition-end", relation.diskSize())
   
   val df2 = spark.read.format("de.unikl.cs.dbis.waves").load("out/")

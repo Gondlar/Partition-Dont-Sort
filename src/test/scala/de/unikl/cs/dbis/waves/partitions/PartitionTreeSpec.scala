@@ -54,8 +54,8 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.find(Seq.empty) should equal (Some(bucket))
             }
             "not find non-existing paths" in {
-                bucketTree.find(Seq("present")) should equal (None)
-                bucketTree.find(Seq("absent", "present")) should equal (None)
+                bucketTree.find(Seq(Present)) should equal (None)
+                bucketTree.find(Seq(Absent, Present)) should equal (None)
             }
             "be extendable by replacing" in {
                 bucketTree.replace(bucket, split)
@@ -84,12 +84,12 @@ class PartitionTreeSpec extends WavesSpec
             }
             "find all valid paths" in {
                 splitTree.find(Seq.empty) should equal (Some(split))
-                splitTree.find(Seq("present")) should equal (Some(split.presentKey))
-                splitTree.find(Seq("absent")) should equal (Some(split.absentKey))
+                splitTree.find(Seq(Present)) should equal (Some(split.presentKey))
+                splitTree.find(Seq(Absent)) should equal (Some(split.absentKey))
             }
             "not find non-existing paths" in {
-                splitTree.find(Seq("spill")) should equal (None)
-                splitTree.find(Seq("absent", "present")) should equal (None)
+                splitTree.find(Seq(Rest)) should equal (None)
+                splitTree.find(Seq(Absent, Present)) should equal (None)
             }
             "be extendable by replacing" in {
                 splitTree.replace(split.absentKey, bucket)
@@ -118,12 +118,12 @@ class PartitionTreeSpec extends WavesSpec
             }
             "find the valid paths" in {
                 spillTree.find(Seq.empty) should equal (Some(spill))
-                spillTree.find(Seq("spill")) should equal (Some(spill.rest))
-                spillTree.find(Seq("tree")) should equal (Some(spill.partitioned))
+                spillTree.find(Seq(Rest)) should equal (Some(spill.rest))
+                spillTree.find(Seq(Partitioned)) should equal (Some(spill.partitioned))
             }
             "not find non-existing paths" in {
-                spillTree.find(Seq("absent")) should equal (None)
-                spillTree.find(Seq("tree", "spill")) should equal (None)
+                spillTree.find(Seq(Absent)) should equal (None)
+                spillTree.find(Seq(Partitioned, Rest)) should equal (None)
             }
             "be extendable by replacing" in {
                 spillTree.replace(spill.partitioned, bucket)

@@ -2,6 +2,10 @@ package de.unikl.cs.dbis.waves.partitions
 
 import scala.collection.mutable.ArrayBuffer
 
+/**
+  * Visitor to find all Buckets in a PartitionTree
+  *
+  */
 final class CollectBucketsVisitor() extends PartitionTreeVisitor {
     private val buckets = ArrayBuffer.empty[Bucket]
 

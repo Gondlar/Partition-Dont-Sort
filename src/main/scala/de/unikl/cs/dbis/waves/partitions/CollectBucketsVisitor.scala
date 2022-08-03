@@ -7,7 +7,7 @@ final class CollectBucketsVisitor() extends PartitionTreeVisitor {
 
     override def visit(bucket: Bucket) : Unit = buckets += bucket
 
-    override def visit(node: PartitionByInnerNode) : Unit = {
+    override def visit(node: SplitByPresence) : Unit = {
         node.absentKey.accept(this)
         node.presentKey.accept(this)
     }

@@ -12,12 +12,12 @@ final class FindByPathVisitor(
         = if (iterator.hasNext) res = None
           else res = Some(bucket)
 
-    override def visit(node: PartitionByInnerNode): Unit
+    override def visit(node: SplitByPresence): Unit
         = if (iterator.hasNext) {
             iterator.next match {
-                case PartitionByInnerNode.PRESENT_KEY
+                case SplitByPresence.PRESENT_KEY
                     => node.presentKey.accept(this)
-                case PartitionByInnerNode.ABSENT_KEY
+                case SplitByPresence.ABSENT_KEY
                     => node.absentKey.accept(this)
                 case _ => res = None
             }

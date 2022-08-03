@@ -15,7 +15,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
-import de.unikl.cs.dbis.waves.partitions.{PartitionTree,PartitionByInnerNode,Bucket}
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket}
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
 
 import java.{util => ju}
@@ -62,7 +62,7 @@ class WavesTable private (
                        .toSeq
     
     private[waves] def createSpillPartition()
-        = partitionTree.createSpillPartition(() => PartitionFolder.makeFolder(basePath, false).name)
+        = partitionTree.findOrCreateFastInsertLocation(() => PartitionFolder.makeFolder(basePath, false).name)
     
     private[waves] def writePartitionScheme() = {
         val json = partitionTree.toJson.getBytes(StandardCharsets.UTF_8)
@@ -71,10 +71,7 @@ class WavesTable private (
         out.close()
     }
 
-    private[waves] def insertLocation() = (partitionTree.fastInsertLocation match {
-            case Some(value) => value
-            case None => createSpillPartition()
-        }).folder(basePath)
+    private[waves] def insertLocation() = createSpillPartition().folder(basePath)
     
     private[waves] def truncate() = {
         partitionTree = new PartitionTree(schema)
@@ -99,7 +96,7 @@ class WavesTable private (
         // Modify partition tree
         val partitionWithKey = PartitionFolder.makeFolder(basePath, false)
         val partitionWithoutKey = PartitionFolder.makeFolder(basePath, false)
-        val newNode = PartitionByInnerNode(key, partitionWithKey.name, partitionWithoutKey.name)
+        val newNode = SplitByPresence(key, partitionWithKey.name, partitionWithoutKey.name)
         partitionTree.replace(partition, newNode)
 
         // Repartition
@@ -160,11 +157,11 @@ class WavesTable private (
                 val presentSize = presentFolder.diskSize(fs)
                 Logger.log("partiton-present", presentSize/threshold.toDouble)
                 if (presentSize > threshold)
-                    partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ PartitionByInnerNode.PRESENT_KEY)
+                    partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ SplitByPresence.PRESENT_KEY)
                 val absentSize = absentFolder.diskSize(fs)
                 Logger.log("partition-absent", presentSize/threshold.toDouble)
                 if (absentSize > threshold)
-                    partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ PartitionByInnerNode.ABSENT_KEY)
+                    partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ SplitByPresence.ABSENT_KEY)
             }
         }
     }

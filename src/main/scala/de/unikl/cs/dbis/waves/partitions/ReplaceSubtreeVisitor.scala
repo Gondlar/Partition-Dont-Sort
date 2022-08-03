@@ -26,7 +26,7 @@ final class ReplaceSubtreeVisitor(val needle: TreeNode, val replace: TreeNode) e
         if (bucket eq needle) found()
     }
 
-    override def visit(node: PartitionByInnerNode) : Unit = {
+    override def visit(node: SplitByPresence) : Unit = {
         if (node eq needle) found() else {
             node.presentKey.accept(this)
             if (replaced) {

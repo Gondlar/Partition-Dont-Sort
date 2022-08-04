@@ -43,7 +43,7 @@ final class ReplaceSubtreeVisitor(val needle: TreeNode, val replace: TreeNode) e
             spill.rest.accept(this)
             if (replaced) {
                 result match {
-                    case bucket@Bucket(_) => spill.copy(rest = bucket)
+                    case bucket@Bucket(_) => result = spill.copy(rest = bucket)
                     case _ => throw new ImpossibleReplacementException("The spill partition must be replaced with a Bucket")
                 }
             } else {

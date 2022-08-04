@@ -6,7 +6,7 @@ import de.unikl.cs.dbis.waves.PartitionTrees
 class FindByPathVisitorSpec extends WavesSpec
     with PartitionTrees {
 
-    "A CollectBucketsVisitor" when {
+    "A FindByPathVisitor" when {
         "visiting a Bucket" should {
             "find that bucket for an empty path" in {
                 val visitor = new FindByPathVisitor(Seq.empty)

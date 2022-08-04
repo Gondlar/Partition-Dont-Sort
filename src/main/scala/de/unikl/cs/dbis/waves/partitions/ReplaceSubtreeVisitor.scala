@@ -9,6 +9,7 @@ class ImpossibleReplacementException(
 
 /**
   * replaces a single instance of needle in the visited tree with replace
+  * If needle is not found, an ImpossibleReplacementException is thrown.
   *
   * @param needle
   * @param replace

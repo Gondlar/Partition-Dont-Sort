@@ -4,6 +4,8 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.catalyst.InternalRow
+import de.unikl.cs.dbis.waves.util.schema.accepters._
+import de.unikl.cs.dbis.waves.util.schema.InternalRowVisitor
 
 /**
   * This class represents a Path into a structured object
@@ -105,19 +107,25 @@ final case class PathKey(identifiers: Seq[String]) {
       * @throws IllegalArgumentException if this path is not part of the row's schema
       */
     def retrieveFrom(row: InternalRow, schema : StructType) : Option[Any] = {
-        var currentType : DataType = schema
-        var currentData : Any = row
-        for (step <- identifiers) {
-            currentType match {
-                case struct@StructType(_) if currentData != null => {
-                    val index = struct.fieldIndex(step)
-                    currentData = currentData.asInstanceOf[InternalRow].get(index, currentType)
-                    currentType = struct.fields(index).dataType
-                }
-                case _ => return None
+        var step = 0
+        var result : Option[Any] = None
+        val visitor = new InternalRowVisitor {
+            override def visitStruct(row: InternalRow)(implicit tpe: StructType): Unit = {
+                if (step < identifiers.length) {
+                    val identifier = identifiers(step)
+                    step += 1
+                    row.subAccept(identifier, this)
+                } else result = Some(row)
             }
+
+            override def visitLeaf(leaf: Any)(implicit tpe: DataType): Unit
+              = if (step == identifiers.length) result = Some(leaf)
+
+            override def visitMissing()(implicit tpe: DataType): Unit
+              = {}
         }
-        Option.apply(currentData)
+        row.accept(visitor, schema)
+        result
     }
 
     /**

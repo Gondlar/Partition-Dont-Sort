@@ -30,7 +30,7 @@ trait InternalRowVisitor {
       * @param list the list's data
       * @param tpe the list's schema
       */
-    def visitList(list : ArrayData)(implicit tpe : ArrayType) : Unit = visitLeaf _
+    def visitList(list : ArrayData)(implicit tpe : ArrayType) : Unit = visitLeaf(list)
 
     /**
       * This callback is called when a map is encountered.
@@ -41,7 +41,7 @@ trait InternalRowVisitor {
       * @param map the map's data
       * @param tpe the map's schema
       */
-    def visitMap(map : MapData)(implicit tpe : MapType) : Unit = visitLeaf _
+    def visitMap(map : MapData)(implicit tpe : MapType) : Unit = visitLeaf(map)
 
     /**
       * This callback is called when a non-nested datatype is encountered.

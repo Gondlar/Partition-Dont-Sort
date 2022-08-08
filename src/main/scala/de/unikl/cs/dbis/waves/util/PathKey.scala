@@ -4,8 +4,8 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.catalyst.InternalRow
+import de.unikl.cs.dbis.waves.util.schema.{InternalRowVisitor,DataTypeVisitor}
 import de.unikl.cs.dbis.waves.util.schema.accepters._
-import de.unikl.cs.dbis.waves.util.schema.InternalRowVisitor
 
 /**
   * This class represents a Path into a structured object
@@ -136,19 +136,23 @@ final case class PathKey(identifiers: Seq[String]) {
       *         otherwise, None. 
       */
     def retrieveFrom(tpe : StructType) : Option[DataType] = {
-        var currentType : Option[DataType] = Some(tpe)
-        for (step <- identifiers) {
-            currentType = currentType.flatMap(tpe => {
-                try {
-                    val struct = tpe.asInstanceOf[StructType]
-                    Some(struct.fieldIndex(step))
-                } catch {
-                    case e: IllegalArgumentException => None
-                    case e: ClassCastException => None
-                }
-            }).map(index => currentType.get.asInstanceOf[StructType].fields(index).dataType)
+        var step = 0
+        var result : Option[DataType] = None
+        val visitor = new DataTypeVisitor {
+            override def visitStruct(row: StructType): Unit = {
+                if (step < identifiers.length) {
+                    val identifier = identifiers(step)
+                    step += 1
+                    row.subAccept(identifier, this)
+                } else result = Some(row)
+            }
+
+            override def visitLeaf(leaf: DataType): Unit
+              = if (step == identifiers.length) result = Some(leaf)
         }
-        currentType
+        try tpe.accept(visitor)
+        catch {case e: IllegalArgumentException => return None}
+        result
     }
 
     def present(row: InternalRow, schema: StructType) = retrieveFrom(row, schema).isDefined

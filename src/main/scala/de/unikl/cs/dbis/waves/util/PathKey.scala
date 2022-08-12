@@ -51,7 +51,8 @@ final case class PathKey(identifiers: Seq[String]) {
       *
       * @return the path key
       */
-    def tail = PathKey(identifiers.tail)
+    def tail = if (identifiers.size == 1) throw new NoSuchElementException
+               else PathKey(identifiers.tail)
 
 
     /**

@@ -21,7 +21,7 @@ class PathKeySpec extends WavesSpec
             }
 
             "have no tail" in {
-                an [AssertionError] should be thrownBy (PathKey("foo").tail)
+                an [NoSuchElementException] should be thrownBy (PathKey("foo").tail)
             }
 
             "not be nested" in {

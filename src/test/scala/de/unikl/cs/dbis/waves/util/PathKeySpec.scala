@@ -80,8 +80,10 @@ class PathKeySpec extends WavesSpec
             "retrieve the data from a row" in {
                 When("the key exists")
                 PathKey("a").retrieveFrom(internalData(0), schema) should equal (Some(5))
+                PathKey("a").present(internalData(0), schema) should equal (true)
                 When("the key does not exist")
                 PathKey("a").retrieveFrom(internalData(4), schema) should equal (None)
+                PathKey("a").present(internalData(4), schema) should equal (false)
                 When("the key is not part of the schema")
                 an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(internalData(0), schema))
             }
@@ -159,9 +161,12 @@ class PathKeySpec extends WavesSpec
             "retrieve the data from a row" in {
                 When("the key exists")
                 PathKey("b.d").retrieveFrom(internalData(0), schema) should equal (Some(5))
+                PathKey("b.d").present(internalData(0), schema) should equal (true)
                 When("the key does not exist")
                 PathKey("b.d").retrieveFrom(internalData(7), schema) should equal (None)
+                PathKey("b.d").present(internalData(7), schema) should equal (false)
                 PathKey("b.d").retrieveFrom(internalData(5), schema) should equal (None)
+                PathKey("b.d").present(internalData(5), schema) should equal (false)
                 When("the key is not part of the schema")
                 an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(internalData(0), schema))
             }

@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves.util.schema
+package de.unikl.cs.dbis.waves.util.nested
 
 import org.apache.spark.sql.types.{DataType, StructType, ArrayType, MapType}
 

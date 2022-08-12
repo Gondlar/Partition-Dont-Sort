@@ -1,9 +1,9 @@
-package de.unikl.cs.dbis.waves.util
+package de.unikl.cs.dbis.waves.util.nested
+
+import rows._
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.Schema
-import de.unikl.cs.dbis.waves.util.schema.accepters._
-import de.unikl.cs.dbis.waves.util.schema.InternalRowVisitor
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType

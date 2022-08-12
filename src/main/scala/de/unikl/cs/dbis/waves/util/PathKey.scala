@@ -1,11 +1,12 @@
 package de.unikl.cs.dbis.waves.util
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.types.DataType
+import org.apache.spark.sql.types.{StructType, DataType}
 import org.apache.spark.sql.catalyst.InternalRow
-import de.unikl.cs.dbis.waves.util.schema.{InternalRowVisitor,DataTypeVisitor}
-import de.unikl.cs.dbis.waves.util.schema.accepters._
+
+import de.unikl.cs.dbis.waves.util.nested.{InternalRowVisitor,DataTypeVisitor}
+import de.unikl.cs.dbis.waves.util.nested.schemas._
+import de.unikl.cs.dbis.waves.util.nested.rows._
 
 /**
   * This class represents a Path into a structured object

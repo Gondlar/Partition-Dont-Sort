@@ -171,4 +171,28 @@ final case class PathKey(identifiers: Seq[String]) {
 
 object PathKey {
     def apply(key: String) : PathKey = PathKey(key.split('.').toSeq)
+
+    /**
+      * We represent Path Keys which possibly refer to the root as Option[PathKey]
+      * and extend its API with appropriate wrappers
+      *
+      * @param key
+      */
+    implicit class RootPathKey(key : Option[PathKey]) {
+        def toSpark: String = key.map(_.toSpark).getOrElse("*")
+        def maxDefinitionLevel = key.map(_.maxDefinitionLevel).getOrElse(0)
+        def head = key.get.head
+        def tail = key.get.tail
+        def isNested = key.map(_.isNested).getOrElse(false)
+        def +:(step : String) = key.map(step +: _).orElse(Some(PathKey(step)))
+        def :+(step : String) = key.map(_ :+ step).orElse(Some(PathKey(step)))
+        def isPrefixOf(other : PathKey): Boolean = key.map(_ isPrefixOf other).getOrElse(true)
+        def isPrefixOf(other : Option[PathKey]): Boolean = other match {
+            case None => key.isEmpty
+            case Some(value) => key isPrefixOf value
+        }
+        def retrieveFrom(row: InternalRow, schema : StructType) = key.map(_.retrieveFrom(row, schema)).getOrElse(Some(row))
+        def retrieveFrom(tpe : StructType) = key.map(_.retrieveFrom(tpe)).getOrElse(Some(tpe))
+        def present(row: InternalRow, schema: StructType) = retrieveFrom(row,schema).isDefined
+    }
 }

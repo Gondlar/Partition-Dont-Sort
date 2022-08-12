@@ -22,6 +22,22 @@ object schemas {
             case map : MapType => visitor.visitMap(map)
             case _ => visitor.visitLeaf(tpe)
         }
+
+        /**
+          * Count the number of leaf nodes in this schema.
+          * Arrays and maps are treated as leafs
+          *
+          * @return the number of leafs
+          */
+        def leafCount() = {
+            var count = 0
+            val visitor = new DataTypeVisitor{
+                override def visitStruct(row: StructType): Unit = row.subAcceptAll(this)
+                override def visitLeaf(leaf: DataType): Unit = count += 1
+            }
+            tpe.accept(visitor)
+            count
+        }
     }
 
     /**

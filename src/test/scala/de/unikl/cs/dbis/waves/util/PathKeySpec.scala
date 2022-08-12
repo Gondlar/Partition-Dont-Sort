@@ -37,6 +37,13 @@ class PathKeySpec extends WavesSpec
                 PathKey("foo").maxDefinitionLevel should equal (1)
             }
 
+            "append successfully" in {
+                val foo = PathKey("foo")
+                foo.append("bar") should equal (PathKey("foo.bar"))
+                Then("The original PathKey is unchanged")
+                foo should equal(PathKey("foo"))
+            }
+
             "prepend successfully" in {
                 val foo = PathKey("foo")
                 foo.prepend("bar") should equal (PathKey("bar.foo"))
@@ -106,6 +113,13 @@ class PathKeySpec extends WavesSpec
 
             "have the correct maximum definition level" in {
                 PathKey("foo.bar").maxDefinitionLevel should equal (2)
+            }
+
+            "append successfully" in {
+                val foo = PathKey("foo.bar")
+                foo.append("baz") should equal (PathKey("foo.bar.baz"))
+                Then("The original PathKey is unchanged")
+                foo should equal(PathKey("foo.bar"))
             }
 
             "prepend successfully" in {

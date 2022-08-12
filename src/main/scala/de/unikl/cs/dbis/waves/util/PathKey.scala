@@ -62,6 +62,15 @@ final case class PathKey(identifiers: Seq[String]) {
     def isNested = identifiers.size > 1
 
     /**
+      * Create a new PathKey which has the given identifier as its additional final step.
+      * In other words, we navigate one step deeper.
+      *
+      * @param step the identifier to append
+      * @return the resulting PathKey
+      */
+    def append(step : String) = PathKey(identifiers :+ step)
+
+    /**
       * Create a new PathKey which has the given identifier as its additional first step.
       * In other words, if this is a path key relative to step, we return the PathKey relative
       * to its parent

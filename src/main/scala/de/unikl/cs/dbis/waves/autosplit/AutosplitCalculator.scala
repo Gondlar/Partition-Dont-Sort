@@ -97,7 +97,7 @@ object AutosplitCalculator {
                      .zip(switchCount.values)
                      .filter({ case ((path,present),_) =>
                          present < cutoff &&
-                         !knownAbsent.map(_.contains(path)).fold(false)(_||_) && !knownPresent.map(_==path).fold(false)(_||_)
+                         !knownAbsent.map(_ isPrefixOf path).fold(false)(_||_) && !knownPresent.map(_==path).fold(false)(_||_)
                      })
                      .map({ case ((path, present), switch) => (path, present, switch)})
     }

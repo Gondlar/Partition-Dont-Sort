@@ -86,7 +86,7 @@ final case class PathKey(identifiers: Seq[String]) {
       * @param other the other PathKey
       * @return true iff this is a prefix of other, else false
       */
-    def contains(other : PathKey) : Boolean = {
+    def isPrefixOf(other : PathKey) : Boolean = {
         if (other.maxDefinitionLevel < maxDefinitionLevel) false else {
             for (index <- 0 to identifiers.size-1) {
                 if (identifiers(index) != other.identifiers(index))
@@ -104,7 +104,7 @@ final case class PathKey(identifiers: Seq[String]) {
       * @return true iff the PathKeys are equal, otherwise false
       */
     def equals(other : PathKey) : Boolean = {
-        if (identifiers.length == other.identifiers.length) contains(other)
+        if (identifiers.length == other.identifiers.length) isPrefixOf(other)
         else false
     }
 

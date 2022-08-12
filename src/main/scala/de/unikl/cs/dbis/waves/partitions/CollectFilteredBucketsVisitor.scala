@@ -54,7 +54,7 @@ object CollectFilteredBucketsVisitor {
     private def operationOnKey(partitionKey: PathKey, present : Boolean, filterKey: String) = {
         // we're ignoring the possibly null value here
         if (present) TernarySet.any
-        else if (partitionKey.contains(PathKey(filterKey))) TernarySet.alwaysUnknown
+        else if (partitionKey isPrefixOf PathKey(filterKey)) TernarySet.alwaysUnknown
         else TernarySet.any
     }
 
@@ -72,7 +72,7 @@ object CollectFilteredBucketsVisitor {
                 if (key == PathKey(attribute)) TernarySet.alwaysFalse
                 else TernarySet.any
             } else {
-                if (key.contains(PathKey(attribute))) TernarySet.alwaysTrue
+                if (key isPrefixOf PathKey(attribute)) TernarySet.alwaysTrue
                 else TernarySet.any
             }
         }
@@ -81,7 +81,7 @@ object CollectFilteredBucketsVisitor {
                 if (key == PathKey(attribute)) TernarySet.alwaysTrue
                 else TernarySet.any
             } else {
-                if (key.contains(PathKey(attribute))) TernarySet.alwaysFalse
+                if (key isPrefixOf PathKey(attribute)) TernarySet.alwaysFalse
                 else TernarySet.any
             }
         }

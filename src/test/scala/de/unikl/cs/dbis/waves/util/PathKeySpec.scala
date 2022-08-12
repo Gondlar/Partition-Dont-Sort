@@ -52,17 +52,17 @@ class PathKeySpec extends WavesSpec
             }
 
             "contain itself" in {
-                PathKey("foo").contains(PathKey("foo")) should equal (true)
+                PathKey("foo") isPrefixOf PathKey("foo") should equal (true)
             }
 
             "contain sub-paths" in {
-                PathKey("foo").contains(PathKey("foo.bar")) should equal (true)
+                PathKey("foo") isPrefixOf PathKey("foo.bar") should equal (true)
             }
 
             "not contain other path keys" in {
                 val foo = PathKey("foo")
-                foo.contains(PathKey("bar")) should equal (false)
-                foo.contains(PathKey("bar.foo")) should equal (false)
+                foo isPrefixOf PathKey("bar") should equal (false)
+                foo isPrefixOf PathKey("bar.foo") should equal (false)
             }
 
             "equal itself" in {
@@ -130,18 +130,18 @@ class PathKeySpec extends WavesSpec
             }
 
             "contain itself" in {
-                PathKey("foo.bar").contains(PathKey("foo.bar")) should equal (true)
+                PathKey("foo.bar") isPrefixOf PathKey("foo.bar") should equal (true)
             }
 
             "contain sub-paths" in {
-                PathKey("foo.bar").contains(PathKey("foo.bar.baz")) should equal (true)
+                PathKey("foo.bar") isPrefixOf PathKey("foo.bar.baz") should equal (true)
             }
 
             "not contain other path keys" in {
                 val foo = PathKey("foo.bar")
-                foo.contains(PathKey("bar")) should equal (false)
-                foo.contains(PathKey("bar.foo")) should equal (false)
-                foo.contains(PathKey("foo")) should equal (false)
+                foo isPrefixOf PathKey("bar") should equal (false)
+                foo isPrefixOf PathKey("bar.foo") should equal (false)
+                foo isPrefixOf PathKey("foo") should equal (false)
             }
 
             "equal itself" in {

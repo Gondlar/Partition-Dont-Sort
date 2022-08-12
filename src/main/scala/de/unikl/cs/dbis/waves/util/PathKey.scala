@@ -68,7 +68,7 @@ final case class PathKey(identifiers: Seq[String]) {
       * @param step the identifier to append
       * @return the resulting PathKey
       */
-    def append(step : String) = PathKey(identifiers :+ step)
+    def :+(step : String) = PathKey(identifiers :+ step)
 
     /**
       * Create a new PathKey which has the given identifier as its additional first step.
@@ -78,7 +78,7 @@ final case class PathKey(identifiers: Seq[String]) {
       * @param step the identifier to prepend
       * @return the resulting PathKey
       */
-    def prepend(step : String) = PathKey(step +: identifiers)
+    def +:(step : String) = PathKey(step +: identifiers)
 
     /**
       * Check whether this PathKey is a prefix of the given PathKey

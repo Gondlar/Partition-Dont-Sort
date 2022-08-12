@@ -101,7 +101,7 @@ object ObjectCounter {
             val name = field.name
             val head = if (field.nullable) Seq(PathKey(name)) else Seq.empty
             val tail = if (field.dataType.isInstanceOf[StructType]) paths(field.dataType.asInstanceOf[StructType]) else Seq.empty
-            head ++ tail.map(_.prepend(name))
+            head ++ tail.map(name +: _)
         })
     }
 }

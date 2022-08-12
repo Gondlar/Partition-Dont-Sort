@@ -39,14 +39,14 @@ class PathKeySpec extends WavesSpec
 
             "append successfully" in {
                 val foo = PathKey("foo")
-                foo.append("bar") should equal (PathKey("foo.bar"))
+                foo :+ "bar" should equal (PathKey("foo.bar"))
                 Then("The original PathKey is unchanged")
                 foo should equal(PathKey("foo"))
             }
 
             "prepend successfully" in {
                 val foo = PathKey("foo")
-                foo.prepend("bar") should equal (PathKey("bar.foo"))
+                "bar" +: foo should equal (PathKey("bar.foo"))
                 Then("The original PathKey is unchanged")
                 foo should equal(PathKey("foo"))
             }
@@ -117,14 +117,14 @@ class PathKeySpec extends WavesSpec
 
             "append successfully" in {
                 val foo = PathKey("foo.bar")
-                foo.append("baz") should equal (PathKey("foo.bar.baz"))
+                foo :+ "baz" should equal (PathKey("foo.bar.baz"))
                 Then("The original PathKey is unchanged")
                 foo should equal(PathKey("foo.bar"))
             }
 
             "prepend successfully" in {
                 val foo = PathKey("foo.bar")
-                foo.prepend("baz") should equal (PathKey("baz.foo.bar"))
+                "baz" +: foo should equal (PathKey("baz.foo.bar"))
                 Then("The original PathKey is unchanged")
                 foo should equal(PathKey("foo.bar"))
             }

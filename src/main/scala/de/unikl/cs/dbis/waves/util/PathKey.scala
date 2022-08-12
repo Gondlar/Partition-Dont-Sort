@@ -22,7 +22,8 @@ final case class PathKey(identifiers: Seq[String]) {
       *
       * @return the string representation
       */
-    override def toString = identifiers.mkString(".")
+    def toSpark = identifiers.mkString(".")
+    override def toString = toSpark
 
     /**
       * Compute the maximum value of the definition level of the value represented by this path.

@@ -30,6 +30,7 @@ class PathKeySpec extends WavesSpec
 
             "have a valid string representation" in {
                 PathKey("foo").toString should equal ("foo")
+                PathKey("foo").toSpark should equal ("foo")
             }
 
             "have a maximum definition level of 1" in {
@@ -100,6 +101,7 @@ class PathKeySpec extends WavesSpec
 
             "have a valid string representation" in {
                 PathKey("foo.bar").toString should equal ("foo.bar")
+                PathKey("foo.bar").toSpark should equal ("foo.bar")
             }
 
             "have the correct maximum definition level" in {

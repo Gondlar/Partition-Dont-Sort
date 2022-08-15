@@ -24,6 +24,20 @@ class DefinitionLevelsSpec extends WavesSpec
                                                           , Seq(0, 0, 0))
                 )
             }
+            "calculate the correct presence" in {
+                val data = df.select(presence(schema))
+                             .collect()
+                             .map(row => row.getSeq[Int](row.fieldIndex("presence")))
+                data should contain theSameElementsAs (Seq( Seq(true, true, true, true)
+                                                          , Seq(true, true, true, false)
+                                                          , Seq(true, false, false, false)
+                                                          , Seq(true, false, false, false)
+                                                          , Seq(false, true, true, true)
+                                                          , Seq(false, true, true, false)
+                                                          , Seq(false, false, false, false)
+                                                          , Seq(false, false, false, false))
+                )
+            }
         }
     }
     

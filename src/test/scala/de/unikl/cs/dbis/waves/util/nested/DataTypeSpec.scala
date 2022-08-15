@@ -17,10 +17,16 @@ class DataTypeSpec extends WavesSpec
             "have leaf count 1" in {
                 schema.fields(0).dataType.leafCount should equal (1)
             }
+            "have node count 1" in {
+                schema.fields(0).dataType.nodeCount should equal (1)
+            }
         }
         "being a struct" should {
             "have the correct leaf count" in {
                 schema.leafCount should equal (4)
+            }
+            "have the correct node count" in {
+                schema.nodeCount should equal (6)
             }
         }
     }

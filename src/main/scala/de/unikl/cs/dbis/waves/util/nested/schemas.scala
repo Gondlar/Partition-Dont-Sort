@@ -38,6 +38,25 @@ object schemas {
             tpe.accept(visitor)
             count
         }
+
+        /**
+          * Count the number of nodes in this schema.
+          * Arrays and maps are treated as leafs
+          *
+          * @return the number of leafs
+          */
+        def nodeCount() = {
+            var count = 0
+            val visitor = new DataTypeVisitor{
+                override def visitStruct(row: StructType): Unit = {
+                    count += 1
+                    row.subAcceptAll(this)
+                }
+                override def visitLeaf(leaf: DataType): Unit = count += 1
+            }
+            tpe.accept(visitor)
+            count
+        }
     }
 
     /**

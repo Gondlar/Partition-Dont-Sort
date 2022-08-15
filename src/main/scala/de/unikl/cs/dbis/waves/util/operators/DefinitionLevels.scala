@@ -23,4 +23,22 @@ object DefinitionLevels {
         when(col(deeper.toSpark).isNull, Array.fill(field.dataType.leafCount)(0))
             .otherwise(addX(child, 1))
     }
+
+    private[operators] def presence(schema : DataType, absentContext : Boolean, pathContext : Option[PathKey]) : Column = schema match {
+        case StructType(fields) => {
+            val children =  fields.map(presence(_, absentContext, pathContext))
+            if (!absentContext) {
+                concat(children:_*)
+            } else {
+                when(col(pathContext.toSpark).isNull, typedLit(Array.fill(schema.nodeCount)(false)))
+                    .otherwise(concat(typedLit(Array(true)) +: children :_*))
+            }
+        }
+        case _ if (absentContext) => when(col(pathContext.toSpark).isNull, typedLit(Array(false)))
+                                         .otherwise(typedLit(Array(true)))
+        case _ => typedLit(Array.empty[Boolean])
+    }
+
+    private def presence(field : StructField, absentContext : Boolean, pathContext : Option[PathKey]) : Column
+        = presence(field.dataType, absentContext || field.nullable, pathContext :+ field.name)
 }

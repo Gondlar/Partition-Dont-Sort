@@ -9,7 +9,7 @@ trait DataFrame extends Spark with Schema { this: Suite =>
   var df : org.apache.spark.sql.DataFrame = null
   var emptyDf : org.apache.spark.sql.DataFrame = null
 
-  override def beforeEach(): Unit = {
+  override protected def beforeEach(): Unit = {
     super.beforeEach()
 
     val rdd : RDD[Row] = spark.sparkContext.parallelize(data, 2)

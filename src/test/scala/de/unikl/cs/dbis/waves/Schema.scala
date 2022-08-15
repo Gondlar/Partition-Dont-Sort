@@ -32,7 +32,7 @@ trait Schema extends BeforeAndAfterEach { this: Suite =>
       new GenericRowWithSchema(Array[Any](5, inner, 42), schemaNonoptional)
   }
 
-  override def beforeEach() {
+  override protected def beforeEach() {
     innerSchema = StructType(Seq( StructField("c", IntegerType, false)
                                 , StructField("d", IntegerType, true)
                                 ))

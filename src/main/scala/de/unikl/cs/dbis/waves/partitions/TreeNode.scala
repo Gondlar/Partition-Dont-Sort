@@ -1,7 +1,6 @@
 package de.unikl.cs.dbis.waves.partitions
 
-import de.unikl.cs.dbis.waves.PartitionFolder
-import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.{PartitionFolder, PathKey}
 
 import org.apache.hadoop.shaded.com.google.gson.{
     JsonDeserializer,

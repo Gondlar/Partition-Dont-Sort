@@ -2,8 +2,7 @@ package de.unikl.cs.dbis.waves.partitions
 
 import de.unikl.cs.dbis.waves.WavesSpec
 
-import de.unikl.cs.dbis.waves.PartitionFolder
-import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
 import de.unikl.cs.dbis.waves.Schema
 import de.unikl.cs.dbis.waves.PartitionTrees
 

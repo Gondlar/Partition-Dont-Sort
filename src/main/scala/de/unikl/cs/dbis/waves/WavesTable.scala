@@ -18,7 +18,7 @@ import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import de.unikl.cs.dbis.waves.partitions.{
     PartitionTree,SplitByPresence,Bucket,PartitionTreePath,Present,Absent
 }
-import de.unikl.cs.dbis.waves.util.{PathKey,Logger}
+import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}
 import java.nio.charset.StandardCharsets

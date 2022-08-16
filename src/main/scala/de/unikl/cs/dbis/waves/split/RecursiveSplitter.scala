@@ -2,10 +2,9 @@ package de.unikl.cs.dbis.waves.split
 
 import org.apache.spark.sql.DataFrame
 
-import de.unikl.cs.dbis.waves.PartitionFolder
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.partitions.{Bucket, PartitionTreePath, Present, Absent}
-import de.unikl.cs.dbis.waves.util.{PathKey, Logger}
+import de.unikl.cs.dbis.waves.util.{PathKey, Logger, PartitionFolder}
 
 /**
   * Implements recursive splitting as described in https://doi.org/10.1145/3530050.3532923

@@ -29,8 +29,7 @@ import org.apache.spark.sql.sources.{ EqualTo
 import org.apache.parquet.filter2.predicate.{FilterApi,FilterPredicate}
 import org.apache.parquet.hadoop.ParquetInputFormat
 
-import de.unikl.cs.dbis.waves.PartitionFolder
-import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
 
 class LocalSchemaInputFormat
 extends ParquetInputFormat[Row](classOf[LocalScheaReadSupport])

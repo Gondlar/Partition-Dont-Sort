@@ -1,5 +1,7 @@
 package de.unikl.cs.dbis.waves
 
+import util.PartitionFolder
+
 import org.apache.spark.sql.connector.write.{
     WriteBuilder,
     SupportsTruncate,

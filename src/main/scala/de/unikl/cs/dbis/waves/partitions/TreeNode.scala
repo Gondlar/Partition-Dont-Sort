@@ -126,16 +126,6 @@ object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence] {
     }
 }
 
-object TreeNodeSerializer extends JsonSerializer[TreeNode] {
-  override def serialize(node: TreeNode, t: Type, ctx: JsonSerializationContext): JsonElement = {
-      node match {
-          case bucket@Bucket(_) => ctx.serialize(bucket)
-          case node@SplitByPresence(_, _, _) => ctx.serialize(node)
-          case spill@Spill(_,_) => ctx.serialize(spill)
-      }
-  }
-}
-
 //
 // Deserializers
 //

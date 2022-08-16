@@ -151,7 +151,6 @@ object PartitionTree {
         .registerTypeAdapter(classOf[SplitByPresence], PartitionByInnerNodeDeserializer)
         .registerTypeAdapter(classOf[SplitByPresence], PartitionByInnerNodeSerializer)
         .registerTypeAdapter(classOf[TreeNode], TreeNodeDeserializer)
-        .registerTypeAdapter(classOf[TreeNode], TreeNodeSerializer)
         .create()
     
     /**

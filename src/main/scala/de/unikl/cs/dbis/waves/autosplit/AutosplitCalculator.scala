@@ -96,11 +96,22 @@ object AutosplitCalculator {
                      .zip(presentCount.values)
                      .zip(switchCount.values)
                      .filter({ case ((path,present),_) =>
-                         present < cutoff &&
-                         !knownAbsent.map(_ isPrefixOf path).fold(false)(_||_) && !knownPresent.map(_==path).fold(false)(_||_)
+                         present < cutoff && filterKnownPaths(knownAbsent, knownPresent, path)
                      })
                      .map({ case ((path, present), switch) => (path, present, switch)})
     }
+
+    /**
+      * Check whether we already know that path is present or absent. 
+      *
+      * @param knownAbsent a collection of paths known to be absent
+      * @param knownPresent a collection of paths known to be present
+      * @param path the path to check
+      * @return true iff we do now yet know whether path is present or absent,
+      *         otherwise false.
+      */
+    def filterKnownPaths(knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], path: PathKey)
+      = knownAbsent.forall(key => !(key isPrefixOf path)) && knownPresent.forall(key => !(key == path))
 
     /**
       * Find the best path to split using the switch heuristic

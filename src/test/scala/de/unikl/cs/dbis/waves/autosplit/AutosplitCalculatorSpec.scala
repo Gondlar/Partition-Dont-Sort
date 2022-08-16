@@ -13,6 +13,20 @@ class AutosplitCalculatorSpec extends WavesSpec
     with DataFrame {
 
     "An AutosplitCalculator" when {
+        "filtering known paths" should {
+            "filter known absent paths" in {
+                AutosplitCalculator.filterKnownPaths(Seq(PathKey("foo")), Seq.empty, PathKey("foo.bar")) should be (false)
+                AutosplitCalculator.filterKnownPaths(Seq(PathKey("foo")), Seq.empty, PathKey("foo")) should be (false)
+            }
+            "filter known present paths" in {
+                AutosplitCalculator.filterKnownPaths(Seq.empty, Seq(PathKey("foo")), PathKey("foo")) should be (false)
+            }
+            "keep other paths" in {
+                AutosplitCalculator.filterKnownPaths(Seq.empty, Seq(PathKey("foo")), PathKey("foo.bar")) should be (true)
+                AutosplitCalculator.filterKnownPaths(Seq.empty, Seq(PathKey("foo")), PathKey("bar")) should be (true)
+                AutosplitCalculator.filterKnownPaths(Seq(PathKey("foo")), Seq.empty, PathKey("bar")) should be (true)
+            } 
+        }
         "calculating" should {
             "find the correct metrics for all Rows" in {
                 val res = AutosplitCalculator.calculate(df, Seq.empty, Seq.empty, 0)

@@ -1,6 +1,7 @@
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
+import de.unikl.cs.dbis.waves.split.RecursiveSplitter
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
@@ -19,9 +20,10 @@ object Main extends App {
 
   // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())
   // Logger.log("repartition-start", relation.diskSize())
-  // relation.partition( 2*1024*1024 //spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)
-  //                   , 10*1024*1024
-  //                   , AutosplitCalculator.evenHeuristic _)
+  // RecursiveSplitter( relation
+  //                  , 2*1024*1024 //spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)
+  //                  , 10*1024*1024
+  //                  , AutosplitCalculator.evenHeuristic _)
   // relation.defrag()
   // relation.vacuum()
   // relation.repartition("quoted_status")

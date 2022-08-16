@@ -7,6 +7,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
+import de.unikl.cs.dbis.waves.split.RecursiveSplitter
 
 object AutopartitionWavesDataEven {
     def main(args: Array[String]) : Unit = {
@@ -21,9 +22,11 @@ object AutopartitionWavesDataEven {
         df.write.mode(SaveMode.Overwrite).format(JobConfig.wavesFormat).save(JobConfig.wavesPath)
         val relation = WavesTable(s"Repartition ${JobConfig.wavesPath}", spark, JobConfig.wavesPath, CaseInsensitiveStringMap.empty())
         Logger.log("convert-done", relation.diskSize())
-        relation.partition( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
-                          , JobConfig.sampleSize
-                          , AutosplitCalculator.evenHeuristic _)
+        RecursiveSplitter( relation
+                         , spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
+                         , JobConfig.sampleSize
+                         , AutosplitCalculator.evenHeuristic _)
+            .partition()
         Logger.log("partition-done", relation.diskSize())
         relation.defrag()
         relation.vacuum()

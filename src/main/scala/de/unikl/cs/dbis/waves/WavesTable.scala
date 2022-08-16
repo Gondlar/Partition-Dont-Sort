@@ -27,11 +27,11 @@ import scala.collection.mutable.ArrayBuffer
 
 class WavesTable private (
     override val name : String,
-    spark : SparkSession,
-    basePath : String,
+    val spark : SparkSession,
+    val basePath : String,
     val fs : FileSystem,
     options : CaseInsensitiveStringMap,
-    private var partitionTree : PartitionTree
+    private[waves] var partitionTree : PartitionTree
 ) extends Table with SupportsRead with SupportsWrite {
     private val fastWrite = options.getBoolean(WavesTable.FAST_WRITE_OPTION, true)
 
@@ -96,7 +96,7 @@ class WavesTable private (
         repartition(key, partition)
     }
 
-    private def repartition(key: String, partition : Bucket) : (PartitionFolder, PartitionFolder) = {
+    private def repartition(key: String, partition : Bucket) : Unit = {
         // Modify partition tree
         val partitionWithKey = PartitionFolder.makeFolder(basePath, false)
         val partitionWithoutKey = PartitionFolder.makeFolder(basePath, false)
@@ -126,48 +126,7 @@ class WavesTable private (
         } finally {
             tempFolder.delete(fs)
         }
-        //TODO delete mechanism for old folders
         writePartitionScheme()
-        (partitionWithKey, partitionWithoutKey)
-    }
-
-    def partition(threshold : Long, sampleSize : Long, metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey]) : Unit = {
-        assert(partitionTree.root.isInstanceOf[Bucket])
-
-        partition(threshold, sampleSize, metric, Seq.empty, Seq.empty, Seq.empty)
-    }
-
-    private def partition(threshold : Long, sampleSize : Long, metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey], knownAbsent : Seq[PathKey], knownPresent: Seq[PathKey], path: Seq[PartitionTreePath]) : Unit = {
-        // Get Current Partition data
-        val currentPartition = partitionTree.find(path).get.asInstanceOf[Bucket]
-        val currentFolder = currentPartition.folder(basePath)
-        val diskSize = currentFolder.diskSize(fs)
-        val sampleRate = sampleSize.toDouble/diskSize
-        val cutoff = (threshold*0.9)/diskSize
-
-        // read data, calculate metric and repartition
-        val data = {
-            val tmp = spark.read.format("parquet").schema(partitionTree.globalSchema).load(currentFolder.filename)
-            if (sampleRate < 1) tmp.sample(sampleRate) else tmp
-        }
-        println(s"$path -> ${currentFolder.name}: ${diskSize.toDouble/threshold}")
-        metric(data, knownAbsent, knownPresent, cutoff) match {
-            case None => Logger.log("partition-abort", "metric shows no improvement")
-            case Some(best) => {
-                Logger.log("partition-by", best.toString)
-                var (presentFolder, absentFolder) = repartition(best.toString, currentPartition)
-
-                // recurse if data is larger than threshold
-                val presentSize = presentFolder.diskSize(fs)
-                Logger.log("partiton-present", presentSize/threshold.toDouble)
-                if (presentSize > threshold)
-                    partition(threshold, sampleSize, metric, knownAbsent, knownPresent :+ best, path :+ Present)
-                val absentSize = absentFolder.diskSize(fs)
-                Logger.log("partition-absent", presentSize/threshold.toDouble)
-                if (absentSize > threshold)
-                    partition(threshold, sampleSize, metric, knownAbsent :+ best, knownPresent, path :+ Absent)
-            }
-        }
     }
 
     def defrag() = {

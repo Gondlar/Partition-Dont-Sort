@@ -18,7 +18,10 @@ trait Spark extends BeforeAndAfterAll { this: Suite =>
   }
 
   override protected def afterAll(): Unit = {
-    spark.close()
+    // Do not close the spark session, it gets reused by the Session builder
+    // If we do close it here, tests may fail because the builder chose to reuse
+    // the session while we asynchronously close it here
+    // spark.close()
 
     super.afterAll() // To be stackable, must call super.afterAll
   }

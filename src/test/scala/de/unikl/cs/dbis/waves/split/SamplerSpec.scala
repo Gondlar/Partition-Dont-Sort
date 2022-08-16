@@ -1,5 +1,6 @@
 package de.unikl.cs.dbis.waves.split
 
+import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
 
@@ -14,9 +15,11 @@ class SamplerSpec extends WavesSpec
         // guarantee exact numbers 
         "return a sample of the data" in {
             val sampler = TestSampler(.5)
-            val sample = sampler.data(null).collect()
+            val samples = sampler.data(null).collect()
             sampler.calledSample should be (true)
-            for (element <- sample) data.contains(element) should be (true)
+            forAll (samples) { sample =>
+                data.contains(sample) should be (true)
+            }
         }
         "return nothing for a sample rate <= 0" in {
             TestSampler(0).data(null).count() should be (0)

@@ -51,7 +51,8 @@ logBuffered in Test := false
 
 coverageExcludedFiles := Seq(
     ".*\\/deprecated\\/.*",
-    ".*\\/Main"
+    ".*\\/Main",
+    ".*\\/testjobs/.*"
 ).mkString(";")
 
 // You can use Scaladex, an index of all known published Scala libraries. There,

@@ -49,6 +49,11 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 logBuffered in Test := false
 
+coverageExcludedFiles := Seq(
+    ".*\\/deprecated\\/.*",
+    ".*\\/Main.scala"
+).mkString(";")
+
 // You can use Scaladex, an index of all known published Scala libraries. There,
 // after you find the library you want, you can just copy/paste the dependency
 // information that you need into your build file. For example, on the

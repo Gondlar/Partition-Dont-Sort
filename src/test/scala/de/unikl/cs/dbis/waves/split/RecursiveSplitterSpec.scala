@@ -7,9 +7,9 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.Bucket
+import de.unikl.cs.dbis.waves.split.recursive.filterKnownPaths
 
 class RecursiveSplitterSpec extends WavesSpec
     with Relation {
@@ -64,6 +64,6 @@ class RecursiveSplitterSpec extends WavesSpec
 
     def mockMetric(data : DataFrame, knownAbsent : Seq[PathKey], knownPresent : Seq[PathKey], cutoff: Double)
         = Seq(PathKey("b"), PathKey("a"), PathKey("b.c"))
-            .filter(AutosplitCalculator.filterKnownPaths(knownAbsent, knownPresent, _))
+            .filter(filterKnownPaths(knownAbsent, knownPresent, _))
             .headOption
 }

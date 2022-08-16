@@ -6,8 +6,8 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.WavesTable
-import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
 import de.unikl.cs.dbis.waves.split.RecursiveSplitter
+import de.unikl.cs.dbis.waves.split.recursive.switchHeuristic
 
 object AutopartitionWavesDataSwitch {
     def main(args: Array[String]) : Unit = {
@@ -25,7 +25,7 @@ object AutopartitionWavesDataSwitch {
         RecursiveSplitter( relation
                          , spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
                          , JobConfig.sampleSize
-                         , AutosplitCalculator.switchHeuristic _)
+                         , switchHeuristic _)
             .partition()
         Logger.log("partition-done", relation.diskSize())
         relation.defrag()

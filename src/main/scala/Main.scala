@@ -1,7 +1,7 @@
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.Logger
-import de.unikl.cs.dbis.waves.autosplit.AutosplitCalculator
 import de.unikl.cs.dbis.waves.split.RecursiveSplitter
+import de.unikl.cs.dbis.waves.split.recursive.evenHeuristic
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession,SaveMode}
@@ -23,7 +23,7 @@ object Main extends App {
   // RecursiveSplitter( relation
   //                  , 2*1024*1024 //spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", 128*1024*1024)
   //                  , 10*1024*1024
-  //                  , AutosplitCalculator.evenHeuristic _)
+  //                  , evenHeuristic _)
   // relation.defrag()
   // relation.vacuum()
   // relation.repartition("quoted_status")

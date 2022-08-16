@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves.autosplit
+package de.unikl.cs.dbis.waves.split.recursive
 
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.Row
@@ -13,8 +13,8 @@ import de.unikl.cs.dbis.waves.util.PathKey
   *               The array index corresponds to an optional node's position in pre-order. 
   */
   @SerialVersionUID(100L)
-class ObjectCounter private[autosplit] (
-    private[autosplit] val values : Array[Int]
+class ObjectCounter private[recursive] (
+    private[recursive] val values : Array[Int]
 ) extends Serializable {
     /**
       * Combine two ObjectCounters by applying a function to the values of two matching nodes.
@@ -81,7 +81,7 @@ object ObjectCounter {
       * @param schema the schema
       * @return its number of optional nodes
       */
-    private[autosplit] def countOptional(schema : StructType) : Int = {
+    private[recursive] def countOptional(schema : StructType) : Int = {
         schema.fields.map(field => {
             val self = if (field.nullable) 1 else 0
             if (field.dataType.isInstanceOf[StructType]) {

@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves.autosplit
+package de.unikl.cs.dbis.waves.split.recursive
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType

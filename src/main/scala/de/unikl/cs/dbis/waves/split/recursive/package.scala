@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves.autosplit
+package de.unikl.cs.dbis.waves.split
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
@@ -8,7 +8,7 @@ import de.unikl.cs.dbis.waves.util.PathKey
 /**
   * Methods which calculate Heuristics
   */
-object AutosplitCalculator {
+package object recursive {
     /**
       * Type alias for summary statistics within a spark partition
       */

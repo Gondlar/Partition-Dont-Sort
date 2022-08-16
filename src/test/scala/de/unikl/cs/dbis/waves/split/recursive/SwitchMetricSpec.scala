@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves.autosplit
+package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.WavesSpec
 

@@ -19,7 +19,7 @@ final case class RecursiveSplitter(
     threshold : Long,
     sampleSize : Long,
     metric: (DataFrame, Seq[PathKey], Seq[PathKey], Double) => Option[PathKey]
-) extends Splitter[PartitionFolder](table) with Sampler[PartitionFolder] {
+) extends Splitter[PartitionFolder] with Sampler[PartitionFolder] {
 
     override protected def load(context: PartitionFolder)
         = table.spark.read.format("parquet")

@@ -42,7 +42,7 @@ class SamplerSpec extends WavesSpec
         override def data(context: Any) = super.data(context)
     }
 
-    class MockSplitter() extends Splitter[Any](null) {
+    class MockSplitter() extends Splitter[Any] {
         override def partition() = ()
         override def load(context: Any): DataFrame = df
     }

@@ -1,26 +1,24 @@
 package de.unikl.cs.dbis.waves.split
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.Relation
+import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
 import de.unikl.cs.dbis.waves.WavesTable
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 class SplitterSpec extends WavesSpec
-    with Relation {
+    with DataFrameFixture {
 
     "The Splitter" should {
         "read all data" in {
-            val table = WavesTable("Test Table", spark, directory, CaseInsensitiveStringMap.empty(), schema)
-            TestSplitter(table).load(null).collect() should contain theSameElementsAs data
+            TestSplitter().load(null).collect() should contain theSameElementsAs data
         }
         "access all data" in {
-            val table = WavesTable("Test Table", spark, directory, CaseInsensitiveStringMap.empty(), schema)
-            TestSplitter(table).data(null).collect() should contain theSameElementsAs data
+            TestSplitter().data(null).collect() should contain theSameElementsAs data
         }
         "pass the context to load" in {
-            val splitter = new TestSplitter(null) {
+            val splitter = new TestSplitter() {
                 override def load(context: Any) = {
                     context should equal (5)
                     null
@@ -31,9 +29,9 @@ class SplitterSpec extends WavesSpec
     }
     
 
-    case class TestSplitter(table: WavesTable) extends Splitter[Any](table) {
+    case class TestSplitter() extends Splitter[Any] {
         override def partition() = ()
-        override def load(context: Any): DataFrame = super.load(context)
+        override def load(context: Any): DataFrame = df
         override def data(context: Any): DataFrame = super.data(context)
     }
 }

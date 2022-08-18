@@ -13,7 +13,7 @@ import org.apache.spark.sql.DataFrame
   *
   * @param table the table to split
   */
-abstract class Splitter[Context](table: WavesTable) {
+abstract class Splitter[Context] {
 
     /**
       * Automatically Partition the table
@@ -24,16 +24,11 @@ abstract class Splitter[Context](table: WavesTable) {
       * Load the data from the data source.
       * 
       * Usually, this is the first step to access data. Use [[data]] to do so.
-      * 
-      * The default implementation ignores the context and simply loads the
-      * entire table. If this is not the intended bahaviour, override this
-      * method.
       *
       * @param context the context in which the data is loaded
       * @return the loaded data as a [[DataFrame]]
       */
     protected def load(context: Context): DataFrame
-        = table.spark.read.format("de.unikl.cs.dbis.waves").load(table.basePath)
 
     /**
       * Access the data from the data source

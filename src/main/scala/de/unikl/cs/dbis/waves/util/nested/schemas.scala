@@ -43,7 +43,7 @@ object schemas {
           * Count the number of nodes in this schema.
           * Arrays and maps are treated as leafs
           *
-          * @return the number of leafs
+          * @return the number of nodes
           */
         def nodeCount() = {
             var count = 0

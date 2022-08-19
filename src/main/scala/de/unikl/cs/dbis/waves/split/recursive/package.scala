@@ -4,6 +4,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.nested.schemas._
 
 /**
   * Methods which calculate Heuristics
@@ -79,7 +80,7 @@ package object recursive {
       */
     def calculate(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
         val schema = data.schema
-        val optionalCount = ObjectCounter.countOptional(schema)
+        val optionalCount = schema.optionalNodeCount
         var (size, presentCount, switchCount) = data.rdd
             .mapPartitions(combine(_, optionalCount))
             .reduce(reduce _)

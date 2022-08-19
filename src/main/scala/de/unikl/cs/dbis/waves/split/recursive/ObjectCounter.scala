@@ -3,6 +3,7 @@ package de.unikl.cs.dbis.waves.split.recursive
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.Row
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.nested.schemas._
 
 /**
   * An ObjectCounter holds an Integer value for every optional node in a JSON document.
@@ -73,22 +74,7 @@ object ObjectCounter {
       * @param schema The schema to use
       * @return The newly constructed ObjectCounter
       */
-    def apply(schema : StructType) : ObjectCounter = ObjectCounter(countOptional(schema))
-
-    /**
-      * Determine how many optional nodes a schema has
-      *
-      * @param schema the schema
-      * @return its number of optional nodes
-      */
-    private[recursive] def countOptional(schema : StructType) : Int = {
-        schema.fields.map(field => {
-            val self = if (field.nullable) 1 else 0
-            if (field.dataType.isInstanceOf[StructType]) {
-                countOptional(field.dataType.asInstanceOf[StructType]) + self
-            } else self
-        }).sum
-    }
+    def apply(schema : StructType) : ObjectCounter = ObjectCounter(schema.optionalNodeCount)
 
     /**
       * Determine the paths of all optional nodes in a schema in pre-order

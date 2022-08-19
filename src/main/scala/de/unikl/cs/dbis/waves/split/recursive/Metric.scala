@@ -4,6 +4,8 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 
+import de.unikl.cs.dbis.waves.util.nested.schemas._
+
 /**
   * A Metric represents an assignment of a per-node value. 
   */
@@ -46,7 +48,7 @@ case class PresentMetric(subject : Row) extends Metric {
             }
             if(field.dataType.isInstanceOf[StructType]) {
                 if (isNull) {
-                    val skip = ObjectCounter.countOptional(field.dataType.asInstanceOf[StructType])
+                    val skip = field.dataType.optionalNodeCount
                     for (i <- index to index+skip-1) {
                         results(i) = 0
                     }

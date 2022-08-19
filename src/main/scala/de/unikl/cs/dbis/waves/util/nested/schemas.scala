@@ -57,6 +57,27 @@ object schemas {
             tpe.accept(visitor)
             count
         }
+
+        /**
+          * Count the number of optional (i.e., nullable) nodes in this schema.
+          * Note that optional is a property of struct fields, so the DataType
+          * you call this method on itself is never included in the count.
+          * Arrays and maps are treated as leafs.
+          *
+          * @return the number of optional nodes
+          */
+        def optionalNodeCount() = {
+          var count = 0
+          val visitor = new DataTypeVisitor {
+            override def visitStruct(row: StructType): Unit =  {
+              count += row.fields.count(_.nullable)
+              row.subAcceptAll(this)
+            }
+            override def visitLeaf(leaf: DataType): Unit = ()
+          }
+          tpe.accept(visitor)
+          count
+        }
     }
 
     /**

@@ -14,20 +14,21 @@ class ImpossibleReplacementException(
   * @param needle
   * @param replace
   */
-final class ReplaceSubtreeVisitor(val needle: TreeNode, val replace: TreeNode) extends PartitionTreeVisitor {
+final class ReplaceSubtreeVisitor[Payload](val needle: TreeNode[Payload], val replace: TreeNode[Payload])
+extends PartitionTreeVisitor[Payload] {
     private var replaced = false
-    private var result : TreeNode = null
+    private var result : TreeNode[Payload] = null
 
     def found() = {
         replaced = true
         result = replace
     }
 
-    override def visit(bucket: Bucket) : Unit = {
+    override def visit(bucket: Bucket[Payload]) : Unit = {
         if (bucket eq needle) found()
     }
 
-    override def visit(node: SplitByPresence) : Unit = {
+    override def visit(node: SplitByPresence[Payload]) : Unit = {
         if (node eq needle) found() else {
             node.presentKey.accept(this)
             if (replaced) {
@@ -39,7 +40,7 @@ final class ReplaceSubtreeVisitor(val needle: TreeNode, val replace: TreeNode) e
         }
     }
 
-    override def visit(spill: Spill) : Unit = {
+    override def visit(spill: Spill[Payload]) : Unit = {
         if (spill eq needle) found() else {
             spill.rest.accept(this)
             if (replaced) {

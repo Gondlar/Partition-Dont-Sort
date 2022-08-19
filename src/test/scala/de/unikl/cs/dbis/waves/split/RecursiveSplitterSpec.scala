@@ -28,34 +28,34 @@ class RecursiveSplitterSpec extends WavesSpec
             
             Then("The partition tree looks as expected")
             // Test the root
-            table.partitionTree.root shouldBe a [SplitByPresence]
-            val root = table.partitionTree.root.asInstanceOf[SplitByPresence]
+            table.partitionTree.root shouldBe a [SplitByPresence[_]]
+            val root = table.partitionTree.root.asInstanceOf[SplitByPresence[_]]
             root.key should equal (PathKey("b"))
 
             // Test the absent side
-            root.absentKey shouldBe a [SplitByPresence]
-            val absentSide = root.absentKey.asInstanceOf[SplitByPresence]
+            root.absentKey shouldBe a [SplitByPresence[_]]
+            val absentSide = root.absentKey.asInstanceOf[SplitByPresence[_]]
             absentSide.key should equal (PathKey("a"))
-            absentSide.absentKey shouldBe a [Bucket]
-            absentSide.presentKey shouldBe a [Bucket]
+            absentSide.absentKey shouldBe a [Bucket[_]]
+            absentSide.presentKey shouldBe a [Bucket[_]]
 
             // Test the present side
-            root.presentKey shouldBe a [SplitByPresence]
-            val presentSide = root.presentKey.asInstanceOf[SplitByPresence]
+            root.presentKey shouldBe a [SplitByPresence[_]]
+            val presentSide = root.presentKey.asInstanceOf[SplitByPresence[_]]
             presentSide.key should equal (PathKey("a"))
 
             // We must go deeper
-            presentSide.absentKey shouldBe a [SplitByPresence]
-            val nestedAbsentSide = presentSide.absentKey.asInstanceOf[SplitByPresence]
+            presentSide.absentKey shouldBe a [SplitByPresence[_]]
+            val nestedAbsentSide = presentSide.absentKey.asInstanceOf[SplitByPresence[_]]
             nestedAbsentSide.key should equal (PathKey("b.c"))
-            nestedAbsentSide.absentKey shouldBe a [Bucket]
-            nestedAbsentSide.presentKey shouldBe a [Bucket]
+            nestedAbsentSide.absentKey shouldBe a [Bucket[_]]
+            nestedAbsentSide.presentKey shouldBe a [Bucket[_]]
 
-            presentSide.presentKey shouldBe a [SplitByPresence]
-            val nestedPresentSide = presentSide.presentKey.asInstanceOf[SplitByPresence]
+            presentSide.presentKey shouldBe a [SplitByPresence[_]]
+            val nestedPresentSide = presentSide.presentKey.asInstanceOf[SplitByPresence[_]]
             nestedPresentSide.key should equal (PathKey("b.c"))
-            nestedPresentSide.absentKey shouldBe a [Bucket]
-            nestedPresentSide.presentKey shouldBe a [Bucket]
+            nestedPresentSide.absentKey shouldBe a [Bucket[_]]
+            nestedPresentSide.presentKey shouldBe a [Bucket[_]]
 
             And("if we read the data, all is still there")
             spark.read.format("de.unikl.cs.dbis.waves").load(directory).collect() should contain theSameElementsAs (data)

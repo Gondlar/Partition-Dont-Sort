@@ -6,17 +6,17 @@ import scala.collection.mutable.ArrayBuffer
   * Visitor to find all Buckets in a PartitionTree
   *
   */
-final class CollectBucketsVisitor() extends PartitionTreeVisitor {
-    private val buckets = ArrayBuffer.empty[Bucket]
+final class CollectBucketsVisitor[Payload]() extends PartitionTreeVisitor[Payload] {
+    private val buckets = ArrayBuffer.empty[Bucket[Payload]]
 
-    override def visit(bucket: Bucket) : Unit = buckets += bucket
+    override def visit(bucket: Bucket[Payload]) : Unit = buckets += bucket
 
-    override def visit(node: SplitByPresence) : Unit = {
+    override def visit(node: SplitByPresence[Payload]) : Unit = {
         node.absentKey.accept(this)
         node.presentKey.accept(this)
     }
 
-    override def visit(spill: Spill) : Unit = {
+    override def visit(spill: Spill[Payload]) : Unit = {
         buckets += spill.rest
         spill.partitioned.accept(this)
     }

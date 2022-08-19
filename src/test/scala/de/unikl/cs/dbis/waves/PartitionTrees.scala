@@ -9,13 +9,13 @@ import org.scalatest.BeforeAndAfterEach
 trait PartitionTrees extends BeforeAndAfterEach
   with Schema { this: Suite =>
 
-  var bucket : Bucket = null
-  var split : SplitByPresence = null
-  var spill : Spill = null
+  var bucket : Bucket[String] = null
+  var split : SplitByPresence[String] = null
+  var spill : Spill[String] = null
 
-  var bucketTree : PartitionTree = null
-  var splitTree : PartitionTree = null
-  var spillTree : PartitionTree = null
+  var bucketTree : PartitionTree[String] = null
+  var splitTree : PartitionTree[String] = null
+  var spillTree : PartitionTree[String] = null
   
   override def beforeEach(): Unit = {
     super.beforeEach()

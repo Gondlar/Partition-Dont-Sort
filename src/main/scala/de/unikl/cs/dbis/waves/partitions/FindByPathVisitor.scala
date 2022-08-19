@@ -5,19 +5,19 @@ package de.unikl.cs.dbis.waves.partitions
   *
   * @param path the path
   */
-final class FindByPathVisitor(
+final class FindByPathVisitor[Payload](
     path : Iterable[PartitionTreePath]
-) extends PartitionTreeVisitor {
+) extends PartitionTreeVisitor[Payload] {
     private var iterator = path.iterator
     
-    private var res : Option[TreeNode] = None
+    private var res : Option[TreeNode[Payload]] = None
     def result = res
 
-    override def visit(bucket: Bucket): Unit
+    override def visit(bucket: Bucket[Payload]): Unit
         = if (iterator.hasNext) res = None
           else res = Some(bucket)
 
-    override def visit(node: SplitByPresence): Unit
+    override def visit(node: SplitByPresence[Payload]): Unit
         = if (iterator.hasNext) {
             iterator.next match {
                 case Present => node.presentKey.accept(this)
@@ -26,7 +26,7 @@ final class FindByPathVisitor(
             }
         } else res = Some(node)
 
-    override def visit(root: Spill): Unit
+    override def visit(root: Spill[Payload]): Unit
         = if (iterator.hasNext) {
             iterator.next match {
                 case Partitioned => root.partitioned.accept(this)

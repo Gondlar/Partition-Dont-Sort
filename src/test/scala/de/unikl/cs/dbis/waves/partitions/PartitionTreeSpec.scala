@@ -111,7 +111,7 @@ class PartitionTreeSpec extends WavesSpec
                 spillTree.root should equal (spill)
             }
             "contain the three child buckets" in {
-                val buckets = Seq(spill.rest, spill.partitioned.asInstanceOf[SplitByPresence].absentKey, spill.partitioned.asInstanceOf[SplitByPresence].presentKey)
+                val buckets = Seq(spill.rest, spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey, spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey)
                 spillTree.getBuckets().toStream should contain theSameElementsAs (buckets)
                 spillTree.getBuckets(Seq.empty).toStream should contain theSameElementsAs (buckets)
             }

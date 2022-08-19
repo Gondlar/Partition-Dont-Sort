@@ -30,19 +30,19 @@ import de.unikl.cs.dbis.waves.util.{PathKey,Ternary,TernarySet}
   *
   * @param filters the predicates
   */
-final class CollectFilteredBucketsVisitor(val filters: Iterable[Filter]) extends PartitionTreeVisitor {
-    private val buckets = ArrayBuffer.empty[Bucket]
+final class CollectFilteredBucketsVisitor[Payload](val filters: Iterable[Filter]) extends PartitionTreeVisitor[Payload] {
+    private val buckets = ArrayBuffer.empty[Bucket[Payload]]
 
-    override def visit(bucket: Bucket) : Unit = buckets += bucket
+    override def visit(bucket: Bucket[Payload]) : Unit = buckets += bucket
 
-    override def visit(node: SplitByPresence) : Unit = {
+    override def visit(node: SplitByPresence[Payload]) : Unit = {
         if (CollectFilteredBucketsVisitor.eval(node.key, true, filters).isFulfillable)
             node.presentKey.accept(this)
         if (CollectFilteredBucketsVisitor.eval(node.key, false, filters).isFulfillable)
             node.absentKey.accept(this)
     }
 
-    override def visit(spill: Spill) : Unit = {
+    override def visit(spill: Spill[Payload]) : Unit = {
         buckets += spill.rest
         spill.partitioned.accept(this)
     }

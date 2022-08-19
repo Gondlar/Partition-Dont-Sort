@@ -24,13 +24,11 @@ import org.apache.spark.sql.catalyst.InternalRow
   * @param globalSchema The data schema
   * @param root the root of the tree of split operations
   */
-class PartitionTree(
+class PartitionTree[Payload](
     val globalSchema: StructType,
-    var root: TreeNode = Bucket("spill")
+    var root: TreeNode[Payload] = Bucket("spill")
 ) {
     assert(root != null)
-    
-    def toJson = PartitionTree.GSON.toJson(this)
 
     /**
       * Return a Bucket where any data which fits the schema can be inserted
@@ -39,7 +37,7 @@ class PartitionTree(
       * @return the Bucket, or None if it does not exist
       * @see [[findOrCreateFastInsertLocation]] to create such a location if necessary
       */
-    def getFastInsertLocation : Option[Bucket] = root match {
+    def getFastInsertLocation : Option[Bucket[Payload]] = root match {
         case bucket@Bucket(_) => Some(bucket)
         case Spill(_,bucket) => Some(bucket)
         case _ => None
@@ -49,13 +47,13 @@ class PartitionTree(
       * Return a Bucket where any data which fits the schema can be inserted.
       * If no such location exists, the tree is changed to provide one.
       *
-      * @param nameGenerator a function which provides the name for the newly
-      *                      created Bucket if necessary
+      * @param payloadGenerator a function which provides the name for the newly
+      *                         created Bucket if necessary
       * @return the Bucket
       */
-    def findOrCreateFastInsertLocation(nameGenerator: () => String) = getFastInsertLocation match {
+    def findOrCreateFastInsertLocation(payloadGenerator: () => Payload) = getFastInsertLocation match {
         case None =>  {
-            val rest = Bucket(nameGenerator())
+            val rest = Bucket(payloadGenerator())
             root = Spill(root, rest)
             rest
         }
@@ -68,7 +66,7 @@ class PartitionTree(
       * @return an iterator of Buckets
       */
     def getBuckets() = {
-        val visitor = new CollectBucketsVisitor()
+        val visitor = new CollectBucketsVisitor[Payload]()
         root.accept(visitor)
         visitor.iter
     }
@@ -81,7 +79,7 @@ class PartitionTree(
       * @return the Buckets
       */
     def getBuckets(filters: Iterable[Filter]) = {
-        val visitor = new CollectFilteredBucketsVisitor(filters)
+        val visitor = new CollectFilteredBucketsVisitor[Payload](filters)
         root.accept(visitor)
         visitor.iter
     }
@@ -93,7 +91,7 @@ class PartitionTree(
       * @return the bucket
       */
     def getBucket(row : InternalRow) = {
-        val visitor = new FindBucketVisitor(row, globalSchema)
+        val visitor = new FindBucketVisitor[Payload](row, globalSchema)
         root.accept(visitor)
         visitor.result
     }
@@ -106,7 +104,7 @@ class PartitionTree(
       * @return the node at the end of the path or None of no such node exists
       */
     def find(path : Iterable[PartitionTreePath]) = {
-        val visitor = new FindByPathVisitor(path)
+        val visitor = new FindByPathVisitor[Payload](path)
         root.accept(visitor)
         visitor.result
     }
@@ -119,7 +117,7 @@ class PartitionTree(
       * @param needle the subtree to be replaced
       * @param replacement the new subtree to be inserted
       */
-    def replace(needle: TreeNode, replacement: TreeNode) = {
+    def replace(needle: TreeNode[Payload], replacement: TreeNode[Payload]) = {
         val visitor = new ReplaceSubtreeVisitor(needle, replacement)
         root.accept(visitor)
         root = visitor.getResult
@@ -132,7 +130,7 @@ class PartitionTree(
       * @return whether the trees are equal
       */
     override def equals(obj: Any): Boolean = obj match {
-        case tree : PartitionTree => tree.globalSchema == globalSchema && tree.root == root
+        case tree : PartitionTree[Payload] => tree.globalSchema == globalSchema && tree.root == root
         case _ => false
     }
 }
@@ -142,16 +140,20 @@ object PartitionTree {
     val SCHEMA_KEY = "schema"
 
     private val GSON = new GsonBuilder()
-        .registerTypeAdapter(classOf[PartitionTree], PartitionTreeDeserializer)
-        .registerTypeAdapter(classOf[PartitionTree], PartitionTreeSerializer)
-        .registerTypeAdapter(classOf[Bucket], BucketDeserializer)
-        .registerTypeAdapter(classOf[Bucket], BucketSerializer)
-        .registerTypeAdapter(classOf[Spill], SpillDeserializer)
-        .registerTypeAdapter(classOf[Spill], SpillSerializer)
-        .registerTypeAdapter(classOf[SplitByPresence], PartitionByInnerNodeDeserializer)
-        .registerTypeAdapter(classOf[SplitByPresence], PartitionByInnerNodeSerializer)
-        .registerTypeAdapter(classOf[TreeNode], TreeNodeDeserializer)
+        .registerTypeAdapter(classOf[PartitionTree[String]], PartitionTreeDeserializer)
+        .registerTypeAdapter(classOf[PartitionTree[String]], PartitionTreeSerializer)
+        .registerTypeAdapter(classOf[Bucket[String]], BucketDeserializer)
+        .registerTypeAdapter(classOf[Bucket[String]], BucketSerializer)
+        .registerTypeAdapter(classOf[Spill[String]], SpillDeserializer)
+        .registerTypeAdapter(classOf[Spill[String]], SpillSerializer)
+        .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeDeserializer)
+        .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeSerializer)
+        .registerTypeAdapter(classOf[TreeNode[String]], TreeNodeDeserializer)
         .create()
+
+    implicit class PathPartitionTree(tree: PartitionTree[String]) {
+        def toJson = PartitionTree.GSON.toJson(tree)
+    }
     
     /**
       * Load a PartitionTree from a JSON String
@@ -159,11 +161,11 @@ object PartitionTree {
       * @param str the JSON string
       * @return the PartitionTree encoded in the String
       */
-    def fromJson(str: String) = GSON.fromJson(str, classOf[PartitionTree])
+    def fromJson(str: String) = GSON.fromJson(str, classOf[PartitionTree[String]])
 }
 
-object PartitionTreeSerializer extends JsonSerializer[PartitionTree] {
-  override def serialize(tree: PartitionTree, t: Type, ctx: JsonSerializationContext): JsonElement = {
+object PartitionTreeSerializer extends JsonSerializer[PartitionTree[String]] {
+  override def serialize(tree: PartitionTree[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
       val obj = new JsonObject
       obj.add(PartitionTree.ROOT_KEY, ctx.serialize(tree.root))
       // do not use schema.toDDL! In general, fromDDL(schema.toDDL) != schema
@@ -172,12 +174,12 @@ object PartitionTreeSerializer extends JsonSerializer[PartitionTree] {
   }
 }
 
-object PartitionTreeDeserializer extends JsonDeserializer[PartitionTree] {
-  override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): PartitionTree = {
+object PartitionTreeDeserializer extends JsonDeserializer[PartitionTree[String]] {
+  override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): PartitionTree[String] = {
       json match {
           case obj: JsonObject => {
               val globalSchema = DataType.fromJson(obj.get(PartitionTree.SCHEMA_KEY).getAsString())
-              val root = ctx.deserialize[TreeNode](obj.get(PartitionTree.ROOT_KEY), classOf[TreeNode])
+              val root = ctx.deserialize[TreeNode[String]](obj.get(PartitionTree.ROOT_KEY), classOf[TreeNode[String]])
               new PartitionTree(globalSchema.asInstanceOf[StructType], root)
           }
           case _ => throw new JsonParseException(s"$json is not an Object")

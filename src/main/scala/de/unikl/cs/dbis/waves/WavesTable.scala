@@ -31,7 +31,7 @@ class WavesTable private (
     val basePath : String,
     val fs : FileSystem,
     options : CaseInsensitiveStringMap,
-    private[waves] var partitionTree : PartitionTree
+    private[waves] var partitionTree : PartitionTree[String]
 ) extends Table with SupportsRead with SupportsWrite {
     private val fastWrite = options.getBoolean(WavesTable.FAST_WRITE_OPTION, true)
 
@@ -96,7 +96,7 @@ class WavesTable private (
         repartition(key, partition)
     }
 
-    private def repartition(key: String, partition : Bucket) : Unit = {
+    private def repartition(key: String, partition : Bucket[String]) : Unit = {
         // Modify partition tree
         val partitionWithKey = PartitionFolder.makeFolder(basePath, false)
         val partitionWithoutKey = PartitionFolder.makeFolder(basePath, false)
@@ -155,7 +155,7 @@ class WavesTable private (
     }
 
     def vacuum() = {
-        val partitions = partitionTree.getBuckets().map(_.name).toSeq :+ "spill" // leave initial spill partition for benchmark purposes
+        val partitions = partitionTree.getBuckets().map(_.data).toSeq :+ "spill" // leave initial spill partition for benchmark purposes
         println(partitions)
         for (file <- fs.listStatus(new Path(basePath))) {
             val path = file.getPath()

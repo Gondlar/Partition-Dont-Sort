@@ -18,8 +18,8 @@ import java.lang.reflect.Type
 /**
   * A TreeNode is any node in the PartitionTree
   */
-sealed abstract class TreeNode {
-    def accept(visitor: PartitionTreeVisitor) : Unit
+sealed abstract class TreeNode[Payload] {
+    def accept(visitor: PartitionTreeVisitor[Payload]) : Unit
 }
 
 object  TreeNode {
@@ -28,15 +28,14 @@ object  TreeNode {
 
 /**
   * A Bucket is a Leaf of the PartitionTree which contains actual data.
-  * It corresponds to a folder on the DFS which contains the files and is
-  * structured like a normal Spark dataset
+  * For example, it can contain a string which corresponds to a folder on the
+  * DFS which holds the files and is structured like a normal Spark dataset
   *
   * @param name the unique name of the corresponding folder
   */
-case class Bucket(name: String) extends TreeNode {
-    def folder(basePath : String) = new PartitionFolder(basePath, name, false)
+case class Bucket[Payload](data: Payload) extends TreeNode[Payload] {
 
-    override def accept(visitor: PartitionTreeVisitor) = visitor.visit(this)
+    override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 }
 
 object Bucket {
@@ -46,7 +45,14 @@ object Bucket {
     /**
       * Create a new Bucket with a random name according to the PartitionFolder name chooser
       */
-    def apply() : Bucket = Bucket(PartitionFolder.makeFolder("").name)
+    def apply() : Bucket[String] = Bucket(PartitionFolder.makeFolder("").name)
+
+    /**
+      * Convenience methods for Buckets containing path information
+      */
+    implicit class PathBucket(bucket: Bucket[String]) {
+        def folder(basePath : String) = new PartitionFolder(basePath, bucket.data, false)
+    }
 }
 
 /**
@@ -55,8 +61,8 @@ object Bucket {
   * @param partitioned The remainder of the PartitionTree
   * @param rest A Bucket for all nodes that do not conform to the further partition schema
   */
-case class Spill(partitioned: TreeNode, rest: Bucket) extends TreeNode {
-    override def accept(visitor: PartitionTreeVisitor) = visitor.visit(this)
+case class Spill[Payload](partitioned: TreeNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload] {
+    override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 }
 
 object Spill {
@@ -72,8 +78,8 @@ object Spill {
   * @param presentKey the subtree containing documents where the key is present
   * @param absentKey the subtree containing documents where the key is absent
   */
-case class SplitByPresence(key: PathKey, presentKey: TreeNode, absentKey: TreeNode) extends TreeNode {
-    override def accept(visitor: PartitionTreeVisitor) = visitor.visit(this)
+case class SplitByPresence[Payload](key: PathKey, presentKey: TreeNode[Payload], absentKey: TreeNode[Payload]) extends TreeNode[Payload] {
+    override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 }
 
 object SplitByPresence {
@@ -82,10 +88,10 @@ object SplitByPresence {
     val PRESENT_KEY = "present"
     val ABSENT_KEY = "absent"
 
-    def apply(key: String, presentKey: TreeNode, absentKey: TreeNode) : SplitByPresence
+    def apply[Payload](key: String, presentKey: TreeNode[Payload], absentKey: TreeNode[Payload]) : SplitByPresence[Payload]
         = SplitByPresence(PathKey(key), presentKey, absentKey)
 
-    def apply(key: String, present: String, absent: String) : SplitByPresence
+    def apply(key: String, present: String, absent: String) : SplitByPresence[String]
         = apply(key, Bucket(present), Bucket(absent))
 }
 
@@ -95,27 +101,27 @@ object SplitByPresence {
 // Serializers
 //
 
-object BucketSerializer extends JsonSerializer[Bucket] {
-    override def serialize(bucket: Bucket, t: Type, ctx: JsonSerializationContext): JsonElement = {
+object BucketSerializer extends JsonSerializer[Bucket[String]] {
+    override def serialize(bucket: Bucket[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
         val obj = new JsonObject()
         obj.addProperty(TreeNode.KIND_KEY, Bucket.KIND)
-        obj.addProperty(Bucket.NAME_KEY, bucket.name)
+        obj.addProperty(Bucket.NAME_KEY, bucket.data)
         obj
     }
 }
 
-object SpillSerializer extends JsonSerializer[Spill] {
-    override def serialize(node: Spill, t: Type, ctx: JsonSerializationContext): JsonElement = {
+object SpillSerializer extends JsonSerializer[Spill[String]] {
+    override def serialize(node: Spill[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
         val obj = new JsonObject()
         obj.addProperty(TreeNode.KIND_KEY, Spill.KIND)
-        obj.add(Spill.REST_KEY, ctx.serialize(node.rest.name))
+        obj.add(Spill.REST_KEY, ctx.serialize(node.rest.data))
         obj.add(Spill.PARTIOTIONED_KEY, ctx.serialize(node.partitioned))
         obj
     }
 }
 
-object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence] {
-    override def serialize(node: SplitByPresence, t: Type, ctx: JsonSerializationContext): JsonElement = {
+object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence[String]] {
+    override def serialize(node: SplitByPresence[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
         val obj = new JsonObject()
         obj.addProperty(TreeNode.KIND_KEY, SplitByPresence.KIND)
         obj.addProperty(SplitByPresence.KEY_KEY, node.key.toString())
@@ -129,15 +135,15 @@ object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence] {
 // Deserializers
 //
 
-object TreeNodeDeserializer extends JsonDeserializer[TreeNode] {
-    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): TreeNode = {
+object TreeNodeDeserializer extends JsonDeserializer[TreeNode[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): TreeNode[String] = {
         json match {
           case obj: JsonObject => {
               val kind = obj.get(TreeNode.KIND_KEY).getAsString()
               kind match {
-                  case Bucket.KIND => ctx.deserialize[Bucket](obj, classOf[Bucket])
-                  case SplitByPresence.KIND => ctx.deserialize[SplitByPresence](obj, classOf[SplitByPresence])
-                  case Spill.KIND => ctx.deserialize[Spill](obj, classOf[Spill])
+                  case Bucket.KIND => ctx.deserialize[Bucket[String]](obj, classOf[Bucket[String]])
+                  case SplitByPresence.KIND => ctx.deserialize[SplitByPresence[String]](obj, classOf[SplitByPresence[String]])
+                  case Spill.KIND => ctx.deserialize[Spill[String]](obj, classOf[Spill[String]])
                   case unknown => throw new JsonParseException(s"kind '$unknown' is unknown")
               }
           }
@@ -146,8 +152,8 @@ object TreeNodeDeserializer extends JsonDeserializer[TreeNode] {
   }
 }
 
-object BucketDeserializer extends JsonDeserializer[Bucket] {
-    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): Bucket = {
+object BucketDeserializer extends JsonDeserializer[Bucket[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): Bucket[String] = {
         json match {
           case obj: JsonObject => {
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == Bucket.KIND)
@@ -159,13 +165,13 @@ object BucketDeserializer extends JsonDeserializer[Bucket] {
   }
 }
 
-object SpillDeserializer extends JsonDeserializer[Spill] {
-    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): Spill = {
+object SpillDeserializer extends JsonDeserializer[Spill[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): Spill[String] = {
         json match {
           case obj: JsonObject => {//TODO hier aufgehört
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == Spill.KIND)
               val rest = Bucket(obj.get(Spill.REST_KEY).getAsString())
-              val partitioned = ctx.deserialize[TreeNode](obj.get(Spill.PARTIOTIONED_KEY), classOf[TreeNode])
+              val partitioned = ctx.deserialize[TreeNode[String]](obj.get(Spill.PARTIOTIONED_KEY), classOf[TreeNode[String]])
               Spill(partitioned, rest)
           }
           case _ => throw new JsonParseException(s"$json is not an object")
@@ -173,14 +179,14 @@ object SpillDeserializer extends JsonDeserializer[Spill] {
   }
 }
 
-object PartitionByInnerNodeDeserializer extends JsonDeserializer[SplitByPresence] {
-    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): SplitByPresence = {
+object PartitionByInnerNodeDeserializer extends JsonDeserializer[SplitByPresence[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): SplitByPresence[String] = {
         json match {
           case obj: JsonObject => {
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == SplitByPresence.KIND)
               val key = obj.get(SplitByPresence.KEY_KEY).getAsString()
-              val presentKey = ctx.deserialize[TreeNode](obj.get(SplitByPresence.PRESENT_KEY), classOf[TreeNode])
-              val absentKey = ctx.deserialize[TreeNode](obj.get(SplitByPresence.ABSENT_KEY), classOf[TreeNode])
+              val presentKey = ctx.deserialize[TreeNode[String]](obj.get(SplitByPresence.PRESENT_KEY), classOf[TreeNode[String]])
+              val absentKey = ctx.deserialize[TreeNode[String]](obj.get(SplitByPresence.ABSENT_KEY), classOf[TreeNode[String]])
               SplitByPresence(key, presentKey, absentKey)
           }
           case _ => throw new JsonParseException(s"$json is not an object")

@@ -30,7 +30,7 @@ final case class RecursiveSplitter(
         = sampleSize.toDouble/context.diskSize(table.fs)
 
     override def partition(): Unit = {
-        assert(table.partitionTree.root.isInstanceOf[Bucket])
+        assert(table.partitionTree.root.isInstanceOf[Bucket[String]])
 
         partition(Seq.empty, Seq.empty, Seq.empty)
     }
@@ -74,6 +74,6 @@ final case class RecursiveSplitter(
     }
 
     private def getFolder(table: WavesTable, path: Iterable[PartitionTreePath]) : PartitionFolder
-        = table.partitionTree.find(path).get.asInstanceOf[Bucket].folder(table.basePath)
+        = table.partitionTree.find(path).get.asInstanceOf[Bucket[String]].folder(table.basePath)
 
 }

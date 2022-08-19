@@ -57,6 +57,11 @@ class ObjectCounter private[recursive] (
       * @param other The metric to be applied
       */
     def <--(other : Metric) = other.measure(values)
+
+    /**
+      * @return the number of objects this ObjectCounter is keeping track of
+      */
+    def size = values.length
 }
 
 object ObjectCounter {

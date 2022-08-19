@@ -13,7 +13,9 @@ class ObjectCounterSpec extends WavesSpec
     "An ObjectCounter" when {
         "being created" should {
             "initialize to the correct length" in {
-                ObjectCounter(schema).values should have length (3)
+                val test = ObjectCounter(schema)
+                test.values should have length (3)
+                test.size should equal (3)
             }
 
             "have all zero counts" in {
@@ -32,6 +34,9 @@ class ObjectCounterSpec extends WavesSpec
             }
         }
         "not empty" should {
+            "have the correct size" in {
+                lhs.size should equal (3)
+            }
 
             "add correctly" in {
                 lhs += rhs
@@ -111,6 +116,9 @@ class ObjectCounterSpec extends WavesSpec
             }
         }
         "empty" should {
+            "have size 0" in {
+                ObjectCounter(0).size should equal (0)
+            }
             "remain empty for all mathematical operations" in {
                 Given("an empty counter")
                 val counter = ObjectCounter(0)
@@ -118,26 +126,32 @@ class ObjectCounterSpec extends WavesSpec
                 When("adding")
                 counter += counter
                 counter.values should have length (0)
+                counter.size should equal (0)
 
                 When("subtracting")
                 counter -= counter
                 counter.values should have length (0)
+                counter.size should equal (0)
 
                 When("multiplying")
                 counter *= counter
                 counter.values should have length (0)
+                counter.size should equal (0)
 
                 When("adding a constant")
                 counter += 5
                 counter.values should have length (0)
+                counter.size should equal (0)
 
                 When("subtracting a constant")
                 counter -= 5
                 counter.values should have length (0)
+                counter.size should equal (0)
 
                 When("multiplying a constant")
                 counter *= 5
                 counter.values should have length (0)
+                counter.size should equal (0)
             }
 
             "do nothing when mapping" in {
@@ -149,6 +163,7 @@ class ObjectCounterSpec extends WavesSpec
 
                 Then("it is still empty")
                 counter.values should have length (0)
+                counter.size should equal (0)
             }
 
             "do nothing when combining" in {
@@ -160,6 +175,7 @@ class ObjectCounterSpec extends WavesSpec
 
                 Then("it is still empty")
                 counter.values should have length (0)
+                counter.size should equal (0)
             }
         }
     }

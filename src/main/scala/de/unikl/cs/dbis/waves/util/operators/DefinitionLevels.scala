@@ -24,21 +24,17 @@ object DefinitionLevels {
             .otherwise(addX(child, 1))
     }
 
-    private[operators] def presence(schema : DataType, absentContext : Boolean, pathContext : Option[PathKey]) : Column = schema match {
-        case StructType(fields) => {
-            val children =  fields.map(presence(_, absentContext, pathContext))
-            if (!absentContext) {
-                concat(children:_*)
-            } else {
-                when(col(pathContext.toSpark).isNull, typedLit(Array.fill(schema.nodeCount)(false)))
-                    .otherwise(concat(typedLit(Array(true)) +: children :_*))
-            }
-        }
-        case _ if (absentContext) => when(col(pathContext.toSpark).isNull, typedLit(Array(false)))
-                                         .otherwise(typedLit(Array(true)))
+    private[operators] def presence(schema : DataType, pathContext : Option[PathKey]) : Column = schema match {
+        case StructType(fields) => concat(fields.map(presence(_, pathContext)):_*)
         case _ => typedLit(Array.empty[Boolean])
     }
 
-    private def presence(field : StructField, absentContext : Boolean, pathContext : Option[PathKey]) : Column
-        = presence(field.dataType, absentContext || field.nullable, pathContext :+ field.name)
+    private def presence(field : StructField, pathContext : Option[PathKey]) : Column = {
+      val newPathContext = pathContext :+ field.name
+      val rec = presence(field.dataType, newPathContext)
+      if (field.nullable) {
+        when(col(newPathContext.toSpark).isNull, typedLit(Array.fill(field.dataType.optionalNodeCount+1)(false)))
+          .otherwise(concat(typedLit((Array(true))), rec))
+      } else rec
+    }
 }

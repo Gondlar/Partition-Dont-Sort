@@ -30,7 +30,7 @@ package object operators {
       * @return the column
       */
     def presence(schema : StructType) : Column
-        = DefinitionLevels.presence(schema, false, None).as("presence")
+        = DefinitionLevels.presence(schema, None).as("presence")
 
     /**
       * Add a specified value to every integer in an array

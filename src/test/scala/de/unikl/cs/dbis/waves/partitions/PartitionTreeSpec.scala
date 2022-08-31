@@ -60,6 +60,13 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.replace(bucket, split)
                 bucketTree.root should equal (split)
             }
+            "map correctly" in {
+                bucketTree.map({(payload, index) => index}) should equal (new PartitionTree(bucketTree.globalSchema, Bucket(0)))
+            }
+            "modify correctly" in {
+                bucketTree.modify({(payload, index) => payload + "SUFFIX"})
+                bucketTree.root should equal (Bucket("fooSUFFIX"))
+            }
         }
         "it starts with a split" should {
             "be unchanged by JSON conversion" in {
@@ -93,6 +100,13 @@ class PartitionTreeSpec extends WavesSpec
             "be extendable by replacing" in {
                 splitTree.replace(split.absentKey, bucket)
                 splitTree.root should equal (SplitByPresence("b.d", "bar2", "foo"))
+            }
+            "map correctly" in {
+                splitTree.map({(payload, index) => index}) should equal (new PartitionTree(splitTree.globalSchema, SplitByPresence(split.key, Bucket(1), Bucket(0))))
+            }
+            "modify correctly" in {
+                splitTree.modify({(payload, index) => payload + "SUFFIX"})
+                splitTree.root should equal (SplitByPresence(split.key, Bucket("bar2SUFFIX"), Bucket("baz2SUFFIX")))
             }
         }
         "it starts with a spill" should {
@@ -130,6 +144,13 @@ class PartitionTreeSpec extends WavesSpec
             }
             "fail to replave the spill partition with a split node" in {
                 an [ImpossibleReplacementException] should be thrownBy spillTree.replace(spill.rest, split)
+            }
+            "map correctly" in {
+                spillTree.map({(payload, index) => index}) should equal (new PartitionTree(spillTree.globalSchema, Spill(SplitByPresence(split.key, Bucket(2), Bucket(1)), Bucket(0))))
+            }
+            "modify correctly" in {
+                spillTree.modify({(payload, index) => payload + "SUFFIX"})
+                spillTree.root should equal (Spill(SplitByPresence(split.key, Bucket("bar2SUFFIX"), Bucket("baz2SUFFIX")), Bucket("foo3SUFFIX")))
             }
         }
     }

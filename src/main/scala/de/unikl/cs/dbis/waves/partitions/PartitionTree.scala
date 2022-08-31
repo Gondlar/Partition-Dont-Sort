@@ -124,6 +124,31 @@ class PartitionTree[Payload](
     }
 
     /**
+      * Apply func to all buckets and return the resulting PartitionTree
+      *
+      * @param func the function
+      * @return the new partition tree
+      */
+    def map[To](func: (Payload, Int) => To) : PartitionTree[To] = {
+        val visitor = new MapVisitor(func)
+        root.accept(visitor)
+        new PartitionTree(globalSchema, visitor.getResult)
+    }
+
+    /**
+      * Apply func to all buckets. As opposed to [[map]], this function modifies
+      * this tree rather than creating a new one. As a result, func is limited to
+      * functions which return this trees payload type.
+      *
+      * @param func the function
+      */
+    def modify(func: (Payload, Int) => Payload) : Unit = {
+        val visitor = new MapVisitor(func)
+        root.accept(visitor)
+        root = visitor.getResult
+    }
+
+    /**
       * Two PartitionTrees re equal if they have the same schema and the same tree structure
       *
       * @param obj the PartitionTree to compare true

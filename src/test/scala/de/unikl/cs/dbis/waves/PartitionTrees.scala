@@ -17,7 +17,7 @@ trait PartitionTrees extends BeforeAndAfterEach
   var splitTree : PartitionTree[String] = null
   var spillTree : PartitionTree[String] = null
   
-  override def beforeEach(): Unit = {
+  override protected  def beforeEach(): Unit = {
     super.beforeEach()
 
     bucket = Bucket("foo")

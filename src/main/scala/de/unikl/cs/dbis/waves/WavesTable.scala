@@ -16,14 +16,12 @@ import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
 import de.unikl.cs.dbis.waves.partitions.{
-    PartitionTree,SplitByPresence,Bucket,PartitionTreePath,Present,Absent
+    PartitionTree,SplitByPresence,Bucket,PartitionTreePath,Present,Absent,PartitionTreeHDFSInterface
 }
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}
-import java.nio.charset.StandardCharsets
 import collection.JavaConverters._
-import scala.collection.mutable.ArrayBuffer
 
 class WavesTable private (
     override val name : String,
@@ -34,6 +32,8 @@ class WavesTable private (
     private[waves] var partitionTree : PartitionTree[String]
 ) extends Table with SupportsRead with SupportsWrite {
     private val fastWrite = options.getBoolean(WavesTable.FAST_WRITE_OPTION, true)
+
+    private val hdfsInterface = PartitionTreeHDFSInterface(fs, basePath)
 
     override def capabilities(): ju.Set[TableCapability]
         = Set( TableCapability.BATCH_READ
@@ -68,12 +68,7 @@ class WavesTable private (
     private[waves] def createSpillPartition()
         = partitionTree.findOrCreateFastInsertLocation(() => PartitionFolder.makeFolder(basePath, false).name)
     
-    private[waves] def writePartitionScheme() = {
-        val json = partitionTree.toJson.getBytes(StandardCharsets.UTF_8)
-        val out = fs.create(WavesTable.makeSchemaPath(basePath))
-        out.write(json)
-        out.close()
-    }
+    private[waves] def writePartitionScheme() = hdfsInterface.write(partitionTree)
 
     private[waves] def insertLocation() = createSpillPartition().folder(basePath)
     
@@ -178,21 +173,19 @@ object WavesTable {
 
     val FAST_WRITE_OPTION = "waves.fastWrite"
 
-    def makeSchemaPath(basePath : String) = new Path(s"$basePath/schema.json")
-
     def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap) = {
-        val schemaPath = makeSchemaPath(basePath)
-        val fs = schemaPath.getFileSystem(spark.sparkContext.hadoopConfiguration)
+        val hdfsInterface = PartitionTreeHDFSInterface(spark, basePath)
         val schemaOption = options.get(PARTITION_TREE_OPTION)
         val partitionTree = if (schemaOption != null) {
             // partition tree overrides schema
             PartitionTree.fromJson(schemaOption)
-        } else if (fs.exists(schemaPath)) {
-            PartitionTree.fromJson(readSchema(schemaPath, fs))
         } else {
-            throw QueryCompilationErrors.dataSchemaNotSpecifiedError("waves")
+          hdfsInterface.read() match {
+            case Some(tree) => tree
+            case None => throw QueryCompilationErrors.dataSchemaNotSpecifiedError("waves")
+          }
         }
-        new WavesTable(name, spark, basePath, fs, options, partitionTree)
+        new WavesTable(name, spark, basePath, hdfsInterface.fs, options, partitionTree)
     }
 
     def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap, schema : StructType) = {
@@ -205,16 +198,5 @@ object WavesTable {
         }
         val fs = new Path(basePath).getFileSystem(spark.sparkContext.hadoopConfiguration)
         new WavesTable(name, spark, basePath, fs, options, partitionTree)
-    }
-
-    private def readSchema(schemaPath: Path, fs: FileSystem) = {
-        val res = ArrayBuffer.empty[Byte]
-        val buffer = new Array[Byte](256*256) // Possibly use differing size
-        val reader = fs.open(schemaPath)
-        var read = 0
-        while ({read = reader.read(buffer); read != -1}) {
-            res ++= buffer.slice(0, read)
-        }
-        new String(res.toArray, StandardCharsets.UTF_8)
     }
 }

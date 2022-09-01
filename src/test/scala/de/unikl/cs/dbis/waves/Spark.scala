@@ -13,6 +13,7 @@ trait Spark extends BeforeAndAfterAll { this: Suite =>
   override protected def beforeAll(): Unit = {
     val conf = new SparkConf().setAppName("waves-scalatest")
     spark = SparkSession.builder().config(conf).master("local").getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")
 
     super.beforeAll() // To be stackable, must call super.beforeAll
   }

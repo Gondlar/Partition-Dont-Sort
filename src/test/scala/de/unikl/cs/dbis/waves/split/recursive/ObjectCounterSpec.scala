@@ -114,6 +114,13 @@ class ObjectCounterSpec extends WavesSpec
                     lhs.combine(smaller, (_, _) => fail("Called f despite different size"))
                 }
             }
+            "equal itself" in {
+              lhs should equal (lhs)
+            }
+            "not equals counters with other values" in {
+              lhs should not equal (rhs)
+              lhs should not equal (ObjectCounter(0))
+            }
         }
         "empty" should {
             "have size 0" in {
@@ -176,6 +183,12 @@ class ObjectCounterSpec extends WavesSpec
                 Then("it is still empty")
                 counter.values should have length (0)
                 counter.size should equal (0)
+            }
+            "equal itself" in {
+              ObjectCounter(0) should equal (ObjectCounter(0))
+            }
+            "not equals counters with values" in {
+              ObjectCounter(0) should not equal (rhs)
             }
         }
     }

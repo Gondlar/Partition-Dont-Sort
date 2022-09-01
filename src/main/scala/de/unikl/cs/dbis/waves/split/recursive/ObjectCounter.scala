@@ -62,6 +62,13 @@ class ObjectCounter private[recursive] (
       * @return the number of objects this ObjectCounter is keeping track of
       */
     def size = values.length
+
+    override def equals(other: Any): Boolean = other match {
+      case counter: ObjectCounter => counter.values sameElements values
+      case _ => false
+    }
+
+    override def toString(): String = s"ObjectCounter(${values.mkString(",")})"
 }
 
 object ObjectCounter {

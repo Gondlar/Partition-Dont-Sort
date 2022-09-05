@@ -76,7 +76,7 @@ case class SwitchMetric(
         require(lhs.values.length == rhs.values.length)
         require(results.length == rhs.values.length)
         for (i <- 0 to results.length-1) {
-            results(i) = if (lhs.values(i) == rhs.values(i)) 0 else 1
+            results(i) = if ((lhs.values(i) != 0) == (rhs.values(i) != 0)) 0 else 1
         }
     }
 }
@@ -113,4 +113,22 @@ case class LeafMetric(subject : StructType) extends Metric {
         }
         (resultPos, count)
     }
+}
+
+/**
+  * The precalculated Metric is used to extract per node data that is already stored
+  * as an Array in a Row and store it in an ObjectCounter.
+  *
+  * @param subject the row
+  * @param column the name of the non-nested column containing the array
+  * @param weight how many tuples each row represents
+  */
+case class PrecalculatedMetric(subject: Row, column: Int, weight: Int) extends Metric {
+  override def measure(results : Array[Int]) = {
+    val precalculated = subject.getSeq[Boolean](column)
+    assert(precalculated.size == results.size)
+    for (index <- precalculated.indices) {
+      results(index) = if (precalculated(index)) weight else 0
+    }
+  }
 }

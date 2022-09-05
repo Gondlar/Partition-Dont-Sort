@@ -9,7 +9,7 @@ import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.Bucket
-import de.unikl.cs.dbis.waves.split.recursive.filterKnownPaths
+import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
 
 class RecursiveSplitterSpec extends WavesSpec
     with Relation {
@@ -21,7 +21,7 @@ class RecursiveSplitterSpec extends WavesSpec
         "return a sample of the data" in {
             Given("A table and a recursive splitter")
             val table = WavesTable("RecursiveSplitterTest", spark, directory, CaseInsensitiveStringMap.empty)
-            val splitter = RecursiveSplitter(table, 0, Int.MaxValue, mockMetric)
+            val splitter = RecursiveSplitter(table, 0, Int.MaxValue, MockHeuristic())
             
             When("we partition the table")
             splitter.partition()
@@ -61,9 +61,20 @@ class RecursiveSplitterSpec extends WavesSpec
             spark.read.format("de.unikl.cs.dbis.waves").load(directory).collect() should contain theSameElementsAs (data)
         }
     }
+}
 
-    def mockMetric(data : DataFrame, knownAbsent : Seq[PathKey], knownPresent : Seq[PathKey], cutoff: Double)
-        = Seq(PathKey("b"), PathKey("a"), PathKey("b.c"))
+case class MockHeuristic() extends AbstractHeuristic {
+
+  override protected def heuristic(col: ColumnMetric): Int = ???
+  
+  override def choose(
+    metric: PartitionMetricCalculator,
+    df: DataFrame,
+    knownAbsent: Seq[PathKey],
+    knownPresent: Seq[PathKey],
+    thresh : Double
+    ): Option[PathKey]
+      = Seq(PathKey("b"), PathKey("a"), PathKey("b.c"))
             .filter(filterKnownPaths(knownAbsent, knownPresent, _))
             .headOption
 }

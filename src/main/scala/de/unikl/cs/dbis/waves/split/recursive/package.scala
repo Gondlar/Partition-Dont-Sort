@@ -1,10 +1,6 @@
 package de.unikl.cs.dbis.waves.split
 
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.util.nested.schemas._
 
 /**
   * Methods which calculate Heuristics
@@ -14,137 +10,9 @@ package object recursive {
       * Type alias for summary statistics within a spark partition
       */
     type PartitionMetric = (Int, ObjectCounter, ObjectCounter)
-  
-    /**
-      * Calculate statistics for one spark partition
-      *
-      * @param partition iterator over the partition's entries
-      * @param optionalCount The number of optional nodes in the schema
-      * @return the statistics for this partition
-      */
-    private def combine(partition : Iterator[Row], optionalCount : Int) : Iterator[PartitionMetric] = {
-        if (partition.hasNext) {
-            val presentCount = ObjectCounter(optionalCount)
-            val switchCount = ObjectCounter(optionalCount)
-            var old = ObjectCounter(optionalCount)
-            var current = ObjectCounter(optionalCount)
-            var rowCount = 1
-  
-            old <-- PresentMetric(partition.next())
-            for (row <- partition) {
-                rowCount += 1
-                presentCount += old
-                current <-- PresentMetric(row)
-                old <-- SwitchMetric(current, old)
-                switchCount += old
-                val tmp = old
-                old = current
-                current = tmp
-            }
-            presentCount += old
-  
-            Iterator((rowCount, presentCount, switchCount))
-        } else {
-            // partition is empty
-            Iterator((0, ObjectCounter(optionalCount), ObjectCounter(optionalCount)))
-        }
-    }
-  
-    /**
-      * Combine the statistics from two partitions into one
-      *
-      * @param lhs the first partition's stats
-      * @param rhs the second partition's stats
-      * @return the combined statistics
-      */
-    private def reduce(lhs : PartitionMetric, rhs : PartitionMetric) : PartitionMetric = {
-        var (rowCount, presentCount, switchCount) = lhs
-        rowCount += rhs._1
-        presentCount += rhs._2
-        switchCount += rhs._3
-        (rowCount, presentCount, switchCount)
-    }
-  
-    /**
-      * Find all allowable paths for a given dataframe
-      *
-      * @param data the data to analyze
-      * @param knownAbsent paths known to be absent, i.e., a path is allowable if
-      *                    it does not contain any of these paths as a prefix
-      * @param knownPresent paths known to be present, i.e., a path is allowable if
-      *                     it is not equal to one of these paths
-      * @param thresh threshold for path presence and absence, i.e., a path is allowable
-      *               if it is present in at least thresh percent of documents and absent in
-      *               at least thresh percent of documents 
-      * @return A list of allowable paths and their heuristics
-      */
-    def calculate(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
-        val schema = data.schema
-        val optionalCount = schema.optionalNodeCount
-        var (size, presentCount, switchCount) = data.rdd
-            .mapPartitions(combine(_, optionalCount))
-            .reduce(reduce _)
-        val min = (thresh*size).ceil.toInt
-        
-        val leafCount = ObjectCounter(optionalCount)
-        leafCount <-- LeafMetric(schema)
-        switchCount *= leafCount
-        presentCount -= (size/2)
-        presentCount.map(_.abs)
-
-        val cutoff = (size/2) - min
-        ObjectCounter.paths(schema)
-                     .zip(presentCount.values)
-                     .zip(switchCount.values)
-                     .filter({ case ((path,present),_) =>
-                         present < cutoff && filterKnownPaths(knownAbsent, knownPresent, path)
-                     })
-                     .map({ case ((path, present), switch) => (path, present, switch)})
-    }
 
     /**
-      * Check whether we already know that path is present or absent. 
-      *
-      * @param knownAbsent a collection of paths known to be absent
-      * @param knownPresent a collection of paths known to be present
-      * @param path the path to check
-      * @return true iff we do now yet know whether path is present or absent,
-      *         otherwise false.
+      * Type alias for summary statistics of a DataFrame's column
       */
-    def filterKnownPaths(knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], path: PathKey)
-      = knownAbsent.forall(key => !(key isPrefixOf path)) && knownPresent.forall(key => !(key == path))
-
-    /**
-      * Find the best path to split using the switch heuristic
-      *
-      * @param data the data frame
-      * @param knownAbsent the known absent paths
-      * @param knownPresent the known present paths
-      * @param min the threshold
-      * @return the best path using the switch heuristic if such a path exists, otherwise None
-      * @see [[calculate]] for the parameter documentation
-      */
-    def switchHeuristic(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
-        val paths = calculate(data, knownAbsent, knownPresent, thresh)
-        if (paths.isEmpty) None else {
-            Some(paths.maxBy({case (_, _, switch) => switch})._1)
-        }
-    }
-
-    /**
-      * Find the best path to split using the even heuristic
-      *
-      * @param data the data frame
-      * @param knownAbsent the known absent paths
-      * @param knownPresent the known present paths
-      * @param min the threshold
-      * @return the best path using the even heuristic if such a path exists, otherwise None
-      * @see [[calculate]] for the parameter documentation
-      */
-    def evenHeuristic(data : DataFrame, knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], thresh : Double) = {
-        val paths = calculate(data, knownAbsent, knownPresent, thresh)
-        if (paths.isEmpty) None else {
-            Some(paths.minBy({case (_, even, _) => even})._1)
-        }
-    }
+    type ColumnMetric = (PathKey, Int, Int)
 }

@@ -48,6 +48,7 @@ libraryDependencies += "org.scalatest" %% "scalatest-wordspec" % scalatestVersio
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 logBuffered in Test := false
+classLoaderLayeringStrategy in Test := ClassLoaderLayeringStrategy.Flat
 
 coverageExcludedFiles := Seq(
     ".*\\/deprecated\\/.*",

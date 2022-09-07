@@ -8,12 +8,11 @@ import scala.concurrent.{Future, ExecutionContext, blocking, Await}
 import scala.concurrent.duration.Duration
 import scala.collection.mutable.PriorityQueue
 
-import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence, PartitionTreeHDFSInterface}
 import de.unikl.cs.dbis.waves.partitions.{PartitionTreePath, Absent, Present}
-import de.unikl.cs.dbis.waves.util.PartitionFolder
-import de.unikl.cs.dbis.waves.util.operators.presence
 import de.unikl.cs.dbis.waves.split.recursive.{EvenHeuristic, GroupedCalculator}
+import de.unikl.cs.dbis.waves.util.{Logger, PathKey, PartitionFolder}
+import de.unikl.cs.dbis.waves.util.operators.presence
 
 class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends GroupedSplitter {
   private implicit val ord = Ordering.by[Seq[PartitionTreePath], Int](_.size)
@@ -26,6 +25,7 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
   override protected def grouper: StructType => Column = presence
 
   override protected def split(df: DataFrame): Seq[DataFrame] = {
+    Logger.log("evenSplitter-start")
     val heuristic = EvenHeuristic()
     val calc = GroupedCalculator(data.schema)
     val pathMap = calc.paths(df).zipWithIndex.toMap
@@ -33,20 +33,23 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     partitions.replace(partitions.root, Bucket(df))
     while (queue.nonEmpty) {
       val (count, pathToNext) = queue.dequeue()
+      Logger.log("evenSplitter-start-partition", pathToNext)
       val next = partitions.find(pathToNext).get.asInstanceOf[Bucket[DataFrame]]
       val nextData = next.data
       val nextSplit = heuristic.choose(calc, df, Seq.empty, Seq.empty, threshold.toDouble/count)
-      // evenHeuristic(determinePresenceFromGroups(nextData), partitions.globalSchema, )
+      Logger.log("evenSplitter-choseSplit", nextSplit)
       nextSplit match {
-        case None => {} // No good split found, stop
+        case None => Logger.log("evenSplitter-noGoodSplitFound")
         case Some(path) => {
           val pathIndex = pathMap(path)
           val present = addPartition(nextData, pathIndex, pathToNext :+ Present)
           val absent = addPartition(nextData, pathIndex, pathToNext :+ Absent)
+          assert(present.intersect(absent).count() == 0)
           val newSplit = SplitByPresence(path, Bucket(present), Bucket(absent))
           partitions.replace(next, newSplit) //TODO: urgh... we have the path and still traverse the entire tree
         }
       }
+      Logger.log("evenSplitter-end-partition", pathToNext)
     }
     partitions.getBuckets().map(_.data).toSeq
   }
@@ -60,7 +63,7 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     val newPartiton = df.filter(filterColumn)
     val size = newPartiton.agg(sum(col("count"))).collect().head.getLong(0)
     if (size > threshold) queue.enqueue((size, location))
-    newPartiton.sort()
+    newPartiton
   }
 
   override protected def buildTree(buckets: Seq[DataFrame]): Unit = {
@@ -68,6 +71,7 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     val dataColumns = df.columns.map(col(_))
     val group = grouper(df.schema)
     
+    Logger.log("evenSplitter-start-buildTree")
     val partition_index_column = "partition_index-obBnTMc1tD2ujPb0uJLO"
     val allBucketsWithIndex = buckets.zipWithIndex.map { case (bucket, index) =>
       bucket.select(bucket.col("presence"), typedLit(index).as(partition_index_column))
@@ -83,6 +87,8 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
       .write
       .partitionBy(grouping_col)
       .parquet(path)
+
+    Logger.log("evenSplitter-grouping-done")
 
     implicit val ec: ExecutionContext = ExecutionContext.global
     val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
@@ -115,6 +121,7 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     val folders = Await.result(Future.sequence(futureFolders), Duration.Inf)
     val tree = partitions.map((_, index) => folders(index).name)
     PartitionTreeHDFSInterface(df.sparkSession, path).write(tree)
+    Logger.log("evenSplitter-end-buildTree")
   }
 
   private def dataFrameToMap(df: DataFrame, key: Column, value: Column, map_column: String) = {

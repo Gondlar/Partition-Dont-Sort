@@ -3,7 +3,9 @@ package de.unikl.cs.dbis.waves.partitions
 /**
   * Navigation elements for paths in a PartitionTree
   */
-sealed trait PartitionTreePath
+sealed trait PartitionTreePath {
+  override def toString(): String = this.getClass().getSimpleName().init
+}
 
 /**
   * Navigate to the "present" side of a SplitByPresence node

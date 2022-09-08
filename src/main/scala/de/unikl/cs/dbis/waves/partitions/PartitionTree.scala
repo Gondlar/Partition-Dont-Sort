@@ -110,6 +110,19 @@ class PartitionTree[Payload](
     }
 
     /**
+      * Get all paths known to be absent or present in the subtree rooted in
+      * the node referenced by the given path.
+      *
+      * @param path the path
+      * @return a tuple with lists of the absent and present paths
+      */
+    def knownAbsentAndPresentIn(path : Iterable[PartitionTreePath]) = {
+        val visitor = new KnownKeysForPathVisitor[Payload](path)
+        root.accept(visitor)
+        (visitor.absent, visitor.present)
+    }
+
+    /**
       * Replace one ocurrence of a subtree with a different subtree.
       * The subtree is matched using object identity, i.e., you need a
       * reference into the tree.

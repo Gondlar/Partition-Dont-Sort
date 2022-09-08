@@ -19,12 +19,11 @@ final class KnownKeysForPathVisitor[Payload](
   def absent = absentBuilder.result()
   def present = presentBuilder.result()
 
-  override protected def navigateDown(from: TreeNode[Payload], to: TreeNode[Payload], step: PartitionTreePath) = {
+  override protected def navigateDown(from: TreeNode[Payload], to: TreeNode[Payload])(step: from.PathType) = {
     from match {
-      case SplitByPresence(key, _, _) => (step: @unchecked) match {
-        // NavigatePathVisitor already assures we only get fitting path steps
-        case Absent => absentBuilder += key
-        case Present => presentBuilder += key
+      case f: SplitByPresence[Payload] => step.asInstanceOf[f.PathType] match {
+        case Absent => absentBuilder += f.key
+        case Present => presentBuilder += f.key
       }
       case _ => {}
     }

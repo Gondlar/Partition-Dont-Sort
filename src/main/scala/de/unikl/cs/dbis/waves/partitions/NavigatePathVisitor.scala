@@ -46,7 +46,7 @@ abstract class NavigatePathVisitor[Payload](
       * @param to the node we are going to
       * @param step the step we are taking
       */
-    protected def navigateDown(from: TreeNode[Payload], to: TreeNode[Payload], step: PartitionTreePath) = {}
+    protected def navigateDown(from: TreeNode[Payload], to: TreeNode[Payload])(step: from.PathType) = {}
 
     /**
       * This method is called when traversing the path backwards
@@ -56,45 +56,33 @@ abstract class NavigatePathVisitor[Payload](
       * @param to the node we are returning to
       * @param step the step we took
       */
-    protected def navigateUp(from: TreeNode[Payload], to: TreeNode[Payload], step: PartitionTreePath) = {}
+    protected def navigateUp(from: TreeNode[Payload], to: TreeNode[Payload])(step: to.PathType) = {}
 
     override def visit(bucket: Bucket[Payload]): Unit
         = if (iterator.hasNext) invalidStep(bucket, iterator.next())
           else endOfPath(bucket)
 
     override def visit(node: SplitByPresence[Payload]): Unit
-      = navigate(node, step => step match {
-        case Present => node.presentKey
-        case Absent => node.absentKey
-        case _ => {
-          invalidStep(node, step)
-          return // Caution: this returns from visit, not from the lambda
-        }
-      })
+      = navigate(node)
 
-    override def visit(root: Spill[Payload]): Unit = {
-      navigate(root, step => step match {
-        case Partitioned => root.partitioned
-        case Rest => root.rest
-        case _ => {
-          invalidStep(root, step)
-          return // Caution: this returns from visit, not from the lambda
-        }
-      })
-    }
+    override def visit(root: Spill[Payload]): Unit
+      = navigate(root)
 
-    private def navigate(
-      from: TreeNode[Payload],
-      getNext: PartitionTreePath => TreeNode[Payload]
-    ): Unit = {
+    private def navigate(from: TreeNode[Payload]): Unit = {
       if (!iterator.hasNext) {
         endOfPath(from)
         return
       }
-      val step = iterator.next
-      val to = getNext(step)
-      navigateDown(from, to, step)
+
+      val next = iterator.next
+      val to = from.navigate.applyOrElse(next, {s: PartitionTreePath => 
+        invalidStep(from, s)
+        return // this returns from navigate, not the lambda
+      })
+      
+      val step = next.asInstanceOf[from.PathType]
+      navigateDown(from, to)(step)
       to.accept(this)
-      navigateUp(to, from, step)
+      navigateUp(to, from)(step)
     }
 }

@@ -8,21 +8,38 @@ sealed trait PartitionTreePath {
 }
 
 /**
+  * Subtype for all steps that can be taken from a [[Bucket]]
+  * 
+  * Surprise: it has no concrete instances because a bucket never has children
+  */
+sealed trait BucketPath extends PartitionTreePath
+
+/**
+  * Subtype for all steps that can be taken from a [[SplitByPresence]]
+  */
+sealed trait SplitByPresencePath extends PartitionTreePath
+
+/**
+  * Subtype for all steps that can be taken from a [[Spill]]
+  */
+sealed trait SpillPath extends PartitionTreePath
+
+/**
   * Navigate to the "present" side of a SplitByPresence node
   */
-object Present extends PartitionTreePath
+object Present extends SplitByPresencePath
 
 /**
   * Navigate to the "absent" side of a SplitByPresence
   */
-object Absent extends PartitionTreePath
+object Absent extends SplitByPresencePath
 
 /**
   * Navigate to the "partitioned" side of a Spill
   */
-object Partitioned extends PartitionTreePath
+object Partitioned extends SpillPath
 
 /**
   * Navigate to the "rest" side of a Spill
   */
-object Rest extends PartitionTreePath
+object Rest extends SpillPath

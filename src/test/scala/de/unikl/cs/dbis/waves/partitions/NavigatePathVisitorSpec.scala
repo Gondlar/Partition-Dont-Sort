@@ -143,13 +143,13 @@ class NavigatePathVisitorSpec extends WavesSpec
     private var returning = false
     var error = false
 
-    override protected def navigateDown(from: TreeNode[String], to: TreeNode[String], step: PartitionTreePath): Unit = {
+    override protected def navigateDown(from: TreeNode[String], to: TreeNode[String])(step: from.PathType): Unit = {
       returning shouldBe (false)
       error shouldBe (false)
       down += ((from, to, step))
     }
 
-    override protected def navigateUp(from: TreeNode[String], to: TreeNode[String], step: PartitionTreePath): Unit = {
+    override protected def navigateUp(from: TreeNode[String], to: TreeNode[String])(step: to.PathType): Unit = {
       returning shouldBe (true)
       if (doError) {
         error shouldBe (false)

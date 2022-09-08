@@ -19,7 +19,14 @@ import java.lang.reflect.Type
   * A TreeNode is any node in the PartitionTree
   */
 sealed abstract class TreeNode[Payload] {
+    type PathType <: PartitionTreePath
+
     def accept(visitor: PartitionTreeVisitor[Payload]) : Unit
+    def apply(step: PartitionTreePath): TreeNode[Payload] = navigate.applyOrElse(step, { _: PartitionTreePath =>
+      throw InvalidPathException(Seq(step), step, "step does not fit node type")
+    })
+    
+    val navigate: PartialFunction[PartitionTreePath, TreeNode[Payload]]
 }
 
 object  TreeNode {
@@ -35,7 +42,13 @@ object  TreeNode {
   */
 case class Bucket[Payload](data: Payload) extends TreeNode[Payload] {
 
-    override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
+  
+  override type PathType = BucketPath
+  
+  override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
+  
+  override val navigate: PartialFunction[PartitionTreePath,TreeNode[Payload]]
+    = PartialFunction.empty
 }
 
 object Bucket {
@@ -62,7 +75,16 @@ object Bucket {
   * @param rest A Bucket for all nodes that do not conform to the further partition schema
   */
 case class Spill[Payload](partitioned: TreeNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload] {
-    override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
+
+  
+  override type PathType = SpillPath
+  
+  override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
+  
+  override val navigate: PartialFunction[PartitionTreePath,TreeNode[Payload]] = {
+    case Partitioned => partitioned
+    case Rest => rest
+  }
 }
 
 object Spill {
@@ -79,7 +101,14 @@ object Spill {
   * @param absentKey the subtree containing documents where the key is absent
   */
 case class SplitByPresence[Payload](key: PathKey, presentKey: TreeNode[Payload], absentKey: TreeNode[Payload]) extends TreeNode[Payload] {
+    override type PathType = SplitByPresencePath
+
     override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
+
+    override val navigate: PartialFunction[PartitionTreePath,TreeNode[Payload]] = {
+      case Present => presentKey
+      case Absent => absentKey
+    }
 }
 
 object SplitByPresence {

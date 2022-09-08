@@ -7,31 +7,14 @@ package de.unikl.cs.dbis.waves.partitions
   */
 final class FindByPathVisitor[Payload](
     path : Iterable[PartitionTreePath]
-) extends PartitionTreeVisitor[Payload] {
-    private var iterator = path.iterator
-    
+) extends NavigatePathVisitor[Payload](path) {
     private var res : Option[TreeNode[Payload]] = None
+
     def result = res
 
-    override def visit(bucket: Bucket[Payload]): Unit
-        = if (iterator.hasNext) res = None
-          else res = Some(bucket)
+    override protected def endOfPath(node: TreeNode[Payload]): Unit
+      = res = Some(node)
 
-    override def visit(node: SplitByPresence[Payload]): Unit
-        = if (iterator.hasNext) {
-            iterator.next match {
-                case Present => node.presentKey.accept(this)
-                case Absent => node.absentKey.accept(this)
-                case _ => res = None
-            }
-        } else res = Some(node)
-
-    override def visit(root: Spill[Payload]): Unit
-        = if (iterator.hasNext) {
-            iterator.next match {
-                case Partitioned => root.partitioned.accept(this)
-                case Rest => root.rest.accept(this)
-                case _ => res = None
-            }
-        } else res = Some(root)
+    override def invalidStep(node: TreeNode[Payload], step: PartitionTreePath): Unit
+      = res = None
 }

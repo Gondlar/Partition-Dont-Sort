@@ -5,7 +5,7 @@ case class InvalidPathException(
   val step: PartitionTreePath,
   private val message : String = "Wrong kind of step for node",
   private val cause : Throwable = null
-) extends Exception(s"Could not take $step in $path: $message", cause)
+) extends Exception(s"Could not go to $step in $path: $message", cause)
 
 /**
   * Navigate along a path

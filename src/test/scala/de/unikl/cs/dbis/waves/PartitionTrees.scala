@@ -22,7 +22,7 @@ trait PartitionTrees extends BeforeAndAfterEach
 
     bucket = Bucket("foo")
     split = SplitByPresence("b.d", "bar2", "baz2")
-    spill = Spill(SplitByPresence("b.d", "bar2", "baz2"), Bucket("foo3"))
+    spill = Spill(split, Bucket("foo3"))
 
     bucketTree = new PartitionTree(schema, bucket)
     splitTree = new PartitionTree(schema, split)

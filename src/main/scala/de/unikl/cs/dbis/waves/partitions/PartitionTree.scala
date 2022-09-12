@@ -18,6 +18,8 @@ import org.apache.spark.sql.sources.Filter
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import org.apache.spark.sql.catalyst.InternalRow
 
+import TreeNode.AnyNode
+
 /**
   * A partition tree represent a partitionging schema
   *
@@ -26,7 +28,7 @@ import org.apache.spark.sql.catalyst.InternalRow
   */
 class PartitionTree[Payload](
     val globalSchema: StructType,
-    var root: TreeNode[Payload] = Bucket("spill")
+    var root: AnyNode[Payload] = Bucket("spill")
 ) {
     assert(root != null)
 
@@ -130,7 +132,7 @@ class PartitionTree[Payload](
       * @param needle the subtree to be replaced
       * @param replacement the new subtree to be inserted
       */
-    def replace(needle: TreeNode[Payload], replacement: TreeNode[Payload]) = {
+    def replace(needle: AnyNode[Payload], replacement: AnyNode[Payload]) = {
         val visitor = new ReplaceSubtreeVisitor(needle, replacement)
         root.accept(visitor)
         root = visitor.getResult
@@ -186,7 +188,7 @@ object PartitionTree {
         .registerTypeAdapter(classOf[Spill[String]], SpillSerializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeDeserializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeSerializer)
-        .registerTypeAdapter(classOf[TreeNode[String]], TreeNodeDeserializer)
+        .registerTypeAdapter(classOf[AnyNode[String]], TreeNodeDeserializer)
         .create()
 
     implicit class PathPartitionTree(tree: PartitionTree[String]) {
@@ -217,7 +219,7 @@ object PartitionTreeDeserializer extends JsonDeserializer[PartitionTree[String]]
       json match {
           case obj: JsonObject => {
               val globalSchema = DataType.fromJson(obj.get(PartitionTree.SCHEMA_KEY).getAsString())
-              val root = ctx.deserialize[TreeNode[String]](obj.get(PartitionTree.ROOT_KEY), classOf[TreeNode[String]])
+              val root = ctx.deserialize[AnyNode[String]](obj.get(PartitionTree.ROOT_KEY), classOf[AnyNode[String]])
               new PartitionTree(globalSchema.asInstanceOf[StructType], root)
           }
           case _ => throw new JsonParseException(s"$json is not an Object")

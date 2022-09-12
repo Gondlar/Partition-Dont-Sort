@@ -1,5 +1,7 @@
 package de.unikl.cs.dbis.waves.partitions
 
+import TreeNode.AnyNode
+
 case class InvalidPathException(
   val path : Seq[PartitionTreePath],
   val step: PartitionTreePath,
@@ -25,7 +27,7 @@ abstract class NavigatePathVisitor[Payload](
       *
       * @param node the node where we could not take the step
       */
-    def invalidStep(node: TreeNode[Payload], step: PartitionTreePath): Unit = node match {
+    def invalidStep(node: AnyNode[Payload], step: PartitionTreePath): Unit = node match {
       case Bucket(data) => throw InvalidPathException(path.toSeq, step, "Reached leaf before end of path")
       case _ => throw InvalidPathException(path.toSeq, step)
     }
@@ -36,7 +38,7 @@ abstract class NavigatePathVisitor[Payload](
       *
       * @param node the node the path refers to
       */
-    protected def endOfPath(node: TreeNode[Payload]): Unit = {}
+    protected def endOfPath(node: AnyNode[Payload]): Unit = {}
 
     /**
       * This method is called when traversing the path forwards
@@ -46,7 +48,9 @@ abstract class NavigatePathVisitor[Payload](
       * @param to the node we are going to
       * @param step the step we are taking
       */
-    protected def navigateDown(from: TreeNode[Payload], to: TreeNode[Payload])(step: from.PathType) = {}
+    protected def navigateDown[Step <: PartitionTreePath, From <: TreeNode[Payload,Step]](
+      from: From, to: AnyNode[Payload], step: Step
+    ) = {}
 
     /**
       * This method is called when traversing the path backwards
@@ -56,19 +60,21 @@ abstract class NavigatePathVisitor[Payload](
       * @param to the node we are returning to
       * @param step the step we took
       */
-    protected def navigateUp(from: TreeNode[Payload], to: TreeNode[Payload])(step: to.PathType) = {}
+    protected def navigateUp[Step <: PartitionTreePath, To <: TreeNode[Payload,Step]](
+      from: AnyNode[Payload], to: To, step: Step
+    ) = {}
 
     override def visit(bucket: Bucket[Payload]): Unit
         = if (iterator.hasNext) invalidStep(bucket, iterator.next())
           else endOfPath(bucket)
 
     override def visit(node: SplitByPresence[Payload]): Unit
-      = navigate(node)
+      = navigate[SplitByPresencePath,SplitByPresence[Payload]](node)
 
     override def visit(root: Spill[Payload]): Unit
-      = navigate(root)
+      = navigate[SpillPath,Spill[Payload]](root)
 
-    private def navigate(from: TreeNode[Payload]): Unit = {
+    private def navigate[Step <: PartitionTreePath, From <: TreeNode[Payload,Step]](from: From): Unit = {
       if (!iterator.hasNext) {
         endOfPath(from)
         return
@@ -80,9 +86,9 @@ abstract class NavigatePathVisitor[Payload](
         return // this returns from navigate, not the lambda
       })
       
-      val step = next.asInstanceOf[from.PathType]
-      navigateDown(from, to)(step)
+      val step = next.asInstanceOf[Step]
+      navigateDown(from, to, step)
       to.accept(this)
-      navigateUp(to, from)(step)
+      navigateUp(to, from, step)
     }
 }

@@ -1,5 +1,7 @@
 package de.unikl.cs.dbis.waves.partitions
 
+import TreeNode.AnyNode
+
 /**
   * Applies a function to all payloads of buckets and returns the tree which
   * stores all results as payload. The buckets are visited in the same order as
@@ -12,7 +14,7 @@ package de.unikl.cs.dbis.waves.partitions
 final class MapVisitor[From, To](func: (From, Int) => To)
 extends PartitionTreeVisitor[From] {
     private var visitedBuckets = 0
-    private var result : TreeNode[To] = null
+    private var result : AnyNode[To] = null
 
     override def visit(bucket: Bucket[From]) : Unit = {
       result = Bucket(func(bucket.data, visitedBuckets))

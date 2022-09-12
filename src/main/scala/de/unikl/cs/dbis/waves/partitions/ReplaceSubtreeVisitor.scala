@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.partitions
 
 import scala.collection.mutable.ArrayBuffer
+import TreeNode.AnyNode
 
 class ImpossibleReplacementException(
     private val message : String,
@@ -14,10 +15,10 @@ class ImpossibleReplacementException(
   * @param needle
   * @param replace
   */
-final class ReplaceSubtreeVisitor[Payload](val needle: TreeNode[Payload], val replace: TreeNode[Payload])
+final class ReplaceSubtreeVisitor[Payload](val needle: AnyNode[Payload], val replace: AnyNode[Payload])
 extends PartitionTreeVisitor[Payload] {
     private var replaced = false
-    private var result : TreeNode[Payload] = null
+    private var result : AnyNode[Payload] = null
 
     def found() = {
         replaced = true

@@ -3,6 +3,8 @@ package de.unikl.cs.dbis.waves.partitions
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.PartitionTrees
 
+import TreeNode.AnyNode
+
 class NavigatePathVisitorSpec extends WavesSpec
   with PartitionTrees {
 
@@ -136,20 +138,24 @@ class NavigatePathVisitorSpec extends WavesSpec
     path: Iterable[PartitionTreePath],
     doError: Boolean = true
   ) extends NavigatePathVisitor[String](path) {
-    val down = Seq.newBuilder[(TreeNode[String],TreeNode[String], PartitionTreePath)]
-    val up = Seq.newBuilder[(TreeNode[String],TreeNode[String], PartitionTreePath)]
-    var last : Option[TreeNode[String]] = None
+    val down = Seq.newBuilder[(AnyNode[String],AnyNode[String], PartitionTreePath)]
+    val up = Seq.newBuilder[(AnyNode[String],AnyNode[String], PartitionTreePath)]
+    var last : Option[AnyNode[String]] = None
     var lastStep : Option[PartitionTreePath] = None
     private var returning = false
     var error = false
 
-    override protected def navigateDown(from: TreeNode[String], to: TreeNode[String])(step: from.PathType): Unit = {
+    override protected def navigateDown[Step <: PartitionTreePath, From <: TreeNode[String,Step]](
+      from: From, to: AnyNode[String], step: Step
+    ): Unit = {
       returning shouldBe (false)
       error shouldBe (false)
       down += ((from, to, step))
     }
 
-    override protected def navigateUp(from: TreeNode[String], to: TreeNode[String])(step: to.PathType): Unit = {
+    override protected def navigateUp[Step <: PartitionTreePath, To <: TreeNode[String,Step]](
+      from: AnyNode[String], to: To, step: Step
+    ): Unit = {
       returning shouldBe (true)
       if (doError) {
         error shouldBe (false)
@@ -157,14 +163,14 @@ class NavigatePathVisitorSpec extends WavesSpec
       up += ((from, to, step))
     }
 
-    override protected def endOfPath(node: TreeNode[String]): Unit = {
+    override protected def endOfPath(node: AnyNode[String]): Unit = {
       returning shouldBe (false)
       error shouldBe (false)
       last = Some(node)
       returning = true
     }
 
-    override def invalidStep(node: TreeNode[String], step: PartitionTreePath): Unit = {
+    override def invalidStep(node: AnyNode[String], step: PartitionTreePath): Unit = {
       returning shouldBe (false)
       error shouldBe (false)
       last = Some(node)

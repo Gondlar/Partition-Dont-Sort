@@ -2,6 +2,8 @@ package de.unikl.cs.dbis.waves.partitions
 
 import de.unikl.cs.dbis.waves.util.PathKey
 
+import TreeNode.AnyNode
+
 /**
   * Find the node referenced by a path
   *
@@ -19,9 +21,11 @@ final class KnownKeysForPathVisitor[Payload](
   def absent = absentBuilder.result()
   def present = presentBuilder.result()
 
-  override protected def navigateDown(from: TreeNode[Payload], to: TreeNode[Payload])(step: from.PathType) = {
+  override protected def navigateDown[Step <: PartitionTreePath, From <: TreeNode[Payload,Step]](
+    from: From, to: AnyNode[Payload], step: Step
+  ) = {
     from match {
-      case f: SplitByPresence[Payload] => step.asInstanceOf[f.PathType] match {
+      case f: SplitByPresence[Payload] => step match {
         case Absent => absentBuilder += f.key
         case Present => presentBuilder += f.key
       }

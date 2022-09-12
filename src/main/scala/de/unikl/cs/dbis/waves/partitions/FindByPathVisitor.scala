@@ -1,5 +1,7 @@
 package de.unikl.cs.dbis.waves.partitions
 
+import TreeNode.AnyNode
+
 /**
   * Find the node referenced by a path
   *
@@ -8,13 +10,13 @@ package de.unikl.cs.dbis.waves.partitions
 final class FindByPathVisitor[Payload](
     path : Iterable[PartitionTreePath]
 ) extends NavigatePathVisitor[Payload](path) {
-    private var res : Option[TreeNode[Payload]] = None
+    private var res : Option[AnyNode[Payload]] = None
 
     def result = res
 
-    override protected def endOfPath(node: TreeNode[Payload]): Unit
+    override protected def endOfPath(node: AnyNode[Payload]): Unit
       = res = Some(node)
 
-    override def invalidStep(node: TreeNode[Payload], step: PartitionTreePath): Unit
+    override def invalidStep(node: AnyNode[Payload], step: PartitionTreePath): Unit
       = res = None
 }

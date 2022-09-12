@@ -15,22 +15,21 @@ import org.apache.hadoop.shaded.com.google.gson.{
 }
 import java.lang.reflect.Type
 
+import TreeNode.AnyNode
+
 /**
   * A TreeNode is any node in the PartitionTree
   */
-sealed abstract class TreeNode[Payload] {
-    type PathType <: PartitionTreePath
-
+sealed abstract class TreeNode[Payload, Step <: PartitionTreePath] {
     def accept(visitor: PartitionTreeVisitor[Payload]) : Unit
-    def apply(step: PartitionTreePath): TreeNode[Payload] = navigate.applyOrElse(step, { _: PartitionTreePath =>
-      throw InvalidPathException(Seq(step), step, "step does not fit node type")
-    })
     
-    val navigate: PartialFunction[PartitionTreePath, TreeNode[Payload]]
+    def apply(step: Step): AnyNode[Payload]
+    val navigate: PartialFunction[PartitionTreePath, AnyNode[Payload]]
 }
 
 object  TreeNode {
-    val KIND_KEY = "kind"
+  val KIND_KEY = "kind"
+  type AnyNode[Payload] = TreeNode[Payload, _ <: PartitionTreePath]
 }
 
 /**
@@ -40,15 +39,13 @@ object  TreeNode {
   *
   * @param name the unique name of the corresponding folder
   */
-case class Bucket[Payload](data: Payload) extends TreeNode[Payload] {
-
-  
-  override type PathType = BucketPath
+case class Bucket[Payload](data: Payload) extends TreeNode[Payload, BucketPath] {
   
   override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
   
-  override val navigate: PartialFunction[PartitionTreePath,TreeNode[Payload]]
-    = PartialFunction.empty
+  override def apply(step: BucketPath): AnyNode[Payload] = ??? // BucketPath has no instances
+  override val navigate: PartialFunction[PartitionTreePath,AnyNode[Payload]]
+  = PartialFunction.empty
 }
 
 object Bucket {
@@ -74,16 +71,16 @@ object Bucket {
   * @param partitioned The remainder of the PartitionTree
   * @param rest A Bucket for all nodes that do not conform to the further partition schema
   */
-case class Spill[Payload](partitioned: TreeNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload] {
-
-  
-  override type PathType = SpillPath
-  
+case class Spill[Payload](partitioned: AnyNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload, SpillPath] {
   override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
-  
-  override val navigate: PartialFunction[PartitionTreePath,TreeNode[Payload]] = {
+
+  override def apply(step: SpillPath) = step match {
     case Partitioned => partitioned
     case Rest => rest
+  }
+  
+  override val navigate: PartialFunction[PartitionTreePath,AnyNode[Payload]] = {
+    case x: SpillPath => apply(x)
   }
 }
 
@@ -100,14 +97,18 @@ object Spill {
   * @param presentKey the subtree containing documents where the key is present
   * @param absentKey the subtree containing documents where the key is absent
   */
-case class SplitByPresence[Payload](key: PathKey, presentKey: TreeNode[Payload], absentKey: TreeNode[Payload]) extends TreeNode[Payload] {
-    override type PathType = SplitByPresencePath
-
+case class SplitByPresence[Payload](
+  key: PathKey, presentKey: AnyNode[Payload], absentKey: AnyNode[Payload]
+) extends TreeNode[Payload, SplitByPresencePath] {
     override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 
-    override val navigate: PartialFunction[PartitionTreePath,TreeNode[Payload]] = {
+    override def apply(step: SplitByPresencePath) = step match {
       case Present => presentKey
       case Absent => absentKey
+    }
+
+    override val navigate: PartialFunction[PartitionTreePath, AnyNode[Payload]] = {
+      case x: SplitByPresencePath => apply(x)
     }
 }
 
@@ -117,7 +118,7 @@ object SplitByPresence {
     val PRESENT_KEY = "present"
     val ABSENT_KEY = "absent"
 
-    def apply[Payload](key: String, presentKey: TreeNode[Payload], absentKey: TreeNode[Payload]) : SplitByPresence[Payload]
+    def apply[Payload](key: String, presentKey: AnyNode[Payload], absentKey: AnyNode[Payload]) : SplitByPresence[Payload]
         = SplitByPresence(PathKey(key), presentKey, absentKey)
 
     def apply(key: String, present: String, absent: String) : SplitByPresence[String]
@@ -164,8 +165,8 @@ object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence[Str
 // Deserializers
 //
 
-object TreeNodeDeserializer extends JsonDeserializer[TreeNode[String]] {
-    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): TreeNode[String] = {
+object TreeNodeDeserializer extends JsonDeserializer[AnyNode[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): AnyNode[String] = {
         json match {
           case obj: JsonObject => {
               val kind = obj.get(TreeNode.KIND_KEY).getAsString()
@@ -200,7 +201,7 @@ object SpillDeserializer extends JsonDeserializer[Spill[String]] {
           case obj: JsonObject => {//TODO hier aufgehört
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == Spill.KIND)
               val rest = Bucket(obj.get(Spill.REST_KEY).getAsString())
-              val partitioned = ctx.deserialize[TreeNode[String]](obj.get(Spill.PARTIOTIONED_KEY), classOf[TreeNode[String]])
+              val partitioned = ctx.deserialize[AnyNode[String]](obj.get(Spill.PARTIOTIONED_KEY), classOf[AnyNode[String]])
               Spill(partitioned, rest)
           }
           case _ => throw new JsonParseException(s"$json is not an object")
@@ -214,8 +215,8 @@ object PartitionByInnerNodeDeserializer extends JsonDeserializer[SplitByPresence
           case obj: JsonObject => {
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == SplitByPresence.KIND)
               val key = obj.get(SplitByPresence.KEY_KEY).getAsString()
-              val presentKey = ctx.deserialize[TreeNode[String]](obj.get(SplitByPresence.PRESENT_KEY), classOf[TreeNode[String]])
-              val absentKey = ctx.deserialize[TreeNode[String]](obj.get(SplitByPresence.ABSENT_KEY), classOf[TreeNode[String]])
+              val presentKey = ctx.deserialize[AnyNode[String]](obj.get(SplitByPresence.PRESENT_KEY), classOf[AnyNode[String]])
+              val absentKey = ctx.deserialize[AnyNode[String]](obj.get(SplitByPresence.ABSENT_KEY), classOf[AnyNode[String]])
               SplitByPresence(key, presentKey, absentKey)
           }
           case _ => throw new JsonParseException(s"$json is not an object")

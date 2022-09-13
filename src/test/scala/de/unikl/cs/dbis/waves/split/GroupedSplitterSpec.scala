@@ -4,11 +4,10 @@ import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
 
-import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
-import org.apache.spark.sql.{DataFrame, Column, Row}
-import org.apache.spark.sql.types.StructType
-import scala.collection.mutable.{ArrayBuilder, WrappedArray}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, Row}
+import scala.collection.mutable.{ArrayBuilder, WrappedArray}
+import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper}
 
 class GroupedSplitterSpec extends WavesSpec
     with DataFrameFixture {
@@ -31,8 +30,7 @@ class GroupedSplitterSpec extends WavesSpec
 
                 override protected def load(context: Unit): DataFrame = df
 
-                override protected def grouper: StructType => Column
-                    = de.unikl.cs.dbis.waves.util.operators.definitionLevels
+                override protected def grouper: Grouper = DefinitionLevelGrouper
 
                 override protected def split(df: DataFrame): Seq[DataFrame] = {
                     df.collect() should contain theSameElementsAs Seq(

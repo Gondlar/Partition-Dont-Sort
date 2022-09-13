@@ -24,9 +24,9 @@ class CollectBucketsVisitorSpec extends WavesSpec
         "visiting a spill" should {
             "find the spill's children" in {
                 val leafs = Seq( spill.rest
-                                  , spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey
-                                  , spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey
-                                  )
+                               , spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey
+                               , spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey
+                               )
                 val visitor = new CollectBucketsVisitor[String]()
                 spill.accept(visitor)
                 visitor.iter.toStream should contain theSameElementsAs (leafs)

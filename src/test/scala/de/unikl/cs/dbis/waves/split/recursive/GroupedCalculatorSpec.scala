@@ -5,11 +5,11 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.Schema
 import de.unikl.cs.dbis.waves.Spark
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.util.operators.presence
 
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
+import de.unikl.cs.dbis.waves.util.operators.PresenceGrouper
 
 class GroupedCalculatorSpec extends WavesSpec
   with DataFrameFixture {
@@ -18,7 +18,7 @@ class GroupedCalculatorSpec extends WavesSpec
 
   override def beforeEach() = {
     super.beforeEach()
-    groups = df.groupBy(presence(df.schema)).count()
+    groups = PresenceGrouper.group(df)
   }
 
   "An GroupedCalculator" should {
@@ -32,7 +32,7 @@ class GroupedCalculatorSpec extends WavesSpec
       }
       "work with empty DataFrames" in {
         val calc = GroupedCalculator(schema)
-        val (size, present, switch) = calc.calc(emptyDf.groupBy(presence(df.schema)).count())
+        val (size, present, switch) = calc.calc(PresenceGrouper.group(emptyDf))
 
         size should equal (0)
         present should equal (new ObjectCounter(Array(0,0,0)))

@@ -16,8 +16,7 @@ package object operators {
       * @param schema the schema
       * @return the column
       */
-    def definitionLevels(schema : StructType) : Column
-        = DefinitionLevels.definitionLevels(schema, false, None).as("definition_levels")
+    def definitionLevels(schema : StructType) : Column = DefinitionLevelGrouper(schema).alias("definition_levels")
     
     /**
       * Determine the presence of all recursively optional nodes in the schema.
@@ -29,8 +28,7 @@ package object operators {
       * @param schema the schema
       * @return the column
       */
-    def presence(schema : StructType) : Column
-        = DefinitionLevels.presence(schema, None).as("presence")
+    def presence(schema : StructType) : Column = PresenceGrouper(schema).alias("presence")
 
     /**
       * Add a specified value to every integer in an array

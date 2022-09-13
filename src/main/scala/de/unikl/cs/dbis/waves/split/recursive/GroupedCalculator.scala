@@ -4,6 +4,7 @@ import org.apache.spark.sql.{DataFrame,Row}
 import org.apache.spark.sql.types.StructType
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.schemas._
+import de.unikl.cs.dbis.waves.util.operators.PresenceGrouper
 
 /**
   * Calculate the PartitionMetric on a DataFrame that contains presence
@@ -13,8 +14,8 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   */
 case class GroupedCalculator(
   schema: StructType,
-  presenceCol: String = "presence",
-  countCol: String = "count"
+  presenceCol: String = PresenceGrouper.GROUP_COLUMN,
+  countCol: String = PresenceGrouper.COUNT_COLUMN.toString
 ) extends AbstractPartitionMetricCalculator {
   private var presenceIndex = -1
   private var countIndex = -1

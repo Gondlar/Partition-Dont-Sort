@@ -5,7 +5,6 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.Schema
 import de.unikl.cs.dbis.waves.Spark
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.util.operators.presence
 
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.DataFrame

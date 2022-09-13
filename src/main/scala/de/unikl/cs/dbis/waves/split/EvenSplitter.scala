@@ -1,7 +1,6 @@
 package de.unikl.cs.dbis.waves.split
 
-import org.apache.spark.sql.{Column, DataFrame, Row}
-import org.apache.spark.sql.functions.{col,sum,map_from_entries,monotonically_increasing_id,struct,typedLit,collect_list}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
@@ -11,8 +10,8 @@ import scala.collection.mutable.PriorityQueue
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence, PartitionTreeHDFSInterface}
 import de.unikl.cs.dbis.waves.partitions.{PartitionTreePath, Absent, Present}
 import de.unikl.cs.dbis.waves.split.recursive.{EvenHeuristic, GroupedCalculator}
-import de.unikl.cs.dbis.waves.util.{Logger, PathKey, PartitionFolder}
-import de.unikl.cs.dbis.waves.util.operators.presence
+import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
+import de.unikl.cs.dbis.waves.util.operators.{Grouper, PresenceGrouper}
 
 class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends GroupedSplitter {
   private implicit val ord = Ordering.by[Seq[PartitionTreePath], Int](_.size)
@@ -22,7 +21,7 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
 
   override protected def load(context: Unit): DataFrame = input
 
-  override protected def grouper: StructType => Column = presence
+  override protected def grouper: Grouper = PresenceGrouper
 
   override protected def split(df: DataFrame): Seq[DataFrame] = {
     Logger.log("evenSplitter-start")
@@ -56,80 +55,47 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
   }
 
   private def addPartition(df: DataFrame, index : Int, location: Seq[PartitionTreePath]) = {
-    val filterColumn = col("presence")(index) === (location.last match {
+    val filterColumn = grouper.GROUP_COLUMN(index) === (location.last match {
       case Absent => false
       case Present => true
       case _ => assert(false)
     })
     val newPartiton = df.filter(filterColumn)
-    val size = newPartiton.agg(sum(col("count"))).collect().head.getLong(0)
+    val size = grouper.count(newPartiton)
     if (size > threshold) queue.enqueue((size, location))
     newPartiton
   }
 
   override protected def buildTree(buckets: Seq[DataFrame]): Unit = {
     val df = data
-    val dataColumns = df.columns.map(col(_))
+    val spark = df.sparkSession
     val group = grouper(df.schema)
     
     Logger.log("evenSplitter-start-buildTree")
-    val partition_index_column = "partition_index-obBnTMc1tD2ujPb0uJLO"
-    val allBucketsWithIndex = buckets.zipWithIndex.map { case (bucket, index) =>
-      bucket.select(bucket.col("presence"), typedLit(index).as(partition_index_column))
-    }.reduce{(lhs, rhs) =>
-      lhs.unionAll(rhs)
-    }
-    
-    val grouping_col = "group-WiFJH26knAV3jdiUnTQy"
-    val map_column = "map-tUIsVUPnFCovRqfjhyo4"
-    df.crossJoin(dataFrameToMap(allBucketsWithIndex, col("presence"), col(partition_index_column), map_column))
-      .withColumn(grouping_col, col(map_column)(group))
-      .select((dataColumns :+ col(grouping_col)):_*)
-      .write
-      .partitionBy(grouping_col)
-      .parquet(path)
+    grouper.matchAll(buckets, df)
+           .write
+           .partitionBy(grouper.PARTITION_COLUMN)
+           .parquet(path)
 
     Logger.log("evenSplitter-grouping-done")
 
     implicit val ec: ExecutionContext = ExecutionContext.global
     val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
       Future {
-        val order_name = "order-gdcKu5JfdNK8y8Re01N5"
-        val map_column = "map-d03fZcpv2dAd9ydKBZG8"
-        val sort_column = "sort-4Jqq6ueeMXyjTTKTnwsG"
-
-        val intermediaryFolder = new PartitionFolder(path, s"$grouping_col=$bucketId", false)
+        val intermediaryFolder = new PartitionFolder(path, s"${grouper.PARTITION_COLUMN}=$bucketId", false)
         val finalFolder = PartitionFolder.makeFolder(path, false)
-
-        val preppedBucket = bucket.withColumn(order_name, monotonically_increasing_id)
-        val sorted = df.sparkSession
-                       .read
-                       .parquet(intermediaryFolder.filename)
-                       // Store sort order in a map and join that map in the df
-                       .crossJoin(dataFrameToMap(preppedBucket, col("presence"), col(order_name), map_column))
-                       // Determine sort order
-                       .withColumn(sort_column, col(map_column)(group))
-                       // Repartition and sort
-                       .repartition(1)
-                       .sort(col(sort_column))
-                       // Remove all intermediary data
-                       .select(dataColumns:_*)
+        val partition = spark.read
+                             .parquet(intermediaryFolder.filename)
+                             .drop(grouper.PARTITION_COLUMN.col)
+        val sorted = grouper.sort(bucket, partition)
         blocking { sorted.write.parquet(finalFolder.filename) }
-        intermediaryFolder.delete(intermediaryFolder.file.getFileSystem(df.sparkSession.sparkContext.hadoopConfiguration))
+        intermediaryFolder.delete(intermediaryFolder.file.getFileSystem(spark.sparkContext.hadoopConfiguration))
         finalFolder
       }
     }
     val folders = Await.result(Future.sequence(futureFolders), Duration.Inf)
     val tree = partitions.map((_, index) => folders(index).name)
-    PartitionTreeHDFSInterface(df.sparkSession, path).write(tree)
+    PartitionTreeHDFSInterface(spark, path).write(tree)
     Logger.log("evenSplitter-end-buildTree")
-  }
-
-  private def dataFrameToMap(df: DataFrame, key: Column, value: Column, map_column: String) = {
-    assert(key.expr.deterministic)
-    assert(value.expr.deterministic)
-    val struct_list_column = "structs-ib0aWRdVFIfdRV6KDasq"
-    df.agg(collect_list(struct(key, value)).as(struct_list_column))
-      .select(map_from_entries(col(struct_list_column)).as(map_column))
   }
 }

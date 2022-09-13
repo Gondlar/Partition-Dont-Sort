@@ -1,10 +1,7 @@
 package de.unikl.cs.dbis.waves.split
 
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
-import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
-import javax.xml.crypto.Data
+import de.unikl.cs.dbis.waves.util.operators.Grouper
 
 /**
   * Implements splitting based off groups of strucuturally identical rows.
@@ -17,14 +14,11 @@ import javax.xml.crypto.Data
 abstract class GroupedSplitter extends Splitter[Unit] {
 
     /**
-      * A Column function to group the data by. Each grouping represents one
-      * kind of data
-      *
-      * @see [[de.unikl.cs.dbis.waves.util.operators.definitionLevels]]
-      *      and [[de.unikl.cs.dbis.waves.util.operators.presence]]
+      * A Grouper to group the data by. Each grouping represents one kind of data
+      * 
       * @return the column function
       */
-    protected def grouper: StructType => Column
+    protected def grouper: Grouper
 
     /**
       * Build buckets based off the grouped data
@@ -51,8 +45,7 @@ abstract class GroupedSplitter extends Splitter[Unit] {
     protected def buildTree(buckets: Seq[DataFrame]): Unit
 
     override def partition(): Unit = {
-        val table = data
-        val types = table.groupBy(grouper(table.schema)).count()
+        val types = grouper.group(data)
         types.persist()
         try buildTree(split(types).map(sort _))
         finally types.unpersist()

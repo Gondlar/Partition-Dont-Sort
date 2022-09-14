@@ -20,7 +20,7 @@ class DataTypeSpec extends WavesSpec
             "have node count 1" in {
                 schema.fields(0).dataType.nodeCount should equal (1)
             }
-            "have no optional nides" in {
+            "have no optional nodes" in {
                 schema.fields(0).dataType.optionalNodeCount should equal (0)
             }
         }

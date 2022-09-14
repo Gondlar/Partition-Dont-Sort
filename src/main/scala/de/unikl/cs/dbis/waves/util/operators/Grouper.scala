@@ -26,7 +26,12 @@ abstract class Grouper(
   def apply(data: DataFrame): DataFrame = group(data)
 
   /**
-    * Given a data frame, count how many rows of each kind it contains.
+    * @return the columns' names in the this grouper's grouped representation
+    */
+  def columns: Seq[String] = Seq(GROUP_COLUMN, COUNT_COLUMN.toString())
+
+  /**
+    * Given a grouped data frame, count how many rows of each kind it contains.
     *
     * @param data the data to group
     * @return the grouped data. It consists of two columns. One stores the kind
@@ -35,6 +40,18 @@ abstract class Grouper(
     */
   def group(data: DataFrame): DataFrame
     = data.groupBy(this(data.schema)).count()
+
+  /**
+    * Given a grouped data frame and its source data, find all members of the
+    * combined groups.
+    *
+    * @param bucket the groups
+    * @param data the source data
+    * @return all entries from source data that belong to the groups from bucket
+    */
+  def find(bucket: DataFrame, data: DataFrame) = {
+    data.join(bucket, GROUP_COLUMN.bind(bucket) === this(data.schema), "leftsemi")
+  }
 
   /**
     * Given a sequence of disjoint DataFrames containing the grouped
@@ -85,6 +102,24 @@ abstract class Grouper(
     * @return the count
     */
   def count(df: DataFrame) = df.agg(sum(COUNT_COLUMN)).head.getLong(0)
+
+  /**
+    * Convert data grouped by another grouper to the grouped format used by this
+    * grouped.
+    * 
+    * The default implementation only handles the special case where other is
+    * equal to this. Otherwise, it transforms the data by [[find]]ing the data
+    * in the bucket using the old grouper and then [[group]]ing it again using
+    * this grouper. Groupers can override this method to provide more specialized
+    * transformations.
+    *
+    * @param other the other grouper
+    * @param bucket data grouped by other
+    * @param data the source data for the bucket
+    * @return the groups in bucket according to this grouper
+    */
+  def from(other: Grouper, bucket: DataFrame, data: DataFrame)
+    = if (other == this) bucket else group(other.find(bucket, data))
 
   /**
     * Given a DataFrame and two of its Columns, agggregate the data frame such

@@ -15,15 +15,21 @@ abstract class GroupedSplitter extends Splitter[Unit] {
 
     /**
       * A Grouper to group the data by. Each grouping represents one kind of data
-      * 
-      * @return the column function
+      * This grouper is used for splitting the data
       */
-    protected def grouper: Grouper
+    protected def splitGrouper: Grouper
+
+    /**
+      * A Grouper to group the data by. Each grouping represents one kind of data
+      * This grouper is used when sorting the data. By default, it is equal to
+      * the [[splitGrouper]]
+      */
+    protected def sortGrouper: Grouper = splitGrouper
 
     /**
       * Build buckets based off the grouped data
       *
-      * @param df the data groups
+      * @param df the data groups grouped by [[splitGrouper]]
       * @return the buckets of data represented as sets of data groupings
       */
     protected def split(df: DataFrame): Seq[DataFrame]
@@ -31,24 +37,30 @@ abstract class GroupedSplitter extends Splitter[Unit] {
     /**
       * Sort the data within a bucket
       *
-      * @param bucket the bucket
+      * @param bucket the bucket grouped by [[sortGrouper]]
       * @return the sorted bucket
       */
     protected def sort(bucket: DataFrame): DataFrame = bucket
 
     /**
       * Build the [[PartitionTree]] from the given buckets. The list of buckets
-      * is ordered in the same order as they were returned by [[split]]
+      * is ordered in the same order as they were returned by [[split]] and are
+      * thus also grouped by [[sortGrouper]]
       *
       * @param buckets the buckets
       */
     protected def buildTree(buckets: Seq[DataFrame]): Unit
 
     override def partition(): Unit = {
-        val types = grouper.group(data)
+        val types = splitGrouper.group(data)
         types.persist()
-        try buildTree(split(types).map(sort _))
-        finally types.unpersist()
+        try {
+          val buckets = split(types)
+          val sorted = buckets.map{ b => 
+              sort(sortGrouper.from(splitGrouper, b, data))
+          }
+          buildTree(sorted)
+        } finally types.unpersist()
     }
 
     protected def data: DataFrame = data(())

@@ -8,6 +8,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row}
 import scala.collection.mutable.{ArrayBuilder, WrappedArray}
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper}
+import de.unikl.cs.dbis.waves.util.operators.PresenceGrouper
 
 class GroupedSplitterSpec extends WavesSpec
     with DataFrameFixture {
@@ -30,9 +31,10 @@ class GroupedSplitterSpec extends WavesSpec
 
                 override protected def load(context: Unit): DataFrame = df
 
-                override protected def grouper: Grouper = DefinitionLevelGrouper
+                override protected def splitGrouper: Grouper = DefinitionLevelGrouper
 
                 override protected def split(df: DataFrame): Seq[DataFrame] = {
+                    sortGrouper should equal (splitGrouper)
                     df.collect() should contain theSameElementsAs Seq(
                         Row(WrappedArray.make(Array(1, 1, 2)), 1),
                         Row(WrappedArray.make(Array(1, 1, 1)), 1),
@@ -57,6 +59,32 @@ class GroupedSplitterSpec extends WavesSpec
             forAll((0 until frames.length)) { i =>
                 builtSet(i).collect() should contain theSameElementsAs (frames(i).collect())
             }
+        }
+        "use the correct groupers" in {
+          val splitter = new GroupedSplitter {
+
+            override protected def load(context: Unit): DataFrame = df
+
+            override protected def splitGrouper: Grouper = PresenceGrouper
+            override protected def sortGrouper: Grouper = DefinitionLevelGrouper
+
+            override protected def split(df: DataFrame): Seq[DataFrame] = {
+              df.columns should contain theSameElementsAs (splitGrouper.columns)
+              Seq(df)
+            }
+
+            override protected def sort(df: DataFrame): DataFrame = {
+              df.columns should contain theSameElementsAs (sortGrouper.columns)
+              df
+            }
+
+            override protected def buildTree(buckets: Seq[DataFrame]): Unit = {
+              forAll (buckets) ( df =>
+                df.columns should contain theSameElementsAs (sortGrouper.columns)
+              )
+            }
+          }
+          splitter.partition()
         }
     }
 }

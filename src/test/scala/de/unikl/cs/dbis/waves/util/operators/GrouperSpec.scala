@@ -2,14 +2,14 @@ package de.unikl.cs.dbis.waves.util.operators
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.DataFrame
+import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
 
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.types.StructType
 
 class GrouperSpec extends WavesSpec
-  with DataFrame {
+  with DataFrameFixture {
 
   "A Grouper " should {
     "group correctly" in {
@@ -17,7 +17,7 @@ class GrouperSpec extends WavesSpec
       val groupedDf = TestGrouper(df)
 
       Then("the resulting df has the correct schema")
-      groupedDf.columns should contain theSameElementsAs (Seq(TestGrouper.GROUP_COLUMN.toString, TestGrouper.COUNT_COLUMN.toString))
+      groupedDf.columns should contain theSameElementsAs (TestGrouper.columns)
 
       And("the resulting df contains the correct data")
       groupedDf.count should equal (2)
@@ -53,6 +53,20 @@ class GrouperSpec extends WavesSpec
         }
       )
     }
+    "find all data belonging to a bucket" in {
+      Given("grouped dfs and the original data")
+      val groupedDf = TestGrouper(df).filter(TestGrouper.GROUP_COLUMN.col === true)
+
+      When("we find the original data")
+      val foundData = TestGrouper.find(groupedDf, df)
+
+      Then("the resultung df has the correct schema")
+      foundData.schema should equal (df.schema)
+
+      And("the resulting df has the correct contents")
+      foundData.count should equal (4)
+      foundData.collect should contain theSameElementsAs (df.filter(col("a").isNull).collect())
+    }
     "order the data by the grouped data" in {
       Given("a sorted grouped df and the original data")
       val groupedDf = TestGrouper(df).orderBy(TestGrouper.GROUP_COLUMN.asc)
@@ -72,6 +86,51 @@ class GrouperSpec extends WavesSpec
     }
     "come up with the correct count" in {
       TestGrouper.count(TestGrouper(df)) should equal (8)
+    }
+    "report the correct column names" in {
+      TestGrouper.columns should equal (Seq(TestGrouper.GROUP_COLUMN.toString, "count"))
+    }
+    "convert to itself without ungrouping" in {
+      Given("a grouper and a df grouped by it")
+      val grouper = new Grouper(TempColumn("test")) {
+        var testing = false
+
+        override def apply(schema: StructType): Column
+          = col("a").isNull.as(GROUP_COLUMN)
+
+        override def find(bucket: DataFrame, data: DataFrame)
+          = fail // should never be called
+
+        override def group(data: DataFrame): DataFrame
+          // should never be called in the actual test
+          = if (testing) fail else super.group(data)
+      }
+      val groupedDf = grouper(df)
+      grouper.testing = true
+
+      When("we convert the data from itself")
+      val regrouped = grouper.from(grouper, groupedDf, df)
+
+      Then("the resulting data is identical")
+      regrouped.collect() should contain theSameElementsAs (groupedDf.collect())
+    }
+    "convert to other groupers correctly" in {
+      Given("a df grouped by some grouper")
+      val grouped = DefinitionLevelGrouper(df)
+
+      When("we regroup the data")
+      val regrouped = TestGrouper.from(DefinitionLevelGrouper, grouped, df)
+
+      Then("the resulting df has the correct schema")
+      regrouped.columns should contain theSameElementsAs (TestGrouper.columns)
+
+      And("the resulting df contains the correct data")
+      regrouped.count should equal (2)
+      val countIndex = regrouped.schema.fieldIndex(TestGrouper.COUNT_COLUMN.toString)
+      val groupIndex = regrouped.schema.fieldIndex(TestGrouper.GROUP_COLUMN)
+      val regroupedData = regrouped.collect()
+      regroupedData.map(_.getLong(countIndex)) should contain theSameElementsAs (Seq(4, 4))
+      regroupedData.map(_.getBoolean(groupIndex)) should contain theSameElementsAs (Seq(true, false))
     }
   }
 

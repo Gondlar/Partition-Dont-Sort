@@ -23,6 +23,9 @@ class DataTypeSpec extends WavesSpec
             "have no optional nodes" in {
                 schema.fields(0).dataType.optionalNodeCount should equal (0)
             }
+            "have no optional leafs" in {
+                schema.fields(0).dataType.optionalLeafCount should equal (0)
+            }
         }
         "being a struct" should {
             "have the correct leaf count" in {
@@ -33,6 +36,9 @@ class DataTypeSpec extends WavesSpec
             }
             "have the correct optional node count" in {
                 schema.optionalNodeCount should equal (3)
+            }
+            "have the correct optional leaf count" in {
+                schema.optionalLeafCount should equal (3)
             }
         }
     }

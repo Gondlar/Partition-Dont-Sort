@@ -40,6 +40,28 @@ object schemas {
         }
 
         /**
+          * Count the number of optional leaf nodes in this schema, i.e., all
+          * leafs below an optional node.
+          * Arrays and maps are treated as leafs
+          *
+          * @return the number of leafs
+          */
+        def optionalLeafCount() = {
+            var count = 0
+            val visitor = new DataTypeVisitor{
+                override def visitStruct(row: StructType): Unit = {
+                  for (field <- row) {
+                    if (field.nullable) count += field.dataType.leafCount()
+                    else field.dataType.accept(this)
+                  }
+                }
+                override def visitLeaf(leaf: DataType): Unit = ()
+            }
+            tpe.accept(visitor)
+            count
+        }
+
+        /**
           * Count the number of nodes in this schema.
           * Arrays and maps are treated as leafs
           *

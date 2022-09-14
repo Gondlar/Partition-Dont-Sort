@@ -1,11 +1,11 @@
 package de.unikl.cs.dbis.waves.partitions
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.PartitionTrees
+import de.unikl.cs.dbis.waves.PartitionTreeFixture
 import org.apache.spark.sql.sources.IsNull
 
 class MapVisitorSpec extends WavesSpec
-  with PartitionTrees {
+  with PartitionTreeFixture {
 
   "A MapVisitor" should {
     "transform buckets correctly" in {

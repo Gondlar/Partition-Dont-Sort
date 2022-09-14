@@ -2,15 +2,13 @@ package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.WavesSpec
 
-import de.unikl.cs.dbis.waves.Schema
-import de.unikl.cs.dbis.waves.Spark
 import de.unikl.cs.dbis.waves.util.PathKey
 
 import org.apache.spark.sql.types.StructType
-import de.unikl.cs.dbis.waves.DataFrame
+import de.unikl.cs.dbis.waves.DataFrameFixture
 
 class RowwiseCalculatorSpec extends WavesSpec
-  with DataFrame {
+  with DataFrameFixture {
 
   "An RowwiseCalculator" should {
       "find the correct PartitionMetric" in {

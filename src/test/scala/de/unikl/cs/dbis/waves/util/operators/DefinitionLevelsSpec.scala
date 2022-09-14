@@ -2,13 +2,13 @@ package de.unikl.cs.dbis.waves.util.operators
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.DataFrame
+import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 import org.apache.spark.sql.functions.col
 
 class DefinitionLevelsSpec extends WavesSpec
-    with DataFrame {
+    with DataFrameFixture {
 
     "The DefinitionLevels function" when {
         "applied via col" should {

@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.util.operators
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.Spark
+import de.unikl.cs.dbis.waves.SparkFixture
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.functions.col
@@ -11,7 +11,7 @@ import collection.JavaConverters._
 import java.{util => ju}
 
 class AddXSpec extends WavesSpec
-    with Spark {
+    with SparkFixture {
 
     "The AddX Expression" when {
         "being used via Column" should {

@@ -2,7 +2,7 @@ package de.unikl.cs.dbis.waves.split
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
+import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import java.nio.file.Files
 import java.nio.file.Path

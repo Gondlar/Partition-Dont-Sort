@@ -3,11 +3,10 @@ package de.unikl.cs.dbis.waves.partitions
 import de.unikl.cs.dbis.waves.WavesSpec
 
 import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
-import de.unikl.cs.dbis.waves.Schema
-import de.unikl.cs.dbis.waves.PartitionTrees
+import de.unikl.cs.dbis.waves.PartitionTreeFixture
 
 class PartitionTreeSpec extends WavesSpec
-    with PartitionTrees {
+    with PartitionTreeFixture {
 
     "A TreeNode" when {
         "it is a Bucket" should {

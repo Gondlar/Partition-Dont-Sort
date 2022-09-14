@@ -7,7 +7,7 @@ import org.apache.commons.io.FileUtils
 import java.io.File
 import org.apache.spark.sql.SaveMode
 
-trait Relation extends DataFrame { this: Suite =>
+trait RelationFixture extends DataFrameFixture { this: Suite =>
 
   var directory: String = null
 

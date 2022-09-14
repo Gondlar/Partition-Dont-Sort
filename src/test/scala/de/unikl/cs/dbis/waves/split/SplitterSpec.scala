@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.split
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
+import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.WavesTable
 
 import org.apache.spark.sql.DataFrame

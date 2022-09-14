@@ -1,12 +1,12 @@
 package de.unikl.cs.dbis.waves.partitions
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.PartitionTrees
+import de.unikl.cs.dbis.waves.PartitionTreeFixture
 
 import TreeNode.AnyNode
 
 class NavigatePathVisitorSpec extends WavesSpec
-  with PartitionTrees {
+  with PartitionTreeFixture {
 
   "A NavigatePathVisitor" when {
     "traversing a tree" should {

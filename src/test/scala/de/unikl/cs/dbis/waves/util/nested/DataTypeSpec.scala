@@ -3,14 +3,14 @@ package de.unikl.cs.dbis.waves.util.nested
 import schemas._
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.Schema
+import de.unikl.cs.dbis.waves.SchemaFixture
 import org.apache.spark.sql.types.{StructType, DataType}
 
 /**
   * Test implicit behaviour added to [[DataType]]
   */
 class DataTypeSpec extends WavesSpec 
-    with Schema {
+    with SchemaFixture {
 
     "A DataType" when {
         "being a leaf" should {

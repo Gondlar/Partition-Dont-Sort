@@ -1,10 +1,10 @@
 package de.unikl.cs.dbis.waves.partitions
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.PartitionTrees
+import de.unikl.cs.dbis.waves.PartitionTreeFixture
 
 class KnownKeysForPathVisitorSpec extends WavesSpec
-  with PartitionTrees {
+  with PartitionTreeFixture {
 
   "A KnownKeysForPathVisitor" should {
     "find present keys" in {

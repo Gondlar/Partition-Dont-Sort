@@ -3,12 +3,12 @@ package de.unikl.cs.dbis.waves.partitions
 import de.unikl.cs.dbis.waves.WavesSpec
 
 import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
-import de.unikl.cs.dbis.waves.PartitionTrees
-import de.unikl.cs.dbis.waves.Relation
+import de.unikl.cs.dbis.waves.PartitionTreeFixture
+import de.unikl.cs.dbis.waves.RelationFixture
 import org.apache.hadoop.fs.Path
 
 class PartitionTreeHDFSInterfaceSpec extends WavesSpec
-    with PartitionTrees with Relation {
+    with PartitionTreeFixture with RelationFixture {
 
     "A PartitionTreeHDFSInterface" should {
         "be constructable from spark" in {

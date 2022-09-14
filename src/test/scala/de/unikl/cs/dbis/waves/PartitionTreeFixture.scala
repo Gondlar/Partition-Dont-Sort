@@ -6,8 +6,8 @@ import de.unikl.cs.dbis.waves.partitions.{
 }
 import org.scalatest.BeforeAndAfterEach
 
-trait PartitionTrees extends BeforeAndAfterEach
-  with Schema { this: Suite =>
+trait PartitionTreeFixture extends BeforeAndAfterEach
+  with SchemaFixture { this: Suite =>
 
   var bucket : Bucket[String] = null
   var split : SplitByPresence[String] = null

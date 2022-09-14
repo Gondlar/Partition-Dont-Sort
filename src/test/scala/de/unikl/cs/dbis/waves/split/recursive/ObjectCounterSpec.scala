@@ -2,13 +2,13 @@ package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.WavesSpec
 
-import de.unikl.cs.dbis.waves.Schema
+import de.unikl.cs.dbis.waves.SchemaFixture
 import de.unikl.cs.dbis.waves.util.PathKey
 
 import org.apache.spark.sql.types.StructType
 
 class ObjectCounterSpec extends WavesSpec
-    with Schema with ObjectCounters {
+    with SchemaFixture with ObjectCounterFixture {
 
     "An ObjectCounter" when {
         "being created" should {

@@ -3,13 +3,13 @@ package de.unikl.cs.dbis.waves.util.nested
 import rows._
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.Schema
+import de.unikl.cs.dbis.waves.SchemaFixture
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.DataType
 
 class InternalRowAccepterSpec extends WavesSpec 
-    with Schema {
+    with SchemaFixture {
 
     "A InternalRowAccepter" when {
         "accepting a row" should {

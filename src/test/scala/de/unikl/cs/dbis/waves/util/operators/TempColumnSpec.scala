@@ -2,13 +2,13 @@ package de.unikl.cs.dbis.waves.util.operators
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.DataFrame
+import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.Column
 
 class TempColumnSpec extends WavesSpec
-  with DataFrame {
+  with DataFrameFixture {
 
   "The TempColumn" should {
     "convert to the correct column" in {

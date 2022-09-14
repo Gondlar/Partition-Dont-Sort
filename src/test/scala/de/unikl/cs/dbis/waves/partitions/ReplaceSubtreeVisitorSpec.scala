@@ -1,10 +1,10 @@
 package de.unikl.cs.dbis.waves.partitions
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.PartitionTrees
+import de.unikl.cs.dbis.waves.PartitionTreeFixture
 
 class ReplaceSubtreeVisitorSpec extends WavesSpec
-    with PartitionTrees {
+    with PartitionTreeFixture {
 
     "A ReplaceSubtreeVisitor" when {
         "visiting a Bucket" should {

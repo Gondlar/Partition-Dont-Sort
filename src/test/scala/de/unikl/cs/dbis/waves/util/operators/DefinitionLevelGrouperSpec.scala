@@ -2,10 +2,10 @@ package de.unikl.cs.dbis.waves.util.operators
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.DataFrame
+import de.unikl.cs.dbis.waves.DataFrameFixture
 
 class DefinitionLevelGrouperSpec extends WavesSpec
-  with DataFrame {
+  with DataFrameFixture {
 
   "The DefinitionLevelGrouper" should {
     "call its value column definition levels" in {

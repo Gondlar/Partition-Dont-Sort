@@ -2,13 +2,13 @@ package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.WavesSpec
 
-import de.unikl.cs.dbis.waves.Schema
+import de.unikl.cs.dbis.waves.SchemaFixture
 import org.apache.spark.sql.types.{StructType, StructField, BooleanType}
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.ArrayType
 
 class PrecalculatedMetricSpec extends WavesSpec
-    with Schema {
+    with SchemaFixture {
     
     "The PrecalculatedMetric" should {
         "copy the values from the given array in the Row" in {

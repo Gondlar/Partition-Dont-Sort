@@ -2,13 +2,11 @@ package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.WavesSpec
 
-import de.unikl.cs.dbis.waves.Schema
-import de.unikl.cs.dbis.waves.Spark
 import de.unikl.cs.dbis.waves.util.PathKey
 
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.DataFrame
-import de.unikl.cs.dbis.waves.{DataFrame => DataFrameFixture}
+import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.util.operators.PresenceGrouper
 
 class GroupedCalculatorSpec extends WavesSpec

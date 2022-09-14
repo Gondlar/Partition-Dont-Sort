@@ -6,7 +6,7 @@ import org.scalactic.source.Position
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
-trait Spark extends BeforeAndAfterAll { this: Suite =>
+trait SparkFixture extends BeforeAndAfterAll { this: Suite =>
 
   var spark : SparkSession = null
 

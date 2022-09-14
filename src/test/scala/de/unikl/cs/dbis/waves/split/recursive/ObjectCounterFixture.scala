@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.split.recursive
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Suite
 
-trait ObjectCounters extends BeforeAndAfterEach { this: Suite =>
+trait ObjectCounterFixture extends BeforeAndAfterEach { this: Suite =>
 
 
   var lhs : ObjectCounter = null

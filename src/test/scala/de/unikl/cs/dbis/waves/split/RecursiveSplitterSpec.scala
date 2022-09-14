@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.split
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.Relation
+import de.unikl.cs.dbis.waves.RelationFixture
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
@@ -12,7 +12,7 @@ import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
 
 class RecursiveSplitterSpec extends WavesSpec
-    with Relation {
+    with RelationFixture {
 
     "The RecursiveSplitter" should {
 

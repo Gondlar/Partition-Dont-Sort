@@ -7,7 +7,7 @@ import org.scalatest.Suite
 import org.apache.spark.sql.catalyst.CatalystTypeConverters
 import org.apache.spark.sql.catalyst.InternalRow
 
-trait Schema extends BeforeAndAfterEach { this: Suite =>
+trait SchemaFixture extends BeforeAndAfterEach { this: Suite =>
 
   var schema : StructType = null
   var innerSchema : StructType = null

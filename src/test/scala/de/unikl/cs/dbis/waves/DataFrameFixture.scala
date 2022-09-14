@@ -4,7 +4,7 @@ import org.scalatest.Suite
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 
-trait DataFrame extends Spark with Schema { this: Suite =>
+trait DataFrameFixture extends SparkFixture with SchemaFixture { this: Suite =>
 
   var df : org.apache.spark.sql.DataFrame = null
   var emptyDf : org.apache.spark.sql.DataFrame = null

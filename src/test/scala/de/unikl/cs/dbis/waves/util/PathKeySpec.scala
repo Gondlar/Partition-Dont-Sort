@@ -1,13 +1,13 @@
 package de.unikl.cs.dbis.waves.util
 
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.Schema
+import de.unikl.cs.dbis.waves.SchemaFixture
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.catalyst.CatalystTypeConverters
 import org.apache.spark.sql.catalyst.InternalRow
 
 class PathKeySpec extends WavesSpec 
-    with Schema {
+    with SchemaFixture {
 
     "A PathKey" when {
         "being created" should {

@@ -34,7 +34,7 @@ abstract class AbstractGrouper(
   def columns: Seq[String] = Seq(GROUP_COLUMN, COUNT_COLUMN.toString())
 
   /**
-    * Given a grouped data frame, count how many rows of each kind it contains.
+    * Given a source data frame, count how many rows of each group it contains.
     *
     * @param data the data to group
     * @return the grouped data. It consists of two columns. One stores the kind
@@ -44,30 +44,10 @@ abstract class AbstractGrouper(
   override def group(data: DataFrame): DataFrame
     = data.groupBy(this(data.schema)).count()
 
-  /**
-    * Given a grouped data frame and its source data, find all members of the
-    * combined groups.
-    *
-    * @param bucket the groups
-    * @param data the source data
-    * @return all entries from source data that belong to the groups from bucket
-    */
   override def find(bucket: DataFrame, data: DataFrame) = {
     data.join(bucket, GROUP_COLUMN.bind(bucket) === this(data.schema), "leftsemi")
   }
 
-  /**
-    * Given a sequence of disjoint DataFrames containing the grouped
-    * representation and a DataFrame containing the origional data, return a
-    * DataFrame which has an additional column with the position of the index of
-    * the group it belonges to. That column's name can be found in
-    * MATCH_COLUMN.
-    *
-    * @param buckets the grouped represenatations
-    * @param data the actual data. It must have the same schema as used to 
-    *             create the grouped entries in the buckets.
-    * @return data with an additional column.
-    */
   override def matchAll(buckets: Seq[DataFrame], data: DataFrame) = {
     val map = dataFrameToMap(unionWithIndex(buckets), GROUP_COLUMN, INDEX_COLUMN)
     data.crossJoin(map)
@@ -77,15 +57,6 @@ abstract class AbstractGrouper(
 
   override def matchColumn: TempColumn = MATCH_COLUMN
 
-  /**
-    * Sort the given data frame such that it is orderd in the same order as the
-    * given grouped data frame.
-    *
-    * @param bucket the "sort order"
-    * @param data The data to sort. It must have the same schema as used to
-    *             create the grouped entries in bucket.
-    * @return data, but sorted
-    */
   override def sort(bucket: DataFrame, data: DataFrame) = {
     val map = dataFrameToMap(withOrderedId(bucket), GROUP_COLUMN, ORDER_COLUMN)
     data.crossJoin(map)
@@ -99,13 +70,6 @@ abstract class AbstractGrouper(
         .drop(map.columns:_*)
   }
 
-  /**
-    * Given a data frame which follows the groupers grouped schema, determine
-    * how many original data rows the contained groups represent
-    *
-    * @param df the data frame
-    * @return the count
-    */
   override def count(df: DataFrame) = df.agg(sum(COUNT_COLUMN)).head.getLong(0)
 
   /**

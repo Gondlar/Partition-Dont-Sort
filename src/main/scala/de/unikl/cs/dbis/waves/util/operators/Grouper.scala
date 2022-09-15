@@ -30,6 +30,9 @@ trait Grouper {
     * Given a DataFrame in grouped representation and a DataFrame in the
     * source representation, find all Rows of the source data which belong to
     * one of the groups in the grouped data.
+    * 
+    * It is assumed that bucket does not contain groups which are not found in
+    * the source data.
     *
     * @param bucket the groups
     * @param data the source data
@@ -44,6 +47,10 @@ trait Grouper {
     * end append an additional column to the source data which holds the 
     * corresponding grouped DataFrame's index in the given list. To find that 
     * column's name, see [[partitionColumn]].
+    * 
+    * It is assumed that the buckets do not contain groups that are not found in
+    * the source data. Furthermore, it is assumed that all of source data's Rows
+    * belong to one of the buckets
     *
     * @param buckets the grouped represenatations
     * @param data the source data. It must have the same schema as used to 
@@ -60,6 +67,9 @@ trait Grouper {
   /**
     * Sort the given source data such that it is orderd in the same order as the
     * corresponding groups in the given grouped DataFrame.
+    * 
+    * It is assumed that bucket does not contain groups which are not found in
+    * the source data.
     *
     * @param bucket the "sort order"
     * @param data The data to sort. It must have the same schema as used to

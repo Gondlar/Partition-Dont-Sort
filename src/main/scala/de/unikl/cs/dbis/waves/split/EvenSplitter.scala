@@ -8,16 +8,16 @@ import scala.concurrent.duration.Duration
 import scala.collection.mutable.PriorityQueue
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence, PartitionTreeHDFSInterface}
-import de.unikl.cs.dbis.waves.partitions.{PartitionTreePath, Absent, Present}
+import de.unikl.cs.dbis.waves.partitions.{SplitByPresencePath, Absent, Present}
 import de.unikl.cs.dbis.waves.split.recursive.{EvenHeuristic, GroupedCalculator}
 import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.util.operators.{Grouper, PresenceGrouper}
 
 class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends GroupedSplitter {
-  private implicit val ord = Ordering.by[Seq[PartitionTreePath], Int](_.size)
+  private implicit val ord = Ordering.by[Seq[SplitByPresencePath], Int](_.size)
 
   private val partitions  = new PartitionTree(input.schema, Bucket(input))
-  private val queue = PriorityQueue((Long.MaxValue, Seq.empty[PartitionTreePath]))
+  private val queue = PriorityQueue((Long.MaxValue, Seq.empty[SplitByPresencePath]))
 
   override protected def load(context: Unit): DataFrame = input
 
@@ -56,11 +56,10 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     partitions.getBuckets().map(_.data).toSeq
   }
 
-  private def addPartition(df: DataFrame, index : Int, location: Seq[PartitionTreePath]) = {
+  private def addPartition(df: DataFrame, index : Int, location: Seq[SplitByPresencePath]) = {
     val filterColumn = SPLIT_GROUPER.GROUP_COLUMN(index) === (location.last match {
       case Absent => false
       case Present => true
-      case _ => assert(false)
     })
     val newPartiton = df.filter(filterColumn)
     val size = SPLIT_GROUPER.count(newPartiton)

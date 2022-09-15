@@ -33,6 +33,23 @@ class AddXSpec extends WavesSpec
                 res.length should equal (1)
                 res(0).get(0) should be (null : Array[Int])
             }
+            "have repeatable results" in {
+                // As you have probably guessed by the nature of this test: yes, this was a bug
+                Given("a data frame with an array of numbers")
+                val data = spark.createDataFrame(
+                    List(Row(Array(-1,0,1,2))).asJava,
+                    StructType(Array(StructField("foo", ArrayType(IntegerType, false))))
+                )
+                When("when we add 5 componentwise")
+                val applied = data.select(addX(col("foo"), 5))
+                And("fetch the data twice")
+                // our data has only one row, so this should return the same data
+                // we only use them to make Spark evaluate the DF twice
+                val res1 = applied.limit(50).collect()
+                val res2 = applied.limit(5).collect()
+                Then("both results are the same")
+                res1 should contain theSameElementsAs (res2)
+            }
         }
     }
     

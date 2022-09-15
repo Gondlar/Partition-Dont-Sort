@@ -13,7 +13,7 @@ extends UnaryExpression with NullIntolerant with ExpectsInputTypes {
     override def toString(): String = s"add$add($child)"
     
     override protected def nullSafeEval(input: Any): Any = {
-        val list = input.asInstanceOf[GenericArrayData]
+        val list = input.asInstanceOf[GenericArrayData].copy()
         for (index <- 0 to list.numElements()-1) {
             list.setInt(index, list.getInt(index)+add)
         }
@@ -24,10 +24,10 @@ extends UnaryExpression with NullIntolerant with ExpectsInputTypes {
         val index = ctx.freshName("index")
         nullSafeCodeGen(ctx, ev, sd => {
             s"""
-                for(int $index = 0; $index < $sd.numElements(); $index++) {
-                    $sd.setInt($index, $sd.getInt($index)+$add);
+                ${ev.value} = $sd.copy();
+                for(int $index = 0; $index < ${ev.value}.numElements(); $index++) {
+                    ${ev.value}.setInt($index, ${ev.value}.getInt($index)+$add);
                 }
-                ${ev.value} = $sd;
             """
         })
     }

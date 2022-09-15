@@ -69,18 +69,18 @@ class GroupedSplitterSpec extends WavesSpec
             override protected def sortGrouper: Grouper = DefinitionLevelGrouper
 
             override protected def split(df: DataFrame): Seq[DataFrame] = {
-              df.columns should contain theSameElementsAs (splitGrouper.columns)
+              df.columns should contain theSameElementsAs (PresenceGrouper.columns)
               Seq(df)
             }
 
             override protected def sort(df: DataFrame): DataFrame = {
-              df.columns should contain theSameElementsAs (sortGrouper.columns)
+              df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
               df
             }
 
             override protected def buildTree(buckets: Seq[DataFrame]): Unit = {
               forAll (buckets) ( df =>
-                df.columns should contain theSameElementsAs (sortGrouper.columns)
+                df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
               )
             }
           }

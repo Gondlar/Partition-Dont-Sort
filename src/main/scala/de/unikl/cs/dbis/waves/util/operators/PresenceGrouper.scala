@@ -14,7 +14,7 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   * given schema and returns an array of Booleans which are true if the
   * respective node is present in that row. The array lists nodes in pre-order. 
   */
-object PresenceGrouper extends Grouper(TempColumn("presence")) {
+object PresenceGrouper extends AbstractGrouper(TempColumn("presence")) {
   override def apply(schema: StructType): Column
     = presence(schema, None).as(GROUP_COLUMN)
 

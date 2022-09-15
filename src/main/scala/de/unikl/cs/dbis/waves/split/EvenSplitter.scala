@@ -21,7 +21,9 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
 
   override protected def load(context: Unit): DataFrame = input
 
-  override protected def splitGrouper: Grouper = PresenceGrouper
+  private val SPLIT_GROUPER = PresenceGrouper
+
+  override protected def splitGrouper: Grouper = SPLIT_GROUPER
 
   override protected def split(df: DataFrame): Seq[DataFrame] = {
     Logger.log("evenSplitter-start")
@@ -55,13 +57,13 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
   }
 
   private def addPartition(df: DataFrame, index : Int, location: Seq[PartitionTreePath]) = {
-    val filterColumn = splitGrouper.GROUP_COLUMN(index) === (location.last match {
+    val filterColumn = SPLIT_GROUPER.GROUP_COLUMN(index) === (location.last match {
       case Absent => false
       case Present => true
       case _ => assert(false)
     })
     val newPartiton = df.filter(filterColumn)
-    val size = splitGrouper.count(newPartiton)
+    val size = SPLIT_GROUPER.count(newPartiton)
     if (size > threshold) queue.enqueue((size, location))
     newPartiton
   }
@@ -69,12 +71,11 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
   override protected def buildTree(buckets: Seq[DataFrame]): Unit = {
     val df = data
     val spark = df.sparkSession
-    val group = sortGrouper(df.schema)
     
     Logger.log("evenSplitter-start-buildTree")
     sortGrouper.matchAll(buckets, df)
                .write
-               .partitionBy(sortGrouper.PARTITION_COLUMN)
+               .partitionBy(sortGrouper.matchColumn)
                .parquet(path)
 
     Logger.log("evenSplitter-grouping-done")
@@ -82,11 +83,11 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     implicit val ec: ExecutionContext = ExecutionContext.global
     val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
       Future {
-        val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.PARTITION_COLUMN}=$bucketId", false)
+        val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", false)
         val finalFolder = PartitionFolder.makeFolder(path, false)
         val partition = spark.read
                              .parquet(intermediaryFolder.filename)
-                             .drop(sortGrouper.PARTITION_COLUMN.col)
+                             .drop(sortGrouper.matchColumn.col)
         val sorted = sortGrouper.sort(bucket, partition)
         blocking { sorted.write.parquet(finalFolder.filename) }
         intermediaryFolder.delete(intermediaryFolder.file.getFileSystem(spark.sparkContext.hadoopConfiguration))

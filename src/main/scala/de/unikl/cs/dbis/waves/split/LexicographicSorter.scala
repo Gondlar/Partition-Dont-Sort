@@ -13,7 +13,10 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   * See: Lemire and Kaser, Reordering columns for smaller indexes, 2011 
   */
 trait LexicographicSorter extends GroupedSplitter {
-  override protected def sortGrouper: Grouper = DefinitionLevelGrouper
+
+  private val SORT_GROUPER = DefinitionLevelGrouper
+
+  override protected def sortGrouper: Grouper = SORT_GROUPER
   override protected def sort(bucket: DataFrame): DataFrame = {
     val leafs = data.schema.optionalLeafCount()
     val counts = Range(0, leafs).map(i => count_distinct(indexedColumn(i)))
@@ -25,5 +28,5 @@ trait LexicographicSorter extends GroupedSplitter {
     bucket.orderBy(order:_*)
   }
 
-  private def indexedColumn(i: Int): Column = sortGrouper.GROUP_COLUMN(i)
+  private def indexedColumn(i: Int): Column = SORT_GROUPER.GROUP_COLUMN(i)
 }

@@ -8,10 +8,10 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.types.StructType
 
-class GrouperSpec extends WavesSpec
+class AbstractGrouperSpec extends WavesSpec
   with DataFrameFixture {
 
-  "A Grouper " should {
+  "An AbstractGrouper " should {
     "group correctly" in {
       When("grouping the data")
       val groupedDf = TestGrouper(df)
@@ -38,13 +38,13 @@ class GrouperSpec extends WavesSpec
       val matchedDf = TestGrouper.matchAll(buckets, df)
 
       Then("the resulting df has the correct schema")
-      matchedDf.columns should contain theSameElementsAs (df.columns :+ TestGrouper.PARTITION_COLUMN.toString)
+      matchedDf.columns should contain theSameElementsAs (df.columns :+ TestGrouper.matchColumn.toString)
 
       And("the resulting df has the correct contents")
       matchedDf.count should equal (8)
-      val partitionIndex = matchedDf.schema.fieldIndex(TestGrouper.PARTITION_COLUMN)
+      val partitionIndex = matchedDf.schema.fieldIndex(TestGrouper.matchColumn)
       val aIndex = matchedDf.schema.fieldIndex("a")
-      matchedDf.drop(TestGrouper.PARTITION_COLUMN.col).collect should contain theSameElementsAs (df.collect)
+      matchedDf.drop(TestGrouper.matchColumn.col).collect should contain theSameElementsAs (df.collect)
       forAll(matchedDf.collect) ( row =>
         if (row.isNullAt(aIndex)) {
           row.getInt(partitionIndex) should equal (0)
@@ -92,7 +92,7 @@ class GrouperSpec extends WavesSpec
     }
     "convert to itself without ungrouping" in {
       Given("a grouper and a df grouped by it")
-      val grouper = new Grouper(TempColumn("test")) {
+      val grouper = new AbstractGrouper(TempColumn("test")) {
         var testing = false
 
         override def apply(schema: StructType): Column
@@ -134,7 +134,7 @@ class GrouperSpec extends WavesSpec
     }
   }
 
-  object TestGrouper extends Grouper(TempColumn("test")) {
+  object TestGrouper extends AbstractGrouper(TempColumn("test")) {
     override def apply(schema: StructType): Column = col("a").isNull.as(GROUP_COLUMN)
   }
 }

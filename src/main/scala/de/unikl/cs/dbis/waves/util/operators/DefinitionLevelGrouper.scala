@@ -16,7 +16,7 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   * returns an array of integers containing the definition levels in the
   * same order as they appear in the schema.
   */
-object DefinitionLevelGrouper extends Grouper(TempColumn("definition_levels")) {
+object DefinitionLevelGrouper extends AbstractGrouper(TempColumn("definition_levels")) {
   override def apply(schema: StructType): Column
     = definitionLevels(schema, false, None).as(GROUP_COLUMN)
   

@@ -77,6 +77,9 @@ class AbstractGrouperSpec extends WavesSpec
       Then("the resulting df has the correct schema")
       sortedDf.schema should equal (df.schema)
 
+      And("the resulting df has only one partition")
+      sortedDf.rdd.getNumPartitions should equal (1)
+
       And("the resulting df has the correct contents")
       sortedDf.count should equal (8)
       val aIndex = sortedDf.schema.fieldIndex("a")

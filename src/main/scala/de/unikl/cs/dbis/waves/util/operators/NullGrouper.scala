@@ -22,7 +22,7 @@ object NullGrouper extends Grouper {
 
   // Since we assume all groups from bucket are present in data and our groups
   // are just Rows, we can just return bucket
-  override def sort(bucket: DataFrame, data: DataFrame) = bucket
+  override def sort(bucket: DataFrame, data: DataFrame) = bucket.repartition(1)
 
   // All groups are individual rows
   override def count(df: DataFrame) = df.count()

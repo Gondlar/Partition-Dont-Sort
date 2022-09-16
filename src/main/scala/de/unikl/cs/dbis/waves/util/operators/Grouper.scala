@@ -66,7 +66,8 @@ trait Grouper {
 
   /**
     * Sort the given source data such that it is orderd in the same order as the
-    * corresponding groups in the given grouped DataFrame.
+    * corresponding groups in the given grouped DataFrame. The result holds a
+    * single Spark partition.
     * 
     * It is assumed that bucket does not contain groups which are not found in
     * the source data.

@@ -32,7 +32,9 @@ class NullGrouperSpec extends WavesSpec
     }
     "order the data by the grouped data" in {
       val g1 = df.limit(3).orderBy("b.c")
-      NullGrouper.sort(g1, df).collect should contain theSameElementsInOrderAs (g1.collect)
+      val sortedDf = NullGrouper.sort(g1, df)
+      sortedDf.rdd.getNumPartitions should equal (1)
+      sortedDf.collect should contain theSameElementsInOrderAs (g1.collect)
     }
     "come up with the correct count" in {
       NullGrouper.count(df) should equal (8)

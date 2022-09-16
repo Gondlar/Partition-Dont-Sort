@@ -4,11 +4,9 @@ import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Row}
-import scala.collection.mutable.{ArrayBuilder, WrappedArray}
+import org.apache.spark.sql.{SparkSession, DataFrame}
+import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper}
-import de.unikl.cs.dbis.waves.util.operators.PresenceGrouper
 
 class LexicographicSorterSpec extends WavesSpec
   with DataFrameFixture {
@@ -28,11 +26,11 @@ class LexicographicSorterSpec extends WavesSpec
     }
   }
 
-  object TestSorter extends GroupedSplitter with LexicographicSorter {
+  object TestSorter extends GroupedSplitter("foo") with LexicographicSorter {
     override protected def load(context: Unit): DataFrame = df
     override protected def splitGrouper: Grouper = ???
     override protected def split(df: DataFrame): Seq[DataFrame] = ???
-    override protected def buildTree(buckets: Seq[DataFrame]): Unit = ???
+    override protected def buildTree(buckets: Seq[PartitionFolder], spark: SparkSession): Unit = ???
     def testSort(df: DataFrame) = sort(sortGrouper(df))
   }
 }

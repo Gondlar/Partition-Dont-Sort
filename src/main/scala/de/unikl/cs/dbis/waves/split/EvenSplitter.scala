@@ -1,10 +1,8 @@
 package de.unikl.cs.dbis.waves.split
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{SparkSession,DataFrame}
 import org.apache.spark.sql.types.StructType
 
-import scala.concurrent.{Future, ExecutionContext, blocking, Await}
-import scala.concurrent.duration.Duration
 import scala.collection.mutable.PriorityQueue
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence, PartitionTreeHDFSInterface}
@@ -13,7 +11,11 @@ import de.unikl.cs.dbis.waves.split.recursive.{EvenHeuristic, GroupedCalculator}
 import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.util.operators.{Grouper, PresenceGrouper}
 
-class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends GroupedSplitter {
+class EvenSplitter(
+  input: DataFrame,
+  threshold: Long,
+  path: String
+)extends GroupedSplitter(path) {
   private implicit val ord = Ordering.by[Seq[SplitByPresencePath], Int](_.size)
 
   private val partitions  = new PartitionTree(input.schema, Bucket(input))
@@ -67,33 +69,7 @@ class EvenSplitter(input: DataFrame, threshold: Long, path: String) extends Grou
     newPartiton
   }
 
-  override protected def buildTree(buckets: Seq[DataFrame]): Unit = {
-    val df = data
-    val spark = df.sparkSession
-    
-    Logger.log("evenSplitter-start-buildTree")
-    sortGrouper.matchAll(buckets, df)
-               .write
-               .partitionBy(sortGrouper.matchColumn)
-               .parquet(path)
-
-    Logger.log("evenSplitter-grouping-done")
-
-    implicit val ec: ExecutionContext = ExecutionContext.global
-    val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
-      Future {
-        val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", false)
-        val finalFolder = PartitionFolder.makeFolder(path, false)
-        val partition = spark.read
-                             .parquet(intermediaryFolder.filename)
-                             .drop(sortGrouper.matchColumn.col)
-        val sorted = sortGrouper.sort(bucket, partition)
-        blocking { sorted.write.parquet(finalFolder.filename) }
-        intermediaryFolder.delete(intermediaryFolder.file.getFileSystem(spark.sparkContext.hadoopConfiguration))
-        finalFolder
-      }
-    }
-    val folders = Await.result(Future.sequence(futureFolders), Duration.Inf)
+  override protected def buildTree(folders: Seq[PartitionFolder], spark: SparkSession): Unit = {
     val tree = partitions.map((_, index) => folders(index).name)
     PartitionTreeHDFSInterface(spark, path).write(tree)
     Logger.log("evenSplitter-end-buildTree")

@@ -33,6 +33,9 @@ test:
     - sbt clean coverage test
     - sbt coverageReport
   artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: "target/scala-2.12/coverage-report/cobertura.xml"
     paths:
-      - "target/scala-2.12/coverage-report/cobertura.xml"
       - "target/scala-2.12/scoverage-report/"

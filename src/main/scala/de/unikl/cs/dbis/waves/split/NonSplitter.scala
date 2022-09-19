@@ -13,14 +13,11 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 class NonSplitter(
   input: DataFrame,
   path: String
-) extends GroupedSplitter(path) {
+) extends GroupedSplitter(path) with FlatTreeBuilder {
 
   override protected def load(context: Unit): DataFrame = input
 
   override protected def splitGrouper: Grouper = NullGrouper
 
   override protected def split(df: DataFrame): Seq[DataFrame] = Seq(df)
-
-  override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
-    = new PartitionTree(data.schema, Bucket(folders.head.name))
 }

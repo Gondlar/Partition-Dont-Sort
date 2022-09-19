@@ -30,4 +30,9 @@ before_script:
 test:
   script:
     # Execute your project's tests
-    - sbt clean test
+    - sbt clean coverage test
+    - sbt coverageReport
+  artifacts:
+    paths:
+      - "target/scala-2.12/coverage-report/cobertura.xml"
+      - "target/scala-2.12/scoverage-report/"

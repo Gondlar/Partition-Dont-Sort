@@ -32,6 +32,7 @@ test:
     # Execute your project's tests
     - sbt clean coverage test
     - sbt coverageReport
+  coverage: '/Statement coverage[A-Za-z\.*]\s*:\s*([^%]+)/'
   artifacts:
     reports:
       coverage_report:

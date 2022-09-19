@@ -1,6 +1,8 @@
 package de.unikl.cs.dbis.waves.split
 
 import org.apache.spark.sql.{SparkSession, DataFrame}
+import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.Grouper
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
@@ -52,7 +54,16 @@ abstract class GroupedSplitter(protected val path: String) extends Splitter[Unit
       *
       * @param buckets the buckets
       */
-    protected def buildTree(buckets: Seq[PartitionFolder], spark: SparkSession): Unit
+    protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String]
+
+    /**
+      * Write the given tree's schema to the file system
+      *
+      * @param tree the partition tree to write
+      * @param spark the spark session used to write it
+      */
+    protected def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit
+      = PartitionTreeHDFSInterface(spark, path).write(tree) 
 
     override def partition(): Unit = {
         val types = splitGrouper.group(data)
@@ -63,7 +74,7 @@ abstract class GroupedSplitter(protected val path: String) extends Splitter[Unit
               sort(sortGrouper.from(splitGrouper, b, data))
           }
           val folders = write(sorted, data)
-          buildTree(folders, data.sparkSession)
+          writeMetadata(buildTree(folders), data.sparkSession)
         } finally types.unpersist()
     }
 

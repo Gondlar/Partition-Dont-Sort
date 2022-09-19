@@ -69,9 +69,6 @@ class EvenSplitter(
     newPartiton
   }
 
-  override protected def buildTree(folders: Seq[PartitionFolder], spark: SparkSession): Unit = {
-    val tree = partitions.map((_, index) => folders(index).name)
-    PartitionTreeHDFSInterface(spark, path).write(tree)
-    Logger.log("evenSplitter-end-buildTree")
-  }
+  override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
+    = partitions.map((_, index) => folders(index).name)
 }

@@ -21,9 +21,6 @@ class NonSplitter(
 
   override protected def split(df: DataFrame): Seq[DataFrame] = Seq(df)
 
-  override protected def buildTree(folders: Seq[PartitionFolder], spark: SparkSession): Unit = {
-    val tree = new PartitionTree(data.schema, Bucket(folders.head.name))
-    PartitionTreeHDFSInterface(spark, path).write(tree)
-  }
-
+  override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
+    = new PartitionTree(data.schema, Bucket(folders.head.name))
 }

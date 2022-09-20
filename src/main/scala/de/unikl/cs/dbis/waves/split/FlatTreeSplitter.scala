@@ -20,7 +20,7 @@ trait FlatTreeBuilder extends GroupedSplitter {
 
   // we cannot use fold because AnyNode instances may not have a common ancestor
   private def toTree(folders: Seq[Bucket[String]]): AnyNode[String] = folders match {
-    case head :: Nil => head
-    case head :: tail => Spill(toTree(tail), head)
+    case _ if folders.size == 1 => folders.head
+    case _ => Spill(toTree(folders.tail), folders.head)
   }
 }

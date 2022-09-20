@@ -149,7 +149,7 @@ class GroupedSplitterSpec extends WavesSpec
           Given("A GroupedSplitter")
           val splitter = TestWriteSplitter()
 
-          When("we write one bucket")
+          When("we write multiple buckets")
           splitter.write(Seq(df,df,df), df)
 
           Then("the correct method was called")

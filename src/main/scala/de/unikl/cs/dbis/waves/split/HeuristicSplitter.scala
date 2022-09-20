@@ -7,14 +7,15 @@ import scala.collection.mutable.PriorityQueue
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence, PartitionTreeHDFSInterface}
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresencePath, Absent, Present}
-import de.unikl.cs.dbis.waves.split.recursive.{EvenHeuristic, GroupedCalculator}
+import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, EvenHeuristic, GroupedCalculator}
 import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.util.operators.{Grouper, PresenceGrouper}
 
-class EvenSplitter(
+class HeuristicSplitter(
   input: DataFrame,
   threshold: Long,
-  path: String
+  path: String,
+  heuristic: Heuristic = EvenHeuristic
 )extends GroupedSplitter(path) {
   private implicit val ord = Ordering.by[Seq[SplitByPresencePath], Int](_.size)
 
@@ -29,7 +30,6 @@ class EvenSplitter(
 
   override protected def split(df: DataFrame): Seq[DataFrame] = {
     Logger.log("evenSplitter-start")
-    val heuristic = EvenHeuristic()
     val calc = GroupedCalculator(data.schema)
     val pathMap = calc.paths(df).zipWithIndex.toMap
 

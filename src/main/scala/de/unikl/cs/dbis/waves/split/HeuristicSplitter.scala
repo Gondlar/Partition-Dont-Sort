@@ -1,11 +1,10 @@
 package de.unikl.cs.dbis.waves.split
 
-import org.apache.spark.sql.{SparkSession,DataFrame}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.PriorityQueue
 
-import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence, PartitionTreeHDFSInterface}
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence}
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresencePath, Absent, Present}
 import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, EvenHeuristic, GroupedCalculator}
 import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}

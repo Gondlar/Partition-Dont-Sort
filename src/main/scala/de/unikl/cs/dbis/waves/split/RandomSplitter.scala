@@ -1,10 +1,7 @@
 package de.unikl.cs.dbis.waves.split
 
-import org.apache.spark.sql.{DataFrame,SparkSession}
+import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
-import de.unikl.cs.dbis.waves.util.PartitionFolder
-import de.unikl.cs.dbis.waves.partitions.{Bucket,PartitionTree}
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 /**
   * Implements a splitter which randomly partitions the data

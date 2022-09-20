@@ -19,8 +19,8 @@ trait FlatTreeBuilder extends GroupedSplitter {
     = new PartitionTree(data.schema, toTree(folders.map(f => Bucket(f.name))))
 
   // we cannot use fold because AnyNode instances may not have a common ancestor
-  private def toTree(folders: Seq[Bucket[String]]): AnyNode[String] = folders match {
-    case _ if folders.size == 1 => folders.head
+  private def toTree(folders: Seq[Bucket[String]]): AnyNode[String] = folders.size match {
+    case 1 => folders.head
     case _ => Spill(toTree(folders.tail), folders.head)
   }
 }

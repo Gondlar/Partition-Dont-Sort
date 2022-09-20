@@ -106,7 +106,7 @@ abstract class AbstractHeuristic extends Heuristic {
   * Find the best path to split using the even heuristic
   *
   */
-case class EvenHeuristic() extends AbstractHeuristic {
+object EvenHeuristic extends AbstractHeuristic {
   override protected def heuristic(col: ColumnMetric): Int = -col._2
 }
 
@@ -114,6 +114,6 @@ case class EvenHeuristic() extends AbstractHeuristic {
   * Find the best path to split using the switch heuristic
   *
   */
-case class SwitchHeuristic() extends AbstractHeuristic {
+object SwitchHeuristic extends AbstractHeuristic {
   override protected def heuristic(col: ColumnMetric): Int = col._3
 }

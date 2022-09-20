@@ -69,21 +69,21 @@ class HeuristicSpec extends WavesSpec
   }
   "The EvenHeuristic" should {
     "find the document with the lowest value" in {
-        val res = EvenHeuristic().choose(RowwiseCalculator(), df, Seq.empty, Seq.empty, 0)
+        val res = EvenHeuristic.choose(RowwiseCalculator(), df, Seq.empty, Seq.empty, 0)
         res should (equal (Some(PathKey("a"))) or equal (Some(PathKey("b"))) )
     }
     "find no document when no paths are allowable" in {
-        val res = EvenHeuristic().choose(RowwiseCalculator(), emptyDf, Seq.empty, Seq.empty, 0)
+        val res = EvenHeuristic.choose(RowwiseCalculator(), emptyDf, Seq.empty, Seq.empty, 0)
         res should equal (None)
     }
   }
   "The SwitchHeuristic" should {
     "find the document with the lowest value" in {
-        val res = SwitchHeuristic().choose(RowwiseCalculator(), df, Seq.empty, Seq.empty, 0)
+        val res = SwitchHeuristic.choose(RowwiseCalculator(), df, Seq.empty, Seq.empty, 0)
         res should (equal (Some(PathKey("a"))) or equal (Some(PathKey("b"))) )
     }
     "find no document when no paths are allowable" in {
-        val res = SwitchHeuristic().choose(RowwiseCalculator(), emptyDf, Seq.empty, Seq.empty, 0)
+        val res = SwitchHeuristic.choose(RowwiseCalculator(), emptyDf, Seq.empty, Seq.empty, 0)
         res should equal (None)
     }
   }

@@ -25,7 +25,7 @@ object AutopartitionWavesDataEven {
         RecursiveSplitter( relation
                          , spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
                          , JobConfig.sampleSize
-                         , EvenHeuristic())
+                         , EvenHeuristic)
             .partition()
         Logger.log("partition-done", relation.diskSize())
         relation.defrag()

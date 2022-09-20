@@ -3,6 +3,7 @@ package de.unikl.cs.dbis.waves.split
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
+import de.unikl.cs.dbis.waves.TempFolderFixture
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,16 +13,16 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 class RandomSplitterSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with TempFolderFixture {
 
   "The RandomSplitter" should {
     "create disjoint partitions" in {
       When("we partition a data frame")
       val partitionCount = 2
-      new RandomSplitter(df, baseDirectory.toString, partitionCount).partition()
+      new RandomSplitter(df, tempDirectory.toString, partitionCount).partition()
 
       Then("there is the correct number of partitions")
-      val partitions = baseDirectory.toFile().listFiles.filter(_.isDirectory())
+      val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())
       partitions.length shouldBe <= (partitionCount)
       if (partitions.length < partitionCount) {
         alert(s"Got less than $partitionCount partitions. This can be random chance, but is a bug if it persists")
@@ -34,7 +35,7 @@ class RandomSplitterSpec extends WavesSpec
       }
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.format("de.unikl.cs.dbis.waves").load(baseDirectory.toString)
+      val newDf = spark.read.format("de.unikl.cs.dbis.waves").load(tempDirectory.toString)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we can recieve the correct data when selecting one attribute")
@@ -46,15 +47,4 @@ class RandomSplitterSpec extends WavesSpec
 
   def compareFilteredDataframe(lhs: DataFrame, rhs: DataFrame, col: Column)
     = lhs.filter(col).collect() should contain theSameElementsAs (rhs.filter(col).collect())
-
-  var baseDirectory : Path = null
-  override protected def beforeEach() = {
-    super.beforeEach()
-    baseDirectory = Files.createTempDirectory("randomPartitonTest")
-    FileUtils.deleteQuietly(baseDirectory.toFile()) // We need just a name, not the dir itself
-  }
-  override protected def afterEach(): Unit = {
-    super.afterEach()
-    FileUtils.deleteQuietly(baseDirectory.toFile())
-  }
 }

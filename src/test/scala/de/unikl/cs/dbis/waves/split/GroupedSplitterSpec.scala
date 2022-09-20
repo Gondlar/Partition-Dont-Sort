@@ -2,9 +2,10 @@ package de.unikl.cs.dbis.waves.split
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.{DataFrameFixture, PartitionTreeFixture}
+import de.unikl.cs.dbis.waves.{DataFrameFixture, PartitionTreeFixture, TempFolderFixture}
 
 import java.io.File
+import java.nio.file.Path
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SparkSession, DataFrame, Row}
@@ -15,7 +16,7 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper,PresenceGrouper,NullGrouper}
 
 class GroupedSplitterSpec extends WavesSpec
-    with DataFrameFixture with PartitionTreeFixture {
+    with DataFrameFixture with PartitionTreeFixture with TempFolderFixture {
 
     "The GroupedSplitter" should {
 
@@ -31,7 +32,7 @@ class GroupedSplitterSpec extends WavesSpec
             }
             val sortedSets = ArrayBuilder.make[DataFrame]
             var builtSet: Seq[DataFrame] = Seq.empty
-            new GroupedSplitter(testdir) {
+            new GroupedSplitter(tempDirectory.toString()) {
 
                 override protected def load(context: Unit): DataFrame = df
 
@@ -69,7 +70,7 @@ class GroupedSplitterSpec extends WavesSpec
             }
         }
         "use the correct groupers" in {
-          val splitter = new GroupedSplitter(testdir) {
+          val splitter = new GroupedSplitter(tempDirectory.toString) {
 
             override protected def load(context: Unit): DataFrame = df
 
@@ -101,7 +102,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "directly write single partitions correctly" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter()
+          val splitter = TestWriteSplitter(tempDirectory)
           splitter.doWrite = true
 
           When("we write one bucket")
@@ -116,7 +117,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "directly write multiple partitions correctly" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter()
+          val splitter = TestWriteSplitter(tempDirectory)
           splitter.doWrite = true
 
           When("we write multiple buckets")
@@ -136,7 +137,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "write one partition when we pass it one" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter()
+          val splitter = TestWriteSplitter(tempDirectory)
 
           When("we write one bucket")
           splitter.write(Seq(df), df)
@@ -147,7 +148,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "write many partitions when we pass it multiple" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter()
+          val splitter = TestWriteSplitter(tempDirectory)
 
           When("we write multiple buckets")
           splitter.write(Seq(df,df,df), df)
@@ -158,19 +159,19 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "write metadata to disk" in {
           Given("A partition tree and a splitter")
-          val splitter = TestWriteSplitter()
+          val splitter = TestWriteSplitter(tempDirectory)
           splitter.doWrite = true
 
           When("we write the partition tree")
           splitter.writeMetadata(spillTree, spark)
 
           Then("we can read the tree back from disk")
-          val read = PartitionTreeHDFSInterface(spark, testdir).read()
+          val read = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
           read should contain (spillTree)
         }
     }
 
-    case class TestWriteSplitter() extends GroupedSplitter(testdir) {
+    case class TestWriteSplitter(testdir: Path) extends GroupedSplitter(testdir.toString) {
         var doWrite = false
         var oneCalled = false
         var manyCalled = false
@@ -192,12 +193,5 @@ class GroupedSplitterSpec extends WavesSpec
 
         override def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit
           = if(doWrite) super.writeMetadata(tree, spark)
-    }
-
-    val testdir = "test"
-    override protected def afterEach(): Unit = {
-      super.afterEach()
-
-      FileUtils.deleteQuietly(new File(testdir))
     }
 }

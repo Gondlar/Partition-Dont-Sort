@@ -8,14 +8,22 @@ import org.apache.spark.sql.{SparkSession,SaveMode}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.partitions.Absent
+import de.unikl.cs.dbis.waves.split.HeuristicSplitter
 
 object Main extends App {
   val conf = new SparkConf().setAppName("waves-test")
   val spark = SparkSession.builder().config(conf).master("local").getOrCreate()
   Logger.log("job-start")
 
-  // val df = spark.read.format("json").load("/home/patrick/Twitterdaten/twitter")
+  val df = spark.read.format("json").load("/home/patrick/Twitterdaten/twitter")
   // println(df.agg("user.id" -> "avg").head().apply(0))    // 269260424025919552
+  val size = df.count()
+  try new HeuristicSplitter(df, size/50, "out/").partition() catch {
+    case x : Exception => {
+      Logger.printToStdout
+      throw x
+    }
+  }
   // df.write.mode(SaveMode.Overwrite).format("de.unikl.cs.dbis.waves").save("out/")
 
   // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())

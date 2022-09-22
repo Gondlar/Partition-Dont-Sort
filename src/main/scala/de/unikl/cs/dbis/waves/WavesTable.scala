@@ -7,6 +7,7 @@ import org.apache.spark.sql.connector.catalog.{Table,TableCapability,SupportsRea
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo,WriteBuilder,SupportsTruncate}
 import org.apache.spark.sql.errors.QueryCompilationErrors
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
@@ -198,5 +199,29 @@ object WavesTable {
         }
         val fs = new Path(basePath).getFileSystem(spark.sparkContext.hadoopConfiguration)
         new WavesTable(name, spark, basePath, fs, options, partitionTree)
+    }
+
+    implicit class implicits(df: DataFrame) {
+
+      /**
+        * Retrieve the WavesTable the DataFrame reads from.
+        * A DataFrame is considered to read from a WavesTable if it is just a
+        * plain scan on that table.
+        *
+        * @return the WaveTable or None if no such table exists
+        */
+      def getWavesTable: Option[WavesTable] = df.queryExecution.logical match {
+        case relation: DataSourceV2Relation => relation.table match {
+          case table: WavesTable => Some(table)
+          case _ => None
+        }
+        case _ => None
+      }
+
+      /**
+        * @return true iff the DataFrame reads from a WavesTable
+        * @see [[getWavesTable]]
+        */
+      def isWavesTable: Boolean = getWavesTable.nonEmpty
     }
 }

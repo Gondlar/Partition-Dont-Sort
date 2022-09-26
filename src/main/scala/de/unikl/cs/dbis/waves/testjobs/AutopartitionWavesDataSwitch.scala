@@ -22,10 +22,10 @@ object AutopartitionWavesDataSwitch {
         df.write.mode(SaveMode.Overwrite).format(JobConfig.wavesFormat).save(JobConfig.wavesPath)
         val relation = WavesTable(s"Repartition ${JobConfig.wavesPath}", spark, JobConfig.wavesPath, CaseInsensitiveStringMap.empty())
         Logger.log("convert-done", relation.diskSize())
-        RecursiveSplitter( relation
-                         , spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
+        RecursiveSplitter( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
                          , JobConfig.sampleSize
                          , SwitchHeuristic)
+            .prepare(relation)
             .partition()
         Logger.log("partition-done", relation.diskSize())
         relation.defrag()

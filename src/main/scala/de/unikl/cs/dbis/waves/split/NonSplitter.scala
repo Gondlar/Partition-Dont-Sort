@@ -7,12 +7,7 @@ import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
   * Implements a splitter which does not split the data but delivers it as a
   * single partition
   */
-class NonSplitter(
-  input: DataFrame,
-  path: String
-) extends GroupedSplitter(path) with FlatTreeBuilder {
-
-  override protected def load(context: Unit): DataFrame = input
+class NonSplitter extends GroupedSplitter with FlatTreeBuilder {
 
   override protected def splitGrouper: Grouper = NullGrouper
 

@@ -16,7 +16,22 @@ import scala.concurrent.duration.Duration
   * finally the sorted buckets are passed to [[buildTree]] in the same order as
   * split returned them.
   */
-abstract class GroupedSplitter(protected val path: String) extends Splitter[Unit] {
+abstract class GroupedSplitter extends Splitter[Unit] {
+
+    private var source: DataFrame = null
+    private var path: String = null
+
+    override def prepare(df: DataFrame, path: String) = {
+      this.path = path
+      source = df
+      this
+    }
+
+    def isPrepared: Boolean = path != null
+    
+    override def getPath = { assertPrepared; path }
+
+    override protected def load(context: Unit): DataFrame = source
 
     /**
       * A Grouper to group the data by. Each grouping represents one kind of data
@@ -66,6 +81,8 @@ abstract class GroupedSplitter(protected val path: String) extends Splitter[Unit
       = PartitionTreeHDFSInterface(spark, path).write(tree) 
 
     override def partition(): Unit = {
+        assertPrepared
+        
         val types = splitGrouper.group(data)
         types.persist()
         try {

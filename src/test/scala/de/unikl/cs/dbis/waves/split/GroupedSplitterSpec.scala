@@ -16,10 +16,16 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper,PresenceGrouper,NullGrouper}
 
 class GroupedSplitterSpec extends WavesSpec
-    with DataFrameFixture with PartitionTreeFixture with TempFolderFixture {
+    with DataFrameFixture with PartitionTreeFixture with TempFolderFixture
+    with SplitterBehavior {
 
     "The GroupedSplitter" should {
-
+        behave like unpreparedSplitter(TestWriteSplitter(false))
+        "load the prepared data" in {
+          val splitter = TestWriteSplitter(false)
+          splitter.prepare(df, "foo")
+          splitter.load(()) should equal (df)
+        }
         "process all partitions and keep their internal order" in {
             val sets = Seq( Set(data(1), data(2))
                           , Set(data(1))
@@ -32,10 +38,7 @@ class GroupedSplitterSpec extends WavesSpec
             }
             val sortedSets = ArrayBuilder.make[DataFrame]
             var builtSet: Seq[DataFrame] = Seq.empty
-            new GroupedSplitter(tempDirectory.toString()) {
-
-                override protected def load(context: Unit): DataFrame = df
-
+            new GroupedSplitter {
                 override protected def splitGrouper: Grouper = DefinitionLevelGrouper
 
                 override protected def split(df: DataFrame): Seq[DataFrame] = {
@@ -62,7 +65,7 @@ class GroupedSplitterSpec extends WavesSpec
                     = { builtSet = buckets; Seq.empty }
 
                 override protected def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit = ()
-            }.partition()
+            }.prepare(df, tempDirectory.toString).partition()
             sortedSets.result should contain theSameElementsInOrderAs (frames)
             builtSet should have length (frames.length)
             forAll((0 until frames.length)) { i =>
@@ -70,9 +73,7 @@ class GroupedSplitterSpec extends WavesSpec
             }
         }
         "use the correct groupers" in {
-          val splitter = new GroupedSplitter(tempDirectory.toString) {
-
-            override protected def load(context: Unit): DataFrame = df
+          val splitter = new GroupedSplitter {
 
             override protected def splitGrouper: Grouper = PresenceGrouper
             override protected def sortGrouper: Grouper = DefinitionLevelGrouper
@@ -98,12 +99,11 @@ class GroupedSplitterSpec extends WavesSpec
 
             override protected def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit = ()
           }
-          splitter.partition()
+          splitter.prepare(df, tempDirectory.toString).partition()
         }
         "directly write single partitions correctly" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter(tempDirectory)
-          splitter.doWrite = true
+          val splitter = TestWriteSplitter(true).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write one bucket")
           val folder = splitter.writeOne(df, df)
@@ -117,8 +117,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "directly write multiple partitions correctly" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter(tempDirectory)
-          splitter.doWrite = true
+          val splitter = TestWriteSplitter(true).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write multiple buckets")
           val b1 = df.limit(3)
@@ -137,7 +136,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "write one partition when we pass it one" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter(tempDirectory)
+          val splitter = TestWriteSplitter(false).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write one bucket")
           splitter.write(Seq(df), df)
@@ -148,7 +147,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "write many partitions when we pass it multiple" in {
           Given("A GroupedSplitter")
-          val splitter = TestWriteSplitter(tempDirectory)
+          val splitter = TestWriteSplitter(false).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write multiple buckets")
           splitter.write(Seq(df,df,df), df)
@@ -159,7 +158,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         "write metadata to disk" in {
           Given("A partition tree and a splitter")
-          val splitter = TestWriteSplitter(tempDirectory)
+          val splitter = TestWriteSplitter(false).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
           splitter.doWrite = true
 
           When("we write the partition tree")
@@ -171,10 +170,12 @@ class GroupedSplitterSpec extends WavesSpec
         }
     }
 
-    case class TestWriteSplitter(testdir: Path) extends GroupedSplitter(testdir.toString) {
-        var doWrite = false
+    case class TestWriteSplitter(var doWrite: Boolean) extends GroupedSplitter {
         var oneCalled = false
         var manyCalled = false
+
+        override def load(context: Unit): DataFrame = super.load(context)
+
         override def writeOne(bucket: DataFrame, data: DataFrame): PartitionFolder = {
           oneCalled = true
           if (doWrite) super.writeOne(bucket, data) else null
@@ -186,7 +187,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
         override def write(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder]
           = super.write(buckets, rawData)
-        override protected def load(context: Unit): DataFrame = df
+
         override protected def splitGrouper: Grouper = NullGrouper
         override protected def split(df: DataFrame): Seq[DataFrame] = ???
         override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = ???

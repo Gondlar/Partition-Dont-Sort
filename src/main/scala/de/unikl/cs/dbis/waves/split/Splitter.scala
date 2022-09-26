@@ -10,10 +10,36 @@ import org.apache.spark.sql.DataFrame
   * information on the circumstances in which load is called. For example, the
   * [[RecursiveSplitter]] uses the context to specify the partition it is
   * currently working in and overrides [[load]] to only load that partition.
-  *
-  * @param table the table to split
   */
 abstract class Splitter[Context] {
+
+    /**
+      * Set the given DataFrame as the one to be split. You may not call
+      * methods on a Splitter befre a DataFrame has been prepared.
+      *
+      * @param df the DataFrame
+      * @param path the path the result should be written to
+      * @return this splitter for chaining
+      */
+    def prepare(df: DataFrame, path: String): Splitter[_]
+
+    /**
+      * @return Whether prepare has been called on the Splitter
+      */
+    def isPrepared: Boolean
+
+    /**
+      * Get the path this splitter writes to
+      *
+      * @return the path
+      */
+    def getPath: String
+
+    /**
+      * throws an IllegalStateException if this splitter is not prepared
+      */
+    protected def assertPrepared
+      = if (!isPrepared) throw new IllegalStateException("Splitter was not prepated")
 
     /**
       * Automatically Partition the table

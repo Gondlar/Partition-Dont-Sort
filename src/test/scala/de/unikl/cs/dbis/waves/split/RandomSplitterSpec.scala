@@ -19,7 +19,7 @@ class RandomSplitterSpec extends WavesSpec
     "create disjoint partitions" in {
       When("we partition a data frame")
       val partitionCount = 2
-      new RandomSplitter(df, tempDirectory.toString, partitionCount).partition()
+      new RandomSplitter(partitionCount).prepare(df, tempDirectory.toString).partition()
 
       Then("there is the correct number of partitions")
       val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())

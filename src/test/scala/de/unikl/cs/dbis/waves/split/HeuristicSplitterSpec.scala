@@ -13,14 +13,15 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 class HeuristicSplitterSpec extends WavesSpec
-    with DataFrameFixture with TempFolderFixture {
+    with DataFrameFixture with TempFolderFixture
+    with SplitterBehavior {
 
     "The HeuristicSplitter" should {
-
+        behave like unpreparedSplitter(new HeuristicSplitter(2))
         "split a dataframe into partitions" in {
             When("we partition a data frame")
             // noException shouldBe thrownBy (new EvenSplitter(df, 2, baseDirectory.toString).partition())
-            new HeuristicSplitter(df, 2, tempDirectory.toString).partition()
+            new HeuristicSplitter(2).prepare(df, tempDirectory.toString()).partition()
 
             Then("there are more than two partitions")
             val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())

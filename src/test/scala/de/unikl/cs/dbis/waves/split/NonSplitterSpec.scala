@@ -19,7 +19,7 @@ class NonSplitterSpec extends WavesSpec
 
         "create a single partition" in {
             When("we partition a data frame")
-            new NonSplitter(df, tempDirectory.toString).partition()
+            new NonSplitter().prepare(df, tempDirectory.toString).partition()
 
             Then("there is exactly one partition")
             val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())

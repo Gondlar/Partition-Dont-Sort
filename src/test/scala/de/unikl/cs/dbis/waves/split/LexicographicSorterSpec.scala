@@ -27,7 +27,7 @@ class LexicographicSorterSpec extends WavesSpec
     }
   }
 
-  object TestSorter extends GroupedSplitter("foo") with LexicographicSorter {
+  object TestSorter extends GroupedSplitter with LexicographicSorter {
     override protected def load(context: Unit): DataFrame = df
     override protected def splitGrouper: Grouper = ???
     override protected def split(df: DataFrame): Seq[DataFrame] = ???

@@ -11,12 +11,8 @@ import org.apache.spark.sql.functions.monotonically_increasing_id
   * approximately even-sized buckets
   */
 class EvenSplitter(
-  input: DataFrame,
-  path: String,
   numPartitions: Int
-) extends GroupedSplitter(path) with FlatTreeBuilder {
-
-  override protected def load(context: Unit): DataFrame = input
+) extends GroupedSplitter with FlatTreeBuilder {
 
   override protected def splitGrouper: Grouper = NullGrouper
 

@@ -11,19 +11,22 @@ import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.util.operators.{Grouper, PresenceGrouper}
 
 class HeuristicSplitter(
-  input: DataFrame,
   threshold: Long,
-  path: String,
   heuristic: Heuristic = EvenHeuristic
-)extends GroupedSplitter(path) {
+) extends GroupedSplitter {
   private implicit val ord = Ordering.by[Seq[SplitByPresencePath], Int](_.size)
 
-  private val partitions  = new PartitionTree(input.schema, Bucket(input))
-  private val queue = PriorityQueue((Long.MaxValue, Seq.empty[SplitByPresencePath]))
-
-  override protected def load(context: Unit): DataFrame = input
+  private var partitions: PartitionTree[DataFrame] = null
+  private var queue: PriorityQueue[(Long,Seq[SplitByPresencePath])] = null
 
   private val SPLIT_GROUPER = PresenceGrouper
+
+  override def prepare(df: DataFrame, path: String) = {
+    super.prepare(df, path)
+    partitions = new PartitionTree(df.schema, Bucket(df))
+    queue = PriorityQueue((Long.MaxValue, Seq.empty[SplitByPresencePath]))
+    this
+  }
 
   override protected def splitGrouper: Grouper = SPLIT_GROUPER
 

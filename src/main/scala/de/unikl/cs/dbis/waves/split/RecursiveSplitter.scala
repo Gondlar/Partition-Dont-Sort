@@ -3,26 +3,50 @@ package de.unikl.cs.dbis.waves.split
 import org.apache.spark.sql.DataFrame
 
 import de.unikl.cs.dbis.waves.WavesTable
+import de.unikl.cs.dbis.waves.WavesTable.implicits
 import de.unikl.cs.dbis.waves.partitions.{Bucket, PartitionTreePath, Present, Absent}
 import de.unikl.cs.dbis.waves.util.{PathKey, Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, RowwiseCalculator}
+import de.unikl.cs.dbis.waves.DefaultSource
+import org.apache.spark.sql.SaveMode
 
 /**
   * Implements recursive splitting as described in https://doi.org/10.1145/3530050.3532923
   *
-  * @param table the table to split
   * @param threshold the threshold min in byte
   * @param sampleSize the sample size in byte
   * @param metric the heuristic to use
   */
 final case class RecursiveSplitter(
-    table: WavesTable,
     threshold : Long,
     sampleSize : Long,
     heursitic: Heuristic
 ) extends Splitter[PartitionFolder] with Sampler[PartitionFolder] {
 
     val calc = RowwiseCalculator()
+
+    private var table: WavesTable = null
+
+    def prepare(table: WavesTable) = { this.table = table; this }
+
+    override def prepare(df: DataFrame, path: String) = {
+      val newTable = df.getWavesTable.filter(table => table.basePath == path).getOrElse({
+          df.write.format("de.unikl.cs.dbis.waves").mode(SaveMode.Overwrite).save(path)
+          val options = new java.util.HashMap[String, String](1)
+          options.put("path", path)
+          DefaultSource().getTable(df.schema, Array.empty, options).asInstanceOf[WavesTable]
+      })
+      prepare(newTable)
+    }
+
+    override def isPrepared = table != null
+
+    override def getPath = { assertPrepared; table.basePath }
+
+    /**
+      * @return the table this splitter writes to
+      */
+    def getTable = { assertPrepared; table }
 
     override protected def load(context: PartitionFolder)
         = table.spark.read.format("parquet")
@@ -33,6 +57,7 @@ final case class RecursiveSplitter(
         = sampleSize.toDouble/context.diskSize(table.fs)
 
     override def partition(): Unit = {
+        assertPrepared
         assert(table.partitionTree.root.isInstanceOf[Bucket[String]])
 
         partition(Seq.empty, Seq.empty, Seq.empty)

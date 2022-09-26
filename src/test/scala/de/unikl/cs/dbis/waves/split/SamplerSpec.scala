@@ -43,6 +43,9 @@ class SamplerSpec extends WavesSpec
     }
 
     class MockSplitter() extends Splitter[Any] {
+        override def prepare(df: DataFrame, path: String): Splitter[_] = ???
+        override def getPath: String = ???
+        override def isPrepared: Boolean = ???
         override def partition() = ()
         override def load(context: Any): DataFrame = df
     }

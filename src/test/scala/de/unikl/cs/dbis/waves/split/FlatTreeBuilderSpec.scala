@@ -49,7 +49,7 @@ class FlatTreeBuilderSpec extends WavesSpec
     }
   }
 
-  case class TestBuilder() extends GroupedSplitter("foo") with FlatTreeBuilder {
+  case class TestBuilder() extends GroupedSplitter with FlatTreeBuilder {
     override protected def load(context: Unit): DataFrame = df
     override protected def splitGrouper: Grouper = ???
     override protected def split(df: DataFrame): Seq[DataFrame] = ???

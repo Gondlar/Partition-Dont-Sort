@@ -18,7 +18,7 @@ object Main extends App {
   val df = spark.read.format("json").load("/home/patrick/Twitterdaten/twitter")
   // println(df.agg("user.id" -> "avg").head().apply(0))    // 269260424025919552
   val size = df.count()
-  try new HeuristicSplitter(df, size/50, "out/").partition() catch {
+  try new HeuristicSplitter(size/50).prepare(df,"out/").partition() catch {
     case x : Exception => {
       Logger.printToStdout
       throw x

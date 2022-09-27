@@ -68,8 +68,7 @@ class PartitionTreeSpec extends WavesSpec
             }
             "contain no paths" in {
                 val metadata = bucketTree.metadataFor(Seq.empty)
-                metadata.getAbsent shouldBe empty
-                metadata.getPresent shouldBe empty
+                metadata should equal (PartitionMetadata())
             }
         }
         "it starts with a split" should {
@@ -114,8 +113,7 @@ class PartitionTreeSpec extends WavesSpec
             }
             "know that path" in {
                 val metadata = splitTree.metadataFor(Seq(Present))
-                metadata.getAbsent shouldBe empty
-                metadata.getPresent should contain theSameElementsAs (Seq(split.key))
+                metadata should equal (PartitionMetadata(Seq(split.key), Seq.empty))
             }
         }
         "it starts with a spill" should {
@@ -163,8 +161,7 @@ class PartitionTreeSpec extends WavesSpec
             }
             "find no paths in the root" in {
                 val metadata = spillTree.metadataFor(Seq(Partitioned))
-                metadata.getAbsent shouldBe empty
-                metadata.getPresent shouldBe empty
+                metadata should equal (PartitionMetadata())
             }
         }
     }

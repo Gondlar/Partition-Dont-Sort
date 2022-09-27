@@ -4,7 +4,8 @@ import org.apache.spark.sql.DataFrame
 
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.WavesTable.implicits
-import de.unikl.cs.dbis.waves.partitions.{Bucket, PartitionTreePath, Present, Absent}
+import de.unikl.cs.dbis.waves.partitions.{Bucket, PartitionTreePath, SplitByPresencePath, Present, Absent}
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.util.{PathKey, Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, RowwiseCalculator}
 import de.unikl.cs.dbis.waves.DefaultSource
@@ -60,26 +61,25 @@ final case class RecursiveSplitter(
         assertPrepared
         assert(table.partitionTree.root.isInstanceOf[Bucket[String]])
 
-        partition(Seq.empty, Seq.empty, Seq.empty)
+        partition(PartitionMetadata(), Seq.empty)
     }
 
     private def partition(
-        knownAbsent : Seq[PathKey],
-        knownPresent: Seq[PathKey],
+        metadata : PartitionMetadata,
         path: Seq[PartitionTreePath]
     ) : Unit = {
         // Get Current Partition data
         val currentFolder = getFolder(table, path)
         val cutoff = (threshold*0.9)/currentFolder.diskSize(table.fs)
 
-        val best = heursitic.choose(calc, data(currentFolder), knownAbsent, knownPresent, cutoff)
+        val best = heursitic.choose(calc, data(currentFolder), metadata, cutoff)
         best match {
             case None => Logger.log("partition-abort", "metric shows no improvement")
             case Some(best) => {
                 Logger.log("partition-by", best.toString)
                 table.repartition(best.toString, path:_*)
-                recurse(path :+ Present, knownAbsent, knownPresent :+ best)
-                recurse(path :+ Absent, knownAbsent :+ best, knownPresent)
+                recurse(path, Present, metadata, best)
+                recurse(path, Absent, metadata, best)
             }
         }
     }
@@ -87,19 +87,25 @@ final case class RecursiveSplitter(
     /**
       * Recursively call [[partition]] if the partition is still large enough
       *
-      * @param path the path to the partition to recursively split
-      * @param knownAbsent the known absent paths in the recursive step
-      * @param knownPresent the known present paths in the recursive step
+      * @param oldPath the path to the partition we just split
+      * @param newStep the step we are taking towards one of its new children
+      * @param oldMetadata the metadata from partition we just split
+      * @param newKey the key we used to split the partition
       */
     private def recurse(
-        path: Seq[PartitionTreePath],
-        knownAbsent : Seq[PathKey],
-        knownPresent: Seq[PathKey]
+        oldPath: Seq[PartitionTreePath],
+        newStep: SplitByPresencePath,
+        oldMetadata: PartitionMetadata,
+        newKey: PathKey
     ) : Unit = {
+        val path = oldPath :+ newStep
         val size = getFolder(table, path).diskSize(table.fs)
-        Logger.log(s"partiton-${path.last.toString.toLowerCase}", size/threshold.toDouble)
-        if (size > threshold)
-            partition(knownAbsent, knownPresent, path)
+        Logger.log(s"partiton-${newKey.toString.toLowerCase}", size/threshold.toDouble)
+        if (size > threshold) {
+            val metadata = oldMetadata.clone
+            metadata.add(newStep, newKey)
+            partition(metadata, path)
+        }
     }
 
     private def getFolder(table: WavesTable, path: Iterable[PartitionTreePath]) : PartitionFolder

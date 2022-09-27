@@ -67,9 +67,9 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.root should equal (Bucket("fooSUFFIX"))
             }
             "contain no paths" in {
-                val (absent, present) = bucketTree.knownAbsentAndPresentIn(Seq.empty)
-                absent shouldBe empty
-                present shouldBe empty
+                val metadata = bucketTree.metadataFor(Seq.empty)
+                metadata.getAbsent shouldBe empty
+                metadata.getPresent shouldBe empty
             }
         }
         "it starts with a split" should {
@@ -113,9 +113,9 @@ class PartitionTreeSpec extends WavesSpec
                 splitTree.root should equal (SplitByPresence(split.key, Bucket("bar2SUFFIX"), Bucket("baz2SUFFIX")))
             }
             "know that path" in {
-                val (absent, present) = splitTree.knownAbsentAndPresentIn(Seq(Present))
-                absent shouldBe empty
-                present should contain theSameElementsAs (Seq(split.key))
+                val metadata = splitTree.metadataFor(Seq(Present))
+                metadata.getAbsent shouldBe empty
+                metadata.getPresent should contain theSameElementsAs (Seq(split.key))
             }
         }
         "it starts with a spill" should {
@@ -162,9 +162,9 @@ class PartitionTreeSpec extends WavesSpec
                 spillTree.root should equal (Spill(SplitByPresence(split.key, Bucket("bar2SUFFIX"), Bucket("baz2SUFFIX")), Bucket("foo3SUFFIX")))
             }
             "find no paths in the root" in {
-                val (absent, present) = spillTree.knownAbsentAndPresentIn(Seq(Partitioned))
-                absent shouldBe empty
-                present shouldBe empty
+                val metadata = spillTree.metadataFor(Seq(Partitioned))
+                metadata.getAbsent shouldBe empty
+                metadata.getPresent shouldBe empty
             }
         }
     }

@@ -9,25 +9,20 @@ import TreeNode.AnyNode
   *
   * @param path the path
   */
-final class KnownKeysForPathVisitor[Payload](
+final class MetadataForPathVisitor[Payload](
     path : Iterable[PartitionTreePath]
 ) extends NavigatePathVisitor[Payload](path) {
-  private var absentBuilder = Seq.newBuilder[PathKey]
-  private var presentBuilder = Seq.newBuilder[PathKey]
+  private val metadata = PartitionMetadata()
 
-  absentBuilder.sizeHint(path.size)
-  presentBuilder.sizeHint(path.size)
-
-  def absent = absentBuilder.result()
-  def present = presentBuilder.result()
+  def getMetadata = metadata
 
   override protected def navigateDown[Step <: PartitionTreePath, From <: TreeNode[Payload,Step]](
     from: From, to: AnyNode[Payload], step: Step
   ) = {
     from match {
       case f: SplitByPresence[Payload] => step match {
-        case Absent => absentBuilder += f.key
-        case Present => presentBuilder += f.key
+        case Absent => metadata.addAbsent(f.key)
+        case Present => metadata.addPresent(f.key)
       }
       case _ => {}
     }

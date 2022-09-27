@@ -118,10 +118,10 @@ class PartitionTree[Payload](
       * @param path the path
       * @return a tuple with lists of the absent and present paths
       */
-    def knownAbsentAndPresentIn(path : Iterable[PartitionTreePath]) = {
-        val visitor = new KnownKeysForPathVisitor[Payload](path)
+    def metadataFor(path : Iterable[PartitionTreePath]) = {
+        val visitor = new MetadataForPathVisitor[Payload](path)
         root.accept(visitor)
-        (visitor.absent, visitor.present)
+        visitor.getMetadata
     }
 
     /**

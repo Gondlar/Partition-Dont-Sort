@@ -9,8 +9,8 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.WavesTable.implicits
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.partitions.SplitByPresence
-import de.unikl.cs.dbis.waves.partitions.Bucket
+import de.unikl.cs.dbis.waves.partitions.{SplitByPresence,Bucket}
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
 
 class RecursiveSplitterSpec extends WavesSpec
@@ -114,11 +114,10 @@ case class MockHeuristic() extends AbstractHeuristic {
   override def choose(
     metric: PartitionMetricCalculator,
     df: DataFrame,
-    knownAbsent: Seq[PathKey],
-    knownPresent: Seq[PathKey],
+    metadata: PartitionMetadata,
     thresh : Double
     ): Option[PathKey]
       = Seq(PathKey("b"), PathKey("a"), PathKey("b.c"))
-            .filter(filterKnownPaths(knownAbsent, knownPresent, _))
+            .filter(!metadata.isKnown(_))
             .headOption
 }

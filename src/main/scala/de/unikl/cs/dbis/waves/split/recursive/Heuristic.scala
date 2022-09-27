@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import org.apache.spark.sql.DataFrame
 
 trait Heuristic {
@@ -10,10 +11,10 @@ trait Heuristic {
     *
     * @param metric the calculator used to retrieve ColumnMetrics
     * @param data the data to analyze
-    * @param knownAbsent paths known to be absent, i.e., a path is allowable if
-    *                    it does not contain any of these paths as a prefix
-    * @param knownPresent paths known to be present, i.e., a path is allowable if
-    *                     it is not equal to one of these paths
+    * @param metadata the metadata available for the current split.
+    *                 A path is allowable if it does not contain any of the
+    *                 known absent paths as a prefix and is not a prefix of a
+    *                 known present path
     * @param thresh threshold for path presence and absence, i.e., a path is allowable
     *               if it is present in at least thresh percent of documents and absent in
     *               at least thresh percent of documents 
@@ -22,8 +23,7 @@ trait Heuristic {
   def choose(
     metric: PartitionMetricCalculator,
     df: DataFrame,
-    knownAbsent: Seq[PathKey],
-    knownPresent: Seq[PathKey],
+    metadata: PartitionMetadata,
     thresh : Double
   ): Option[PathKey]
 }
@@ -45,11 +45,10 @@ abstract class AbstractHeuristic extends Heuristic {
   override def choose(
     metric: PartitionMetricCalculator,
     df: DataFrame,
-    knownAbsent: Seq[PathKey],
-    knownPresent: Seq[PathKey],
+    metadata: PartitionMetadata,
     thresh : Double
   ): Option[PathKey] = {
-    val paths = allowablePaths(metric, df, knownAbsent, knownPresent, thresh)
+    val paths = allowablePaths(metric, df, metadata, thresh)
     if (paths.isEmpty) None else {
       Some(paths.maxBy(heuristic)._1)
     }
@@ -60,10 +59,10 @@ abstract class AbstractHeuristic extends Heuristic {
     *
     * @param metric the calculator used to retrieve ColumnMetrics
     * @param data the data to analyze
-    * @param knownAbsent paths known to be absent, i.e., a path is allowable if
-    *                    it does not contain any of these paths as a prefix
-    * @param knownPresent paths known to be present, i.e., a path is allowable if
-    *                     it is not equal to one of these paths
+    * @param metadata the metadata available for the current split.
+    *                 A path is allowable if it does not contain any of the
+    *                 known absent paths as a prefix and is not a prefix of a
+    *                 known present path
     * @param thresh threshold for path presence and absence, i.e., a path is allowable
     *               if it is present in at least thresh percent of documents and absent in
     *               at least thresh percent of documents 
@@ -72,8 +71,7 @@ abstract class AbstractHeuristic extends Heuristic {
   protected def allowablePaths(
     metric: PartitionMetricCalculator,
     df: DataFrame,
-    knownAbsent: Seq[PathKey],
-    knownPresent: Seq[PathKey],
+    metadata: PartitionMetadata,
     thresh : Double
   ): Iterator[ColumnMetric] = {
     val (size, presentCount, switchCount) = metric.calc(df)
@@ -84,22 +82,10 @@ abstract class AbstractHeuristic extends Heuristic {
           .zip(presentCount.values.iterator)
           .zip(switchCount.values.iterator)
           .filter({ case ((path,present),_) =>
-            present < cutoff && filterKnownPaths(knownAbsent, knownPresent, path)
+            present < cutoff && !metadata.isKnown(path)
           })
           .map({ case ((path, present), switch) => (path, present, switch)})
   }
-
-  /**
-    * Check whether we already know that path is present or absent. 
-    *
-    * @param knownAbsent a collection of paths known to be absent
-    * @param knownPresent a collection of paths known to be present
-    * @param path the path to check
-    * @return true iff we do now yet know whether path is present or absent,
-    *         otherwise false.
-    */
-  protected def filterKnownPaths(knownAbsent: Seq[PathKey], knownPresent: Seq[PathKey], path: PathKey)
-    = knownAbsent.forall(key => !(key isPrefixOf path)) && knownPresent.forall(key => !(key == path))
 }
 
 /**

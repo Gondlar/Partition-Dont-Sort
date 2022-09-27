@@ -40,9 +40,9 @@ class HeuristicSplitter(
       val (count, pathToNext) = queue.dequeue()
       Logger.log("evenSplitter-start-partition", pathToNext)
       val next = partitions.find(pathToNext).get.asInstanceOf[Bucket[DataFrame]]
-      val (absent, present) = partitions.knownAbsentAndPresentIn(pathToNext)
+      val metadata = partitions.metadataFor(pathToNext)
       val nextData = next.data
-      val nextSplit = heuristic.choose(calc, nextData, absent, present, threshold.toDouble/count)
+      val nextSplit = heuristic.choose(calc, nextData, metadata, threshold.toDouble/count)
       Logger.log("evenSplitter-choseSplit", nextSplit)
       nextSplit match {
         case None => Logger.log("evenSplitter-noGoodSplitFound")

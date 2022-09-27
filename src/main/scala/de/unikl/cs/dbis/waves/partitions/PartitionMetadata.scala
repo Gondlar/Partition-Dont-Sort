@@ -100,6 +100,12 @@ class PartitionMetadata(
     * @return the copy
     */
   override def clone = new PartitionMetadata(present, absent)
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other: PartitionMetadata
+      => other.absent == absent && other.present == present
+    case _ => false
+  }
 }
 
 object PartitionMetadata {

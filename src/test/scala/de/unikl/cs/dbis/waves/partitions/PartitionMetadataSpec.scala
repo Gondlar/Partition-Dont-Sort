@@ -87,6 +87,18 @@ class PartitionMetadataSpec extends WavesSpec
       myMetadata.getAbsent should equal (originalAbsent)
       myMetadata.getPresent should equal (originalPresent)
     }
+    "equal itself" in {
+      metadata() should equal (metadata())
+    }
+    "not equal a different Metadata objects" in {
+      val myMetadata = metadata()
+      myMetadata shouldNot equal (PartitionMetadata(Seq.empty, Seq(unrelated)))
+      myMetadata shouldNot equal (PartitionMetadata(Seq(unrelated), Seq.empty))
+    }
+    "not equal different objects" in {
+      // yay for coverage
+      metadata() should not equal (None)
+    }
   }
 
   "The PartitionMetadata" when {

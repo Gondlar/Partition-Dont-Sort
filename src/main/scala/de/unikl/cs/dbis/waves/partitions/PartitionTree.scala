@@ -110,6 +110,13 @@ class PartitionTree[Payload](
       = root(new MetadataForPathVisitor[Payload](path))
 
     /**
+      * Find the metadata for all Buckets in the tree
+      *
+      * @return the metadata as a sequence in the same order as getBuckets
+      */
+    def metadata() = root(new CollectBucketMetadataVisitor[Payload]())
+
+    /**
       * Replace one ocurrence of a subtree with a different subtree.
       * The subtree is matched using object identity, i.e., you need a
       * reference into the tree.

@@ -112,6 +112,10 @@ class PartitionTreeSpec extends WavesSpec
                 val metadata = bucketTree.metadataFor(Seq.empty)
                 metadata should equal (PartitionMetadata())
             }
+            "that root should have empty metadata" in {
+              val metadata = bucketTree.metadata()
+              metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata())
+            }
         }
         "it starts with a split" should {
             "be unchanged by JSON conversion" in {
@@ -160,6 +164,10 @@ class PartitionTreeSpec extends WavesSpec
             "know that path" in {
                 val metadata = splitTree.metadataFor(Seq(Present))
                 metadata should equal (PartitionMetadata(Seq(split.key), Seq.empty))
+            }
+            "its childrens metadata should contain the split" in {
+              val metadata = splitTree.metadata()
+              metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata(Seq.empty, Seq(split.key)), PartitionMetadata(Seq(split.key), Seq.empty))
             }
         }
         "it starts with a spill" should {
@@ -212,6 +220,10 @@ class PartitionTreeSpec extends WavesSpec
             "find no paths in the root" in {
                 val metadata = spillTree.metadataFor(Seq(Partitioned))
                 metadata should equal (PartitionMetadata())
+            }
+            "its childrens metadata should contain the split" in {
+              val metadata = spillTree.metadata()
+              metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata(), PartitionMetadata(Seq.empty, Seq(split.key)), PartitionMetadata(Seq(split.key), Seq.empty))
             }
         }
     }    

@@ -24,7 +24,6 @@ class PresentMetricSpec extends WavesSpec
         "work if there are no optional objects" in {
             Given("A row with no optional objects")
             val metric = PresentMetric(makeEntry)
-            println(metric.subject)
             val counter = ObjectCounter(schemaNonoptional)
 
             Then("nothing has changed")

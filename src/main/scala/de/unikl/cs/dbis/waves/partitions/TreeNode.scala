@@ -22,7 +22,7 @@ import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
 /**
   * A TreeNode is any node in the PartitionTree
   */
-sealed abstract class TreeNode[Payload, Step <: PartitionTreePath] {
+sealed abstract class TreeNode[+Payload, Step <: PartitionTreePath] {
     def accept(visitor: PartitionTreeVisitor[Payload]) : Unit
     
     def apply(step: Step): AnyNode[Payload]
@@ -36,7 +36,7 @@ sealed abstract class TreeNode[Payload, Step <: PartitionTreePath] {
 
 object  TreeNode {
   val KIND_KEY = "kind"
-  type AnyNode[Payload] = TreeNode[Payload, _ <: PartitionTreePath]
+  type AnyNode[+Payload] = TreeNode[Payload, _ <: PartitionTreePath]
 }
 
 /**
@@ -46,7 +46,7 @@ object  TreeNode {
   *
   * @param name the unique name of the corresponding folder
   */
-case class Bucket[Payload](data: Payload) extends TreeNode[Payload, BucketPath] {
+case class Bucket[+Payload](data: Payload) extends TreeNode[Payload, BucketPath] {
   
   override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
   
@@ -78,7 +78,7 @@ object Bucket {
   * @param partitioned The remainder of the PartitionTree
   * @param rest A Bucket for all nodes that do not conform to the further partition schema
   */
-case class Spill[Payload](partitioned: AnyNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload, SpillPath] {
+case class Spill[+Payload](partitioned: AnyNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload, SpillPath] {
   override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 
   override def apply(step: SpillPath) = step match {
@@ -104,7 +104,7 @@ object Spill {
   * @param presentKey the subtree containing documents where the key is present
   * @param absentKey the subtree containing documents where the key is absent
   */
-case class SplitByPresence[Payload](
+case class SplitByPresence[+Payload](
   key: PathKey, presentKey: AnyNode[Payload], absentKey: AnyNode[Payload]
 ) extends TreeNode[Payload, SplitByPresencePath] {
     override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)

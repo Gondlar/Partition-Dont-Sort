@@ -14,44 +14,44 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
             "find that bucket without filters" in {
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq.empty)
                 bucket.accept(visitor)
-                visitor.iter.toStream should equal (Seq(bucket))
+                visitor.result should equal (Seq(bucket))
 
                 And("find the same buckets as a CollectBucketsVisitor")
                 val visitor2 = new CollectBucketsVisitor[String]()
                 bucket.accept(visitor2)
-                visitor.iter.toStream should contain theSameElementsAs (visitor2.iter.toStream)
+                visitor.result should contain theSameElementsAs (visitor2.result)
             }
             "find that bucket with filters" in {
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("b.d")))
                 bucket.accept(visitor)
-                visitor.iter.toStream should equal (Seq(bucket))
+                visitor.result should equal (Seq(bucket))
             }
             "find that bucket with unrelated filters" in {
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("bar.foo")))
                 bucket.accept(visitor)
-                visitor.iter.toStream should equal (Seq(bucket))
+                visitor.result should equal (Seq(bucket))
             }
         }
         "visiting a split" should {
             "find the split's children without filters" in {
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq.empty)
                 split.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
+                visitor.result should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
 
                 And("find the same buckets as a CollectBucketsVisitor")
                 val visitor2 = new CollectBucketsVisitor[String]()
                 split.accept(visitor2)
-                visitor.iter.toStream should contain theSameElementsAs (visitor2.iter.toStream)
+                visitor.result should contain theSameElementsAs (visitor2.result)
             }
             "find the split's child with filters" in {
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("b.d")))
                 split.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (Seq(split.absentKey))
+                visitor.result should contain theSameElementsAs (Seq(split.absentKey))
             }
             "find the split's children with unrelated filters" in {
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("bar.foo")))
                 split.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
+                visitor.result should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
             }
         }
         "visiting a spill" should {
@@ -62,12 +62,12 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                                   )
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq.empty)
                 spill.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (leafs)
+                visitor.result should contain theSameElementsAs (leafs)
 
                 And("find the same buckets as a CollectBucketsVisitor")
                 val visitor2 = new CollectBucketsVisitor[String]()
                 spill.accept(visitor2)
-                visitor.iter.toStream should contain theSameElementsAs (visitor2.iter.toStream)
+                visitor.result should contain theSameElementsAs (visitor2.result)
             }
             "find the spill's child with filters" in {
                 val leafs = Seq( spill.rest
@@ -75,7 +75,7 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                                   )
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("b.d")))
                 spill.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (leafs)
+                visitor.result should contain theSameElementsAs (leafs)
             }
             "find the split's children with unrelated filters" in {
                 val leafs = Seq( spill.rest
@@ -84,7 +84,7 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                                   )
                 val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("bar.foo")))
                 spill.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (leafs)
+                visitor.result should contain theSameElementsAs (leafs)
             }
         }
     }

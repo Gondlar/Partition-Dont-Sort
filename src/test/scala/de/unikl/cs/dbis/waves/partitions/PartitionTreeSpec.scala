@@ -5,6 +5,8 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
 import de.unikl.cs.dbis.waves.partitions.visitors.ImpossibleReplacementException
+import de.unikl.cs.dbis.waves.partitions.visitors.PartitionTreeVisitor
+import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
 
 class PartitionTreeSpec extends WavesSpec
     with PartitionTreeFixture {
@@ -14,6 +16,16 @@ class PartitionTreeSpec extends WavesSpec
             "return the correct folder" in {
                 bucket.folder("bar") should equal (new PartitionFolder("bar", "foo", false))
             }
+            "accept a visitor" in {
+                val visitor = MockVisitor(5)
+                bucket.accept(visitor)
+                visitor.visitBucketCalled shouldBe (true)
+                visitor.visitSpillCalled shouldBe (false)
+                visitor.visitSplitCalled shouldBe (false)
+            }
+            "accept a SingleResultVisitor" in {
+                bucket(MockVisitor(4)) should equal (4)
+            }
         }
         "it is a SplitByPresence" should {
             "be createable from a node's string representation" in {
@@ -21,6 +33,28 @@ class PartitionTreeSpec extends WavesSpec
             }
             "be creatable from leaf node names" in {
                 SplitByPresence("foo.bar", "abc", "cde") should equal (SplitByPresence(PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
+            }
+            "accept a visitor" in {
+                val visitor = MockVisitor(5)
+                split.accept(visitor)
+                visitor.visitBucketCalled shouldBe (false)
+                visitor.visitSpillCalled shouldBe (false)
+                visitor.visitSplitCalled shouldBe (true)
+            }
+            "accept a SingleResultVisitor" in {
+                split(MockVisitor(4)) should equal (4)
+            }
+        }
+        "it is a Spill" should {
+            "accept a visitor" in {
+                val visitor = MockVisitor(5)
+                spill.accept(visitor)
+                visitor.visitBucketCalled shouldBe (false)
+                visitor.visitSpillCalled shouldBe (true)
+                visitor.visitSplitCalled shouldBe (false)
+            }
+            "accept a SingleResultVisitor" in {
+                spill(MockVisitor(4)) should equal (4)
             }
         }
     }
@@ -165,6 +199,18 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata())
             }
         }
-    }
-    
+    }    
+}
+
+case class MockVisitor(override val result: Int) extends SingleResultVisitor[String,Int] {
+  var visitBucketCalled = false;
+  var visitSplitCalled = false;
+  var visitSpillCalled = false;
+  def anyCalled = visitBucketCalled || visitSpillCalled || visitSplitCalled
+
+  override def visit(bucket: Bucket[String]): Unit = visitBucketCalled = true
+  override def visit(node: SplitByPresence[String]): Unit = visitSplitCalled = true
+  override def visit(root: Spill[String]): Unit = visitSpillCalled = true
+
+
 }

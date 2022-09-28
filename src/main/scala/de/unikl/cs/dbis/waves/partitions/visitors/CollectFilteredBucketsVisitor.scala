@@ -32,8 +32,10 @@ import de.unikl.cs.dbis.waves.util.{PathKey,Ternary,TernarySet}
   *
   * @param filters the predicates
   */
-final class CollectFilteredBucketsVisitor[Payload](val filters: Iterable[Filter]) extends PartitionTreeVisitor[Payload] {
-    private val buckets = ArrayBuffer.empty[Bucket[Payload]]
+final class CollectFilteredBucketsVisitor[Payload](
+  val filters: Iterable[Filter]
+) extends SingleResultVisitor[Payload,Seq[Bucket[Payload]]] {
+    private val buckets = Seq.newBuilder[Bucket[Payload]]
 
     override def visit(bucket: Bucket[Payload]) : Unit = buckets += bucket
 
@@ -49,7 +51,7 @@ final class CollectFilteredBucketsVisitor[Payload](val filters: Iterable[Filter]
         spill.partitioned.accept(this)
     }
 
-    def iter = buckets.iterator
+    override def result = buckets.result
 }
 
 object CollectFilteredBucketsVisitor {

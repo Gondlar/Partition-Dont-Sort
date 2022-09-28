@@ -11,10 +11,10 @@ import TreeNode.AnyNode
   */
 final class FindByPathVisitor[Payload](
     path : Iterable[PartitionTreePath]
-) extends NavigatePathVisitor[Payload](path) {
+) extends NavigatePathVisitor[Payload](path) with SingleResultVisitor[Payload,Option[AnyNode[Payload]]] {
     private var res : Option[AnyNode[Payload]] = None
 
-    def result = res
+    override def result = res
 
     override protected def endOfPath(node: AnyNode[Payload]): Unit
       = res = Some(node)

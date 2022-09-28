@@ -13,10 +13,10 @@ import TreeNode.AnyNode
   */
 final class MetadataForPathVisitor[Payload](
     path : Iterable[PartitionTreePath]
-) extends NavigatePathVisitor[Payload](path) {
+) extends NavigatePathVisitor[Payload](path) with SingleResultVisitor[Payload,PartitionMetadata] {
   private val metadata = PartitionMetadata()
 
-  def getMetadata = metadata
+  override def result = metadata
 
   override protected def navigateDown[Step <: PartitionTreePath, From <: TreeNode[Payload,Step]](
     from: From, to: AnyNode[Payload], step: Step

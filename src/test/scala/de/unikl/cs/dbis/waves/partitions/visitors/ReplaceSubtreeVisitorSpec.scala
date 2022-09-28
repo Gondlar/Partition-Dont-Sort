@@ -14,13 +14,13 @@ class ReplaceSubtreeVisitorSpec extends WavesSpec
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(bucket, replacement)
                 bucket.accept(visitor)
-                visitor.getResult should equal (replacement)
+                visitor.result should equal (replacement)
             }
             "produce an error if no replacement happened" in {
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(Bucket("foo"), replacement)
                 bucket.accept(visitor)
-                an [ImpossibleReplacementException] should be thrownBy visitor.getResult
+                an [ImpossibleReplacementException] should be thrownBy visitor.result
             }
         }
         "visiting a split" should {
@@ -28,19 +28,19 @@ class ReplaceSubtreeVisitorSpec extends WavesSpec
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(split, replacement)
                 split.accept(visitor)
-                visitor.getResult should equal (replacement)
+                visitor.result should equal (replacement)
             }
             "be able to replace that splits child" in {
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(split.absentKey, replacement)
                 split.accept(visitor)
-                visitor.getResult should equal (SplitByPresence(split.key, split.presentKey, replacement))
+                visitor.result should equal (SplitByPresence(split.key, split.presentKey, replacement))
             }
             "produce an error if no replacement happened" in {
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(Bucket("foo"), replacement)
                 split.accept(visitor)
-                an [ImpossibleReplacementException] should be thrownBy visitor.getResult
+                an [ImpossibleReplacementException] should be thrownBy visitor.result
             }
         }
         "visiting a spill" should {
@@ -48,13 +48,13 @@ class ReplaceSubtreeVisitorSpec extends WavesSpec
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(spill, replacement)
                 spill.accept(visitor)
-                visitor.getResult should equal (replacement)
+                visitor.result should equal (replacement)
             }
             "be able to replace the spill's bucket with a bucket" in {
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(spill.rest, replacement)
                 spill.accept(visitor)
-                visitor.getResult should equal (Spill(spill.partitioned,replacement))
+                visitor.result should equal (Spill(spill.partitioned,replacement))
             }
             "be unable to replace the spill's bucket with a non-bucket" in {
                 val replacement = SplitByPresence("foo.bar", "foo", "bar")
@@ -65,13 +65,13 @@ class ReplaceSubtreeVisitorSpec extends WavesSpec
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(spill.partitioned, replacement)
                 spill.accept(visitor)
-                visitor.getResult should equal (Spill(replacement, spill.rest))
+                visitor.result should equal (Spill(replacement, spill.rest))
             }
             "produce an error if no replacement happened" in {
                 val replacement = Bucket("replaced")
                 val visitor = new ReplaceSubtreeVisitor(Bucket("foo"), replacement)
                 spill.accept(visitor)
-                an [ImpossibleReplacementException] should be thrownBy visitor.getResult
+                an [ImpossibleReplacementException] should be thrownBy visitor.result
             }
         }
     }

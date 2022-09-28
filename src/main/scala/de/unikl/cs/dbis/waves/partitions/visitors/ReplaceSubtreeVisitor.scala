@@ -18,13 +18,13 @@ class ImpossibleReplacementException(
   * @param replace
   */
 final class ReplaceSubtreeVisitor[Payload](val needle: AnyNode[Payload], val replace: AnyNode[Payload])
-extends PartitionTreeVisitor[Payload] {
+extends SingleResultVisitor[Payload,AnyNode[Payload]] {
     private var replaced = false
-    private var result : AnyNode[Payload] = null
+    private var theResult : AnyNode[Payload] = null
 
     def found() = {
         replaced = true
-        result = replace
+        theResult = replace
     }
 
     override def visit(bucket: Bucket[Payload]) : Unit = {
@@ -35,10 +35,10 @@ extends PartitionTreeVisitor[Payload] {
         if (node eq needle) found() else {
             node.presentKey.accept(this)
             if (replaced) {
-                result = node.copy(presentKey = result)
+                theResult = node.copy(presentKey = theResult)
             } else {
                 node.absentKey.accept(this)
-                if (replaced) result = node.copy(absentKey = result)
+                if (replaced) theResult = node.copy(absentKey = theResult)
             }
         }
     }
@@ -47,20 +47,20 @@ extends PartitionTreeVisitor[Payload] {
         if (spill eq needle) found() else {
             spill.rest.accept(this)
             if (replaced) {
-                result match {
-                    case bucket@Bucket(_) => result = spill.copy(rest = bucket)
+                theResult match {
+                    case bucket@Bucket(_) => theResult = spill.copy(rest = bucket)
                     case _ => throw new ImpossibleReplacementException("The spill partition must be replaced with a Bucket")
                 }
             } else {
                 spill.partitioned.accept(this)
-                if (replaced) result = spill.copy(partitioned = result)
+                if (replaced) theResult = spill.copy(partitioned = theResult)
             }
         }
     }
 
-    def getResult = {
+    override def result = {
         if (!replaced) throw new ImpossibleReplacementException("Needle was not in haystack")
-        assert(result != null)
-        result
+        assert(theResult != null)
+        theResult
     }
 }

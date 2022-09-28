@@ -17,6 +17,7 @@ import org.apache.hadoop.shaded.com.google.gson.{
 import java.lang.reflect.Type
 
 import TreeNode.AnyNode
+import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
 
 /**
   * A TreeNode is any node in the PartitionTree
@@ -26,6 +27,11 @@ sealed abstract class TreeNode[Payload, Step <: PartitionTreePath] {
     
     def apply(step: Step): AnyNode[Payload]
     val navigate: PartialFunction[PartitionTreePath, AnyNode[Payload]]
+
+    def apply[T](visitor: SingleResultVisitor[Payload,T]) = {
+      accept(visitor)
+      visitor.result
+    }
 }
 
 object  TreeNode {

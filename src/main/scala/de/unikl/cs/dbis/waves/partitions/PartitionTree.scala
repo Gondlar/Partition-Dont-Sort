@@ -68,11 +68,7 @@ class PartitionTree[Payload](
       *
       * @return an iterator of Buckets
       */
-    def getBuckets() = {
-        val visitor = new CollectBucketsVisitor[Payload]()
-        root.accept(visitor)
-        visitor.iter
-    }
+    def getBuckets() = root(new CollectBucketsVisitor[Payload]())
 
     /**
       * Find all Buckets with contents which can satisfy the given filters
@@ -81,11 +77,8 @@ class PartitionTree[Payload](
       * @param filters A collection of filters
       * @return the Buckets
       */
-    def getBuckets(filters: Iterable[Filter]) = {
-        val visitor = new CollectFilteredBucketsVisitor[Payload](filters)
-        root.accept(visitor)
-        visitor.iter
-    }
+    def getBuckets(filters: Iterable[Filter])
+      = root(new CollectFilteredBucketsVisitor[Payload](filters))
 
     /**
       * Find the Bucket a Row belongs to
@@ -93,11 +86,8 @@ class PartitionTree[Payload](
       * @param row the row
       * @return the bucket
       */
-    def getBucket(row : InternalRow) = {
-        val visitor = new FindBucketVisitor[Payload](row, globalSchema)
-        root.accept(visitor)
-        visitor.result
-    }
+    def getBucket(row : InternalRow)
+      = root(new FindBucketVisitor[Payload](row, globalSchema))
 
     /**
       * Get a node represented by navigating along a path.
@@ -106,11 +96,8 @@ class PartitionTree[Payload](
       * @param path the path
       * @return the node at the end of the path or None of no such node exists
       */
-    def find(path : Iterable[PartitionTreePath]) = {
-        val visitor = new FindByPathVisitor[Payload](path)
-        root.accept(visitor)
-        visitor.result
-    }
+    def find(path : Iterable[PartitionTreePath])
+      = root(new FindByPathVisitor[Payload](path))
 
     /**
       * Get all paths known to be absent or present in the subtree rooted in
@@ -119,11 +106,8 @@ class PartitionTree[Payload](
       * @param path the path
       * @return a tuple with lists of the absent and present paths
       */
-    def metadataFor(path : Iterable[PartitionTreePath]) = {
-        val visitor = new MetadataForPathVisitor[Payload](path)
-        root.accept(visitor)
-        visitor.getMetadata
-    }
+    def metadataFor(path : Iterable[PartitionTreePath])
+      = root(new MetadataForPathVisitor[Payload](path))
 
     /**
       * Replace one ocurrence of a subtree with a different subtree.
@@ -133,11 +117,8 @@ class PartitionTree[Payload](
       * @param needle the subtree to be replaced
       * @param replacement the new subtree to be inserted
       */
-    def replace(needle: AnyNode[Payload], replacement: AnyNode[Payload]) = {
-        val visitor = new ReplaceSubtreeVisitor(needle, replacement)
-        root.accept(visitor)
-        root = visitor.getResult
-    }
+    def replace(needle: AnyNode[Payload], replacement: AnyNode[Payload])
+      = root = root(new ReplaceSubtreeVisitor(needle, replacement))
 
     /**
       * Apply func to all buckets and return the resulting PartitionTree
@@ -145,11 +126,8 @@ class PartitionTree[Payload](
       * @param func the function
       * @return the new partition tree
       */
-    def map[To](func: (Payload, Int) => To) : PartitionTree[To] = {
-        val visitor = new MapVisitor(func)
-        root.accept(visitor)
-        new PartitionTree(globalSchema, visitor.getResult)
-    }
+    def map[To](func: (Payload, Int) => To) : PartitionTree[To]
+      = new PartitionTree(globalSchema, root(new MapVisitor(func)))
 
     /**
       * Apply func to all buckets. As opposed to [[map]], this function modifies
@@ -158,11 +136,8 @@ class PartitionTree[Payload](
       *
       * @param func the function
       */
-    def modify(func: (Payload, Int) => Payload) : Unit = {
-        val visitor = new MapVisitor(func)
-        root.accept(visitor)
-        root = visitor.getResult
-    }
+    def modify(func: (Payload, Int) => Payload) : Unit
+      = root = root(new MapVisitor(func))
 
     /**
       * Two PartitionTrees re equal if they have the same schema and the same tree structure

@@ -13,14 +13,14 @@ class CollectBucketsVisitorSpec extends WavesSpec
             "find that bucket" in {
                 val visitor = new CollectBucketsVisitor[String]()
                 bucket.accept(visitor)
-                visitor.iter.toStream should equal (Seq(bucket))
+                visitor.result should equal (Seq(bucket))
             }
         }
         "visiting a split" should {
             "find the split's children" in {
                 val visitor = new CollectBucketsVisitor[String]()
                 split.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
+                visitor.result should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
             }
         }
         "visiting a spill" should {
@@ -31,7 +31,7 @@ class CollectBucketsVisitorSpec extends WavesSpec
                                )
                 val visitor = new CollectBucketsVisitor[String]()
                 spill.accept(visitor)
-                visitor.iter.toStream should contain theSameElementsAs (leafs)
+                visitor.result should contain theSameElementsAs (leafs)
             }
         }
     }

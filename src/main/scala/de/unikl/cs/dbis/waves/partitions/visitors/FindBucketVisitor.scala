@@ -8,10 +8,10 @@ import org.apache.spark.sql.types.StructType
 final class FindBucketVisitor[Payload](
     row : InternalRow,
     schema : StructType
-) extends PartitionTreeVisitor[Payload] {
+) extends SingleResultVisitor[Payload,Bucket[Payload]] {
     
     private var res : Bucket[Payload] = null
-    def result = res
+    override def result = res
 
     override def visit(bucket: Bucket[Payload]): Unit
         = res = bucket

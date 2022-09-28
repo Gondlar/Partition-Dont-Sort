@@ -12,21 +12,21 @@ class MetadataForPathVisitorSpec extends WavesSpec
     "find present keys" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Present))
       split.accept(visitor)
-      val metadata = visitor.getMetadata
+      val metadata = visitor.result
       metadata.getPresent should contain theSameElementsAs (Seq(split.key))
       metadata.getAbsent shouldBe empty
     }
     "find absent keys" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Absent))
       split.accept(visitor)
-      val metadata = visitor.getMetadata
+      val metadata = visitor.result
       metadata.getAbsent should contain theSameElementsAs (Seq(split.key))
       metadata.getPresent shouldBe empty
     }
     "find nothing in empty paths" in {
       val visitor = new MetadataForPathVisitor[String](Seq.empty)
       split.accept(visitor)
-      val metadata = visitor.getMetadata
+      val metadata = visitor.result
       metadata.getAbsent shouldBe empty
       metadata.getPresent shouldBe empty
     }
@@ -37,7 +37,7 @@ class MetadataForPathVisitorSpec extends WavesSpec
     "handle non-split nodes" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Partitioned, Present))
       spill.accept(visitor)
-      val metadata = visitor.getMetadata
+      val metadata = visitor.result
       metadata.getPresent should contain theSameElementsAs (Seq(split.key))
       metadata.getAbsent shouldBe empty
     }

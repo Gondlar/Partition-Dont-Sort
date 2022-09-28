@@ -6,10 +6,9 @@ import scala.collection.mutable.ArrayBuffer
 
 /**
   * Visitor to find all Buckets in a PartitionTree
-  *
   */
-final class CollectBucketsVisitor[Payload]() extends PartitionTreeVisitor[Payload] {
-    private val buckets = ArrayBuffer.empty[Bucket[Payload]]
+final class CollectBucketsVisitor[Payload]() extends SingleResultVisitor[Payload,Seq[Bucket[Payload]]] {
+    private val buckets = Seq.newBuilder[Bucket[Payload]]
 
     override def visit(bucket: Bucket[Payload]) : Unit = buckets += bucket
 
@@ -23,5 +22,5 @@ final class CollectBucketsVisitor[Payload]() extends PartitionTreeVisitor[Payloa
         spill.partitioned.accept(this)
     }
 
-    def iter = buckets.iterator
+    override def result: Seq[Bucket[Payload]] = buckets.result
 }

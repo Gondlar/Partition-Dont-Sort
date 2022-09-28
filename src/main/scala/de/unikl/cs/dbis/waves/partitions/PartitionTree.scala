@@ -15,6 +15,7 @@ import java.lang.reflect.Type
 import org.apache.spark.sql.types.{StructType, DataType}
 import org.apache.spark.sql.sources.Filter
 
+import de.unikl.cs.dbis.waves.partitions.visitors._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import org.apache.spark.sql.catalyst.InternalRow
 

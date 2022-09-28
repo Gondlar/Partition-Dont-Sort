@@ -1,4 +1,6 @@
-package de.unikl.cs.dbis.waves.partitions
+package de.unikl.cs.dbis.waves.partitions.visitors
+
+import de.unikl.cs.dbis.waves.partitions._
 
 trait PartitionTreeVisitor[Payload] {
   def visit(bucket: Bucket[Payload]) : Unit

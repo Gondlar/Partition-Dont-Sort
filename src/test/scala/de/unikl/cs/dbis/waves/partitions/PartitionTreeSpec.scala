@@ -4,6 +4,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 
 import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
+import de.unikl.cs.dbis.waves.partitions.visitors.ImpossibleReplacementException
 
 class PartitionTreeSpec extends WavesSpec
     with PartitionTreeFixture {

@@ -1,4 +1,6 @@
-package de.unikl.cs.dbis.waves.partitions
+package de.unikl.cs.dbis.waves.partitions.visitors
+
+import de.unikl.cs.dbis.waves.partitions._
 
 import scala.collection.mutable.ArrayBuffer
 import TreeNode.AnyNode

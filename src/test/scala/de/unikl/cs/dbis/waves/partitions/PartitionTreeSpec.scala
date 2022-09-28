@@ -13,6 +13,9 @@ class PartitionTreeSpec extends WavesSpec
 
     "A TreeNode" when {
         "it is a Bucket" should {
+            "be createable by assigning a random name" in {
+                Bucket().data shouldNot equal ("")
+            }
             "return the correct folder" in {
                 bucket.folder("bar") should equal (new PartitionFolder("bar", "foo", false))
             }
@@ -211,6 +214,4 @@ case class MockVisitor(override val result: Int) extends SingleResultVisitor[Str
   override def visit(bucket: Bucket[String]): Unit = visitBucketCalled = true
   override def visit(node: SplitByPresence[String]): Unit = visitSplitCalled = true
   override def visit(root: Spill[String]): Unit = visitSpillCalled = true
-
-
 }

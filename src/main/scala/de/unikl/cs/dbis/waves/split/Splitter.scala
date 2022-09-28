@@ -39,7 +39,7 @@ abstract class Splitter[Context] {
       * throws an IllegalStateException if this splitter is not prepared
       */
     protected def assertPrepared
-      = if (!isPrepared) throw new IllegalStateException("Splitter was not prepated")
+      = if (!isPrepared) throw new IllegalStateException("Splitter was not prepared")
 
     /**
       * Automatically Partition the table

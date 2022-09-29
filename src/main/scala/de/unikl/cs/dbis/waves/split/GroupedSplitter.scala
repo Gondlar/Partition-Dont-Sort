@@ -7,6 +7,7 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.Grouper
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
 import scala.concurrent.duration.Duration
+import org.apache.hadoop.fs.Path
 
 /**
   * Implements splitting based off groups of strucuturally identical rows.
@@ -112,15 +113,16 @@ abstract class GroupedSplitter extends Splitter[Unit] {
     protected def writeMany(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder] = {
       val spark = rawData.sparkSession
 
+      val tempPath = new Path(path + PartitionFolder.TEMP_DIR)
       sortGrouper.matchAll(buckets, rawData)
                  .write
                  .partitionBy(sortGrouper.matchColumn)
-                 .parquet(path)
+                 .parquet(tempPath.toString())
 
       implicit val ec: ExecutionContext = ExecutionContext.global
       val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
         Future {
-          val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", false)
+          val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", true)
           val data = spark.read
                           .parquet(intermediaryFolder.filename)
                           .drop(sortGrouper.matchColumn.col)
@@ -129,7 +131,9 @@ abstract class GroupedSplitter extends Splitter[Unit] {
           finalFolder
         }
       }
-      Await.result(Future.sequence(futureFolders), Duration.Inf)
+      val result = Await.result(Future.sequence(futureFolders), Duration.Inf)
+      tempPath.getFileSystem(spark.sparkContext.hadoopConfiguration).delete(tempPath, true)
+      result
     }
 
     protected def data: DataFrame = data(())

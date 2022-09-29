@@ -64,7 +64,7 @@ class GroupedSplitterSpec extends WavesSpec
                 override protected def write(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder]
                     = { builtSet = buckets; Seq.empty }
 
-                override protected def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit = ()
+                override protected def writeMetadata(tree: PartitionTree[String]): Unit = ()
             }.prepare(df, tempDirectory.toString).partition()
             sortedSets.result should contain theSameElementsInOrderAs (frames)
             builtSet should have length (frames.length)
@@ -97,7 +97,7 @@ class GroupedSplitterSpec extends WavesSpec
               Seq.empty
             })
 
-            override protected def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit = ()
+            override protected def writeMetadata(tree: PartitionTree[String]): Unit = ()
           }
           splitter.prepare(df, tempDirectory.toString).partition()
         }
@@ -162,7 +162,7 @@ class GroupedSplitterSpec extends WavesSpec
           splitter.doWrite = true
 
           When("we write the partition tree")
-          splitter.writeMetadata(spillTree, spark)
+          splitter.writeMetadata(spillTree)
 
           Then("we can read the tree back from disk")
           val read = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
@@ -192,7 +192,7 @@ class GroupedSplitterSpec extends WavesSpec
         override protected def split(df: DataFrame): Seq[DataFrame] = ???
         override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = ???
 
-        override def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit
-          = if(doWrite) super.writeMetadata(tree, spark)
+        override def writeMetadata(tree: PartitionTree[String]): Unit
+          = if(doWrite) super.writeMetadata(tree)
     }
 }

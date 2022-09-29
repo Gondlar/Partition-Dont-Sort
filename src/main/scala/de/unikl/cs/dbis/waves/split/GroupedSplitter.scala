@@ -21,16 +21,20 @@ abstract class GroupedSplitter extends Splitter[Unit] {
 
     private var source: DataFrame = null
     private var path: String = null
+    private var hdfs: PartitionTreeHDFSInterface = null
 
     override def prepare(df: DataFrame, path: String) = {
       this.path = path
       source = df
+      hdfs = PartitionTreeHDFSInterface(df.sparkSession, path)
       this
     }
 
     def isPrepared: Boolean = path != null
     
     override def getPath = { assertPrepared; path }
+
+    protected def getHDFS = { assertPrepared; hdfs }
 
     override protected def load(context: Unit): DataFrame = source
 
@@ -78,8 +82,8 @@ abstract class GroupedSplitter extends Splitter[Unit] {
       * @param tree the partition tree to write
       * @param spark the spark session used to write it
       */
-    protected def writeMetadata(tree: PartitionTree[String], spark: SparkSession): Unit
-      = PartitionTreeHDFSInterface(spark, path).write(tree) 
+    protected def writeMetadata(tree: PartitionTree[String]): Unit
+      = getHDFS.write(tree) 
 
     override def partition(): Unit = {
         assertPrepared
@@ -92,7 +96,7 @@ abstract class GroupedSplitter extends Splitter[Unit] {
               sort(sortGrouper.from(splitGrouper, b, data))
           }
           val folders = write(sorted, data)
-          writeMetadata(buildTree(folders), data.sparkSession)
+          writeMetadata(buildTree(folders))
         } finally types.unpersist()
     }
 

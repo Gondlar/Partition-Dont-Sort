@@ -97,6 +97,10 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.replace(bucket, split)
                 bucketTree.root should equal (split)
             }
+            "be extendable by replacing by path" in {
+                bucketTree.replace(Seq.empty, split)
+                bucketTree.root should equal (split)
+            }
             "map correctly" in {
                 bucketTree.map({(payload, index) => index}) should equal (new PartitionTree(bucketTree.globalSchema, Bucket(0)))
             }
@@ -140,6 +144,10 @@ class PartitionTreeSpec extends WavesSpec
             }
             "be extendable by replacing" in {
                 splitTree.replace(split.absentKey, bucket)
+                splitTree.root should equal (SplitByPresence("b.d", "bar2", "foo"))
+            }
+            "be extendable by replacing by path" in {
+                splitTree.replace(Seq(Absent), bucket)
                 splitTree.root should equal (SplitByPresence("b.d", "bar2", "foo"))
             }
             "map correctly" in {
@@ -187,7 +195,11 @@ class PartitionTreeSpec extends WavesSpec
                 spillTree.replace(spill.partitioned, bucket)
                 spillTree.root should equal (Spill(Bucket("foo"), Bucket("foo3")))
             }
-            "fail to replave the spill partition with a split node" in {
+            "be extendable by replacing by path" in {
+                spillTree.replace(Seq(Partitioned), bucket)
+                spillTree.root should equal (Spill(Bucket("foo"), Bucket("foo3")))
+            }
+            "fail to replace the spill partition with a split node" in {
                 an [ImpossibleReplacementException] should be thrownBy spillTree.replace(spill.rest, split)
             }
             "map correctly" in {

@@ -121,6 +121,21 @@ class PartitionTree[Payload](
       = root = root(new ReplaceSubtreeVisitor(needle, replacement))
 
     /**
+      * Replace the subtree specified by the path with a different subtree.
+      *
+      * @param path the path to the subtree that should be replaced
+      * @param replacement the new subtree to be inserted
+      * @throws InvalidPathException if the path does not reference an existing
+      *                              node within this tree
+      * @throws ImpossibleReplacementException if the replacement would result
+      *                                        in an invalid tree, e.g., when
+      *                                        trying to replace a spill bucket
+      *                                        with a non-bucket
+      */
+    def replace(path: Seq[PartitionTreePath], replacement: AnyNode[Payload])
+      = root = root(new ReplaceByPathVisitor(path, replacement))
+
+    /**
       * Apply func to all buckets and return the resulting PartitionTree
       *
       * @param func the function

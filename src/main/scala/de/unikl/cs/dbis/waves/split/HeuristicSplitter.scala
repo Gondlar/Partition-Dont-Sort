@@ -52,7 +52,7 @@ class HeuristicSplitter(
           val absent = addPartition(nextData, pathIndex, pathToNext :+ Absent)
           assert(present.intersect(absent).count() == 0)
           val newSplit = SplitByPresence(path, Bucket(present), Bucket(absent))
-          partitions.replace(next, newSplit) //TODO: urgh... we have the path and still traverse the entire tree
+          partitions.replace(pathToNext, newSplit)
         }
       }
       Logger.log("evenSplitter-end-partition", pathToNext)

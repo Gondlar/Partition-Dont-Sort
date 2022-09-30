@@ -86,6 +86,30 @@ class PredefinedSplitterSpec extends WavesSpec
       compareFilteredDataframe(newDf, df, col("b.d").isNull)
       compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
     }
+    "merge an existing tree's partitions" in {
+      Given("a tree on disk")
+      val splitter = new PredefinedSplitter(split)
+      splitter.prepare(df, tempDirectory.toString()).partition()
+
+      When("we merge that tree")
+      val merger = new PredefinedSplitter(bucket)
+      merger.prepare(df,tempDirectory.toString()).partition()
+
+      Then("the written partition tree looks as defined")
+      val tree = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
+      tree should not equal (None)
+      tree.get should haveTheSameStructureAs (bucketTree)
+
+      And("We can read everything as a WavesTable")
+      val newDf = spark.read.waves(tempDirectory.toString())
+      newDf.collect() should contain theSameElementsAs (df.collect())
+
+      And("we recieve the correct data when selecting one attribute")
+      compareFilteredDataframe(newDf, df, col("a").isNull)
+      compareFilteredDataframe(newDf, df, col("b").isNotNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
+    }
   }
 
   def compareFilteredDataframe(lhs: DataFrame, rhs: DataFrame, col: Column)

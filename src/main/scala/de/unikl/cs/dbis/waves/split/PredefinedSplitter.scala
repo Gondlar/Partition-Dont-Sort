@@ -1,23 +1,14 @@
 package de.unikl.cs.dbis.waves.split
 
 import org.apache.spark.sql.DataFrame
-import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
+import org.apache.spark.sql.types.StructType
 
-import de.unikl.cs.dbis.waves.partitions.TreeNode
-import de.unikl.cs.dbis.waves.partitions.PartitionTreePath
+import de.unikl.cs.dbis.waves.partitions.{TreeNode,PartitionTree,PartitionTreePath,PartitionMetadata}
+import de.unikl.cs.dbis.waves.partitions.visitors.{CollectBucketMetadataVisitor,MapVisitor}
+import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
 import de.unikl.cs.dbis.waves.util.PartitionFolder
-import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
-import de.unikl.cs.dbis.waves.partitions.visitors.CollectBucketMetadataVisitor
-import de.unikl.cs.dbis.waves.partitions.visitors.CollectBucketsVisitor
-import org.apache.hadoop.fs.Path
-import de.unikl.cs.dbis.waves.partitions.Bucket
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
-import de.unikl.cs.dbis.waves.partitions.visitors.MapVisitor
-import de.unikl.cs.dbis.waves.partitions.visitors.ReplaceSubtreeVisitor
 
 import TreeNode.AnyNode
-import de.unikl.cs.dbis.waves.partitions.PartitionTree
-import org.apache.spark.sql.types.StructType
 
 /**
   * Implements a splitter which (re-)partitions the data according to the given

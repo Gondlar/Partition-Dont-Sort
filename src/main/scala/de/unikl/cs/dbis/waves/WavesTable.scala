@@ -12,6 +12,7 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.DataFrameWriter
 
 import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
@@ -223,5 +224,23 @@ object WavesTable {
         * @see [[getWavesTable]]
         */
       def isWavesTable: Boolean = getWavesTable.nonEmpty
+    }
+
+    implicit class writer(writer: DataFrameWriter[Row]) {
+
+      /**
+        * Write the dataframe as a Waves table.
+        * 
+        * Do not use `.format(...).save(path)` manually, it will produce wrong
+        * results
+        *
+        * @param path the path to write to
+        * @param schema the DataFrame's schema. Yes we need it again, don't ask.
+        */
+      def waves(path: String, schema: StructType) = {
+        writer.format("de.unikl.cs.dbis.waves")
+              .option(PARTITION_TREE_OPTION, new PartitionTree(schema).toJson)
+              .save(path)
+      }
     }
 }

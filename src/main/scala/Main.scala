@@ -10,6 +10,8 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.partitions.Absent
 import de.unikl.cs.dbis.waves.split.HeuristicSplitter
 
+import WavesTable._
+
 object Main extends App {
   val conf = new SparkConf().setAppName("waves-test")
   val spark = SparkSession.builder().config(conf).master("local").getOrCreate()
@@ -24,7 +26,7 @@ object Main extends App {
       throw x
     }
   }
-  // df.write.mode(SaveMode.Overwrite).format("de.unikl.cs.dbis.waves").save("out/")
+  // df.write.mode(SaveMode.Overwrite).waves("out/", df.schema)
 
   // val relation = WavesTable("Repartition out/", spark, "out/", CaseInsensitiveStringMap.empty())
   // Logger.log("repartition-start", relation.diskSize())

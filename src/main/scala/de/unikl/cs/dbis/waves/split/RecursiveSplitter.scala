@@ -11,6 +11,8 @@ import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, RowwiseCalculator}
 import de.unikl.cs.dbis.waves.DefaultSource
 import org.apache.spark.sql.SaveMode
 
+import WavesTable._
+
 /**
   * Implements recursive splitting as described in https://doi.org/10.1145/3530050.3532923
   *
@@ -32,7 +34,7 @@ final case class RecursiveSplitter(
 
     override def prepare(df: DataFrame, path: String) = {
       val newTable = df.getWavesTable.filter(table => table.basePath == path).getOrElse({
-          df.write.format("de.unikl.cs.dbis.waves").mode(SaveMode.Overwrite).save(path)
+          df.write.mode(SaveMode.Overwrite).waves(path, df.schema)
           val options = new java.util.HashMap[String, String](1)
           options.put("path", path)
           DefaultSource().getTable(df.schema, Array.empty, options).asInstanceOf[WavesTable]

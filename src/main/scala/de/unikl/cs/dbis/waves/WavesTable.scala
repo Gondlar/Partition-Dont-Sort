@@ -24,6 +24,7 @@ import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}
 import collection.JavaConverters._
+import org.apache.spark.sql.DataFrameReader
 
 class WavesTable private (
     override val name : String,
@@ -166,6 +167,8 @@ class WavesTable private (
 }
 
 object WavesTable {
+    val PACKAGE = "de.unikl.cs.dbis.waves"
+
     /**
       * Key for the partition tree option.
       * If it is set, it must contan a JSON serialized partition tree to use with the Table. Compatibility with the given schema is
@@ -238,9 +241,13 @@ object WavesTable {
         * @param schema the DataFrame's schema. Yes we need it again, don't ask.
         */
       def waves(path: String, schema: StructType) = {
-        writer.format("de.unikl.cs.dbis.waves")
+        writer.format(PACKAGE)
               .option(PARTITION_TREE_OPTION, new PartitionTree(schema).toJson)
               .save(path)
       }
+    }
+
+    implicit class reader(reader: DataFrameReader) {
+      def waves(path: String) = reader.format(PACKAGE).load(path)
     }
 }

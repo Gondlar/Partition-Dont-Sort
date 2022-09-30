@@ -1,13 +1,9 @@
-package de.unikl.cs.dbis.waves.util
+package de.unikl.cs.dbis.waves
 
-import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.RelationFixture
-import de.unikl.cs.dbis.waves.PartitionTreeMatchers
-import de.unikl.cs.dbis.waves.PartitionTreeFixture
-
-import de.unikl.cs.dbis.waves.WavesTable._
 import org.apache.spark.sql.SaveMode
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+
+import WavesTable._
 
 class WavesDataFrameSpec extends WavesSpec with RelationFixture with PartitionTreeFixture
 with PartitionTreeMatchers {
@@ -15,7 +11,7 @@ with PartitionTreeMatchers {
   "A DataFrame" when {
     "it reads directly from a WavesTable" should {
       "retrieve that table" in {
-          val df = spark.read.format("de.unikl.cs.dbis.waves").load(directory)
+          val df = spark.read.waves(directory)
           df.isWavesTable should be (true)
           df.getWavesTable shouldBe defined
           df.getWavesTable.get.name should equal (s"waves $directory")
@@ -23,7 +19,7 @@ with PartitionTreeMatchers {
     }
     "it indirectly reads from a WavesTable" should {
       "not retrieve a table" in {
-        val df = spark.read.format("de.unikl.cs.dbis.waves").load(directory).select("a")
+        val df = spark.read.waves(directory).select("a")
         df.isWavesTable should be (false)
         df.getWavesTable shouldBe empty
       }
@@ -44,6 +40,11 @@ with PartitionTreeMatchers {
         val result = PartitionTreeHDFSInterface(spark, directory).read()
         result should not equal (None)
         result.get should haveTheSameStructureAs (bucketTree)
+      }
+    }
+    "reading from disk" should {
+      "read that data" in {
+        spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
       }
     }
   }

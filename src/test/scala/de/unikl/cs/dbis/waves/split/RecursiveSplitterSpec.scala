@@ -7,11 +7,12 @@ import de.unikl.cs.dbis.waves.TempFolderFixture
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.WavesTable
-import de.unikl.cs.dbis.waves.WavesTable.implicits
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresence,Bucket}
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
+
+import WavesTable._
 
 class RecursiveSplitterSpec extends WavesSpec
     with RelationFixture with TempFolderFixture
@@ -26,7 +27,7 @@ class RecursiveSplitterSpec extends WavesSpec
         "prepare the table the given df reads from" in {
             Given("a recursive splitter and a df that reads from a WavesTable")
             val splitter = RecursiveSplitter(0, Int.MaxValue, MockHeuristic())
-            val df = spark.read.format("de.unikl.cs.dbis.waves").load(directory)
+            val df = spark.read.waves(directory)
             val dfTable = df.getWavesTable.get
 
             When("we prepare that DataFrame")
@@ -38,7 +39,7 @@ class RecursiveSplitterSpec extends WavesSpec
         "prepare a new table if the given df reads from waves in a different dir" in {
             Given("a recursive splitter and a df that reads from a WavesTable")
             val splitter = RecursiveSplitter(0, Int.MaxValue, MockHeuristic())
-            val df = spark.read.format("de.unikl.cs.dbis.waves").load(directory)
+            val df = spark.read.waves(directory)
             val dfTable = df.getWavesTable.get
 
             When("we prepare that DataFrame")
@@ -102,7 +103,7 @@ class RecursiveSplitterSpec extends WavesSpec
             nestedPresentSide.presentKey shouldBe a [Bucket[_]]
 
             And("if we read the data, all is still there")
-            spark.read.format("de.unikl.cs.dbis.waves").load(directory).collect() should contain theSameElementsAs (data)
+            spark.read.waves(directory).collect() should contain theSameElementsAs (data)
         }
     }
 }

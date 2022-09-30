@@ -41,7 +41,7 @@ object Main extends App {
   // relation.repartition("delete", Absent, Absent)
   // Logger.log("repartition-end", relation.diskSize())
   
-  val df2 = spark.read.format("de.unikl.cs.dbis.waves").load("out/")
+  val df2 = spark.read.waves("out/")
   // val realCount = df.count()
   // Logger.log("count-start")
   // val myCount = df2.count()

@@ -12,6 +12,8 @@ import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
+import de.unikl.cs.dbis.waves.WavesTable._
+
 class HeuristicSplitterSpec extends WavesSpec
     with DataFrameFixture with TempFolderFixture
     with SplitterBehavior {
@@ -34,7 +36,7 @@ class HeuristicSplitterSpec extends WavesSpec
             }
 
             And("We can read everything as a WavesTable")
-            val newDf = spark.read.format("de.unikl.cs.dbis.waves").load(tempDirectory.toString)
+            val newDf = spark.read.waves(tempDirectory.toString)
             newDf.collect() should contain theSameElementsAs (df.collect())
 
             And("we can recieve the correct data when selecting one attribute")

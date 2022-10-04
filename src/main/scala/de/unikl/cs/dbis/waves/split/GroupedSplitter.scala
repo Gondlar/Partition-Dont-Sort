@@ -127,16 +127,22 @@ abstract class GroupedSplitter extends Splitter[Unit] {
       val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
         Future {
           val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", true)
-          val data = spark.read
-                          .parquet(intermediaryFolder.filename)
-                          .drop(sortGrouper.matchColumn.col)
-          val finalFolder = blocking { writeOne(bucket, data) }
-          intermediaryFolder.delete(intermediaryFolder.file.getFileSystem(spark.sparkContext.hadoopConfiguration))
+          val finalFolder = if (intermediaryFolder.exists(hdfs.fs)) {
+            val data = spark.read
+                            .parquet(intermediaryFolder.filename)
+                            .drop(sortGrouper.matchColumn.col)
+            blocking { writeOne(bucket, data) }
+          } else {
+            val folder = PartitionFolder.makeFolder(path, false)
+            folder.mkdir(hdfs.fs)
+            folder
+          }
+          intermediaryFolder.delete(hdfs.fs)
           finalFolder
         }
       }
       val result = Await.result(Future.sequence(futureFolders), Duration.Inf)
-      tempPath.getFileSystem(spark.sparkContext.hadoopConfiguration).delete(tempPath, true)
+      hdfs.fs.delete(tempPath, true)
       result
     }
 

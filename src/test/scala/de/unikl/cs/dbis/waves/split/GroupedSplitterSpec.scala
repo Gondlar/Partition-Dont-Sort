@@ -168,6 +168,19 @@ class GroupedSplitterSpec extends WavesSpec
           val read = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
           read should contain (spillTree)
         }
+        "handle empty groups gracefully" in {
+          Given("A partition tree and a splitter")
+          val splitter = TestWriteSplitter(false).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
+          splitter.doWrite = true
+
+          When("we write the partition tree")
+          val result = splitter.writeMany(Seq(emptyDf, df), df)
+
+          Then("we can read the contents from disk")
+          val data = result.map(f => spark.read.schema(schema).parquet(f.filename).collect())
+          data(0) shouldBe empty
+          data(1) should contain theSameElementsAs (df.collect())
+        }
     }
 
     case class TestWriteSplitter(var doWrite: Boolean) extends GroupedSplitter {

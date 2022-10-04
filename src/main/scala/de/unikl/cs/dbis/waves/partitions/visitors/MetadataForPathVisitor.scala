@@ -26,7 +26,7 @@ final class MetadataForPathVisitor[Payload](
         case Absent => metadata.addAbsent(f.key)
         case Present => metadata.addPresent(f.key)
       }
-      case _ => {}
+      case _ => metadata.addStep(step)
     }
   }
 }

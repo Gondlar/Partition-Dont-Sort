@@ -6,6 +6,8 @@ import scala.collection.mutable.ArrayBuffer
 
 /**
   * Visitor to find Metadata for all Buckets in a PartitionTree
+  * @param initialMetadata the Metadata if the root. This is useful, e.g., when
+  *                        visiting only a subtree.
   */
 final class CollectBucketMetadataVisitor[Payload](
   initialMetadata: PartitionMetadata = PartitionMetadata(),
@@ -26,7 +28,10 @@ final class CollectBucketMetadataVisitor[Payload](
   }
 
   override def visit(spill: Spill[Payload]) : Unit = {
-    builder += metadata.clone
+    val rest = metadata.clone
+    rest.addStep(Rest)
+    builder += rest
+    metadata.addStep(Partitioned)
     spill.partitioned.accept(this)
   }
 

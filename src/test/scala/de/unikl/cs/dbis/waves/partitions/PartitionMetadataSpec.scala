@@ -26,8 +26,10 @@ class PartitionMetadataSpec extends WavesSpec
       }
     }
     "allow adding a present path" in {
-      metadata().addPresent(unrelated)
-      metadata().getPresent should contain (unrelated)
+      val myMetadata = metadata()
+      myMetadata.addPresent(unrelated)
+      myMetadata.getPresent should contain (unrelated)
+      myMetadata.getPath.last should equal (Present)
     }
     "allow adding a path on the present side" in {
       val myMetadata = metadata()
@@ -53,8 +55,10 @@ class PartitionMetadataSpec extends WavesSpec
       }
     }
     "allow adding an absent path" in {
-      metadata().addAbsent(unrelated)
-      metadata().getAbsent should contain (unrelated)
+      val myMetadata = metadata()
+      myMetadata.addAbsent(unrelated)
+      myMetadata.getAbsent should contain (unrelated)
+      myMetadata.getPath.last should equal (Absent)
     }
     "allow adding a path on the absent side" in {
       val myMetadata = metadata()
@@ -71,6 +75,7 @@ class PartitionMetadataSpec extends WavesSpec
       val myMetadata = metadata()
       val originalPresent = myMetadata.getPresent
       val originalAbsent = myMetadata.getAbsent
+      val originalPath = myMetadata.getPath
 
       When("we clone it")
       val copy = myMetadata.clone
@@ -86,18 +91,29 @@ class PartitionMetadataSpec extends WavesSpec
       Then("the original is unchanged")
       myMetadata.getAbsent should equal (originalAbsent)
       myMetadata.getPresent should equal (originalPresent)
+      myMetadata.getPath should equal (originalPath)
     }
     "equal itself" in {
       metadata() should equal (metadata())
     }
     "not equal a different Metadata objects" in {
       val myMetadata = metadata()
-      myMetadata shouldNot equal (PartitionMetadata(Seq.empty, Seq(unrelated)))
-      myMetadata shouldNot equal (PartitionMetadata(Seq(unrelated), Seq.empty))
+      myMetadata shouldNot equal (PartitionMetadata(Seq.empty, Seq(unrelated), Seq.empty))
+      myMetadata shouldNot equal (PartitionMetadata(Seq(unrelated), Seq.empty, Seq.empty))
+      myMetadata shouldNot equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest)))
     }
     "not equal different objects" in {
       // yay for coverage
       metadata() should not equal (None)
+    }
+    "be able to add steps" in {
+      val myMetadata = metadata()
+      val path = myMetadata.getPath
+      myMetadata.addStep(Rest)
+      myMetadata.getPath should equal (path :+ Rest)
+    }
+    "not be a spill bucket" in {
+      emptyMetadata should not be 'spillBucket
     }
   }
 
@@ -111,6 +127,7 @@ class PartitionMetadataSpec extends WavesSpec
         forAll (allKeys) { key =>
           emptyMetadata.isKnown(key) shouldBe (false)
         }
+        emptyMetadata.getPath shouldBe empty
       }
     }
     "it contains a known present path" should {
@@ -207,6 +224,11 @@ class PartitionMetadataSpec extends WavesSpec
         absentMetadata.getAbsent should contain theSameElementsAs (Seq(thePathKey))
       }
     }
+    "its path points to a Spill bucket" should {
+      "be a spill bucket" in {
+        PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest)) shouldBe 'spillBucket
+      }
+    }
   }
 }
 
@@ -225,7 +247,7 @@ trait PartitionMetadataFixture extends BeforeAndAfterEach { this: Suite =>
     super.beforeEach()
 
     emptyMetadata = PartitionMetadata()
-    presentMetadata = PartitionMetadata(Seq(thePathKey), Seq.empty)
-    absentMetadata = PartitionMetadata(Seq.empty, Seq(thePathKey))
+    presentMetadata = PartitionMetadata(Seq(thePathKey), Seq.empty, Seq(Present))
+    absentMetadata = PartitionMetadata(Seq.empty, Seq(thePathKey), Seq(Absent))
   }
 }

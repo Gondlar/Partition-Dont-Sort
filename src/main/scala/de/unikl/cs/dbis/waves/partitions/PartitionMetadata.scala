@@ -10,7 +10,8 @@ import de.unikl.cs.dbis.waves.util.PathKey
   */
 class PartitionMetadata(
   private var present: Set[PathKey] = Set.empty,
-  private var absent: Set[PathKey] = Set.empty
+  private var absent: Set[PathKey] = Set.empty,
+  private var path: Vector[PartitionTreePath] = Vector.empty
 ) {
 
   /**
@@ -65,6 +66,7 @@ class PartitionMetadata(
     */
   def addAbsent(key: PathKey): Unit = {
     require(canBeAbsent(key))
+    addStep(Absent)
     if (isKnownAbsent(key)) return
     absent = absent.filter(p => !(key isPrefixOf p)) + key
   }
@@ -79,6 +81,7 @@ class PartitionMetadata(
     */
   def addPresent(key: PathKey): Unit = {
     require(canBePresent(key))
+    addStep(Present)
     if (isKnownPresent(key)) return
     present = present.filter(p => !(p isPrefixOf key)) + key
   }
@@ -96,20 +99,37 @@ class PartitionMetadata(
   }
 
   /**
+    * You only need to call this method if the step does not add metadata, the
+    * other methods automatically add steps to the path
+    * @param step the step to add to the path
+    */
+  def addStep(step: PartitionTreePath) = path = path :+ step
+
+  /**
+    * @return true iff this Metadata belongs to the Bucket of a Spill Node
+    */
+  def isSpillBucket = path.lastOption.map(_ == Rest).getOrElse(false)
+
+  /**
+    * @return Get the path to the Node this metadata refers to
+    */
+  def getPath: Seq[PartitionTreePath] = path
+
+  /**
     * Create an independant copy of this Metadata object.
     * @return the copy
     */
-  override def clone = new PartitionMetadata(present, absent)
+  override def clone = new PartitionMetadata(present, absent, path)
 
   override def equals(obj: Any): Boolean = obj match {
     case other: PartitionMetadata
-      => other.absent == absent && other.present == present
+      => other.absent == absent && other.present == present && other.path == path
     case _ => false
   }
 }
 
 object PartitionMetadata {
   def apply() = new PartitionMetadata()
-  def apply(present: Seq[PathKey], absent: Seq[PathKey])
-    = new PartitionMetadata(present.toSet, absent.toSet)
+  def apply(present: Seq[PathKey], absent: Seq[PathKey], path: Seq[PartitionTreePath])
+    = new PartitionMetadata(present.toSet, absent.toSet, path.toVector)
 }

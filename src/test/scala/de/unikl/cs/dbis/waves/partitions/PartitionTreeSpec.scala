@@ -163,11 +163,13 @@ class PartitionTreeSpec extends WavesSpec
             }
             "know that path" in {
                 val metadata = splitTree.metadataFor(Seq(Present))
-                metadata should equal (PartitionMetadata(Seq(split.key), Seq.empty))
+                metadata should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present)))
             }
-            "its childrens metadata should contain the split" in {
+            "contain that split in its childrens metadata" in {
               val metadata = splitTree.metadata()
-              metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata(Seq.empty, Seq(split.key)), PartitionMetadata(Seq(split.key), Seq.empty))
+              val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Absent))
+              val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present))
+              metadata should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
             }
         }
         "it starts with a spill" should {
@@ -219,11 +221,14 @@ class PartitionTreeSpec extends WavesSpec
             }
             "find no paths in the root" in {
                 val metadata = spillTree.metadataFor(Seq(Partitioned))
-                metadata should equal (PartitionMetadata())
+                metadata should equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(Partitioned)))
             }
-            "its childrens metadata should contain the split" in {
+            "contain that spill in its childrens metadata" in {
               val metadata = spillTree.metadata()
-              metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata(), PartitionMetadata(Seq.empty, Seq(split.key)), PartitionMetadata(Seq(split.key), Seq.empty))
+              val restMetadata = PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest))
+              val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Partitioned, Absent))
+              val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present))
+              metadata should contain theSameElementsInOrderAs Seq(restMetadata, absentMetadata, presentMetadata)
             }
         }
     }    

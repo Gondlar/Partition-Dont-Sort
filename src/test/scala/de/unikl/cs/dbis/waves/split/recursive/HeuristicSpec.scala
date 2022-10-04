@@ -7,7 +7,7 @@ import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.DataFrameFixture
-import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
+import de.unikl.cs.dbis.waves.partitions.{PartitionMetadata, Absent, Present}
 
 class HeuristicSpec extends WavesSpec
   with DataFrameFixture {
@@ -31,14 +31,14 @@ class HeuristicSpec extends WavesSpec
       }
 
       "skip known absent subtrees" in {
-        val res = testHeuristic.allowablePaths(RowwiseCalculator(), df, PartitionMetadata(Seq.empty, Seq(PathKey("b"))), 0)
+        val res = testHeuristic.allowablePaths(RowwiseCalculator(), df, PartitionMetadata(Seq.empty, Seq(PathKey("b")), Seq(Absent)), 0)
         res.toSeq should equal (Seq(
             (PathKey("a"),   0, 0)
         ))
       }
 
       "skip known present paths" in {
-        val res = testHeuristic.allowablePaths(RowwiseCalculator(), df, PartitionMetadata(Seq(PathKey("b")), Seq.empty), 0)
+        val res = testHeuristic.allowablePaths(RowwiseCalculator(), df, PartitionMetadata(Seq(PathKey("b")), Seq.empty, Seq(Present)), 0)
         res.toSeq should equal (Seq(
             (PathKey("a"),   0, 0),
             (PathKey("b.d"), 2, 2)

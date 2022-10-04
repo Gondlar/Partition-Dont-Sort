@@ -8,27 +8,21 @@ import de.unikl.cs.dbis.waves.PartitionTreeFixture
 class MetadataForPathVisitorSpec extends WavesSpec
   with PartitionTreeFixture {
 
-  "A KnownKeysForPathVisitor" should {
+  "A MetadataForPathVisitor" should {
     "find present keys" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Present))
       split.accept(visitor)
-      val metadata = visitor.result
-      metadata.getPresent should contain theSameElementsAs (Seq(split.key))
-      metadata.getAbsent shouldBe empty
+      visitor.result should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present)))
     }
     "find absent keys" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Absent))
       split.accept(visitor)
-      val metadata = visitor.result
-      metadata.getAbsent should contain theSameElementsAs (Seq(split.key))
-      metadata.getPresent shouldBe empty
+      visitor.result should equal (PartitionMetadata(Seq.empty, Seq(split.key), Seq(Absent)))
     }
     "find nothing in empty paths" in {
       val visitor = new MetadataForPathVisitor[String](Seq.empty)
       split.accept(visitor)
-      val metadata = visitor.result
-      metadata.getAbsent shouldBe empty
-      metadata.getPresent shouldBe empty
+      visitor.result should equal (PartitionMetadata())
     }
     "throw an error for invalid paths" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Partitioned))
@@ -37,9 +31,7 @@ class MetadataForPathVisitorSpec extends WavesSpec
     "handle non-split nodes" in {
       val visitor = new MetadataForPathVisitor[String](Seq(Partitioned, Present))
       spill.accept(visitor)
-      val metadata = visitor.result
-      metadata.getPresent should contain theSameElementsAs (Seq(split.key))
-      metadata.getAbsent shouldBe empty
+      visitor.result should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present)))
     }
   }
 }

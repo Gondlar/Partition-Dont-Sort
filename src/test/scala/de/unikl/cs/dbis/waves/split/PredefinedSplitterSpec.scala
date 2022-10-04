@@ -5,16 +5,14 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.RelationFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
+import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import org.apache.hadoop.fs.Path
-import de.unikl.cs.dbis.waves.partitions.SplitByPresence
-import de.unikl.cs.dbis.waves.partitions.Absent
-import de.unikl.cs.dbis.waves.partitions.PartitionTree
-import de.unikl.cs.dbis.waves.partitions.Bucket
-import de.unikl.cs.dbis.waves.PartitionTreeMatchers
+
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Absent}
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 import de.unikl.cs.dbis.waves.WavesTable._
 
@@ -133,6 +131,37 @@ class PredefinedSplitterSpec extends WavesSpec
       compareFilteredDataframe(newDf, df, col("b").isNotNull)
       compareFilteredDataframe(newDf, df, col("b.d").isNull)
       compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
+    }
+    "handle nested splits" in {
+      Given("a DataFrame and a PartitionTree")
+      val shape = SplitByPresence("a", Bucket("foo"), SplitByPresence("b.d", "bar", "baz"))
+      val splitter = new PredefinedSplitter(shape, Seq.empty)
+      splitter.prepare(df, tempDirectory.toString())
+      
+      When("we partition it")
+      splitter.partition()
+
+      Then("the written partition tree looks as defined")
+      val expextedTree = new PartitionTree(schema, shape)
+      val result = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
+      result should not equal (None)
+      result.get should haveTheSameStructureAs (expextedTree)
+
+      And("We can read everything as a WavesTable")
+      val newDf = spark.read.waves(tempDirectory.toString)
+      newDf.collect() should contain theSameElementsAs (df.collect())
+
+      And("we recieve the correct data when selecting one attribute")
+      compareFilteredDataframe(newDf, df, col("a").isNull)
+      compareFilteredDataframe(newDf, df, col("b").isNotNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
+    }
+  }
+  it should {
+    "refuse to prepare an empty directory given a subpath" in {
+      val splitter = new PredefinedSplitter(spill, Seq(Absent))
+      an [IllegalArgumentException] shouldBe thrownBy (splitter.prepare(df, tempDirectory.toString))
     }
   }
 

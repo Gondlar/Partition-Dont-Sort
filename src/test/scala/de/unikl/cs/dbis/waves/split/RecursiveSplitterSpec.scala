@@ -3,12 +3,13 @@ package de.unikl.cs.dbis.waves.split
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.RelationFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
+import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.partitions.{SplitByPresence,Bucket}
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket}
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
 
@@ -16,7 +17,7 @@ import WavesTable._
 
 class RecursiveSplitterSpec extends WavesSpec
     with RelationFixture with TempFolderFixture
-    with SplitterBehavior {
+    with SplitterBehavior with PartitionTreeMatchers {
 
     "The RecursiveSplitter" should {
         behave like unpreparedSplitter(RecursiveSplitter(0, Int.MaxValue, MockHeuristic()))
@@ -72,35 +73,15 @@ class RecursiveSplitterSpec extends WavesSpec
             splitter.partition()
             
             Then("The partition tree looks as expected")
-            // Test the root
-            table.partitionTree.root shouldBe a [SplitByPresence[_]]
-            val root = table.partitionTree.root.asInstanceOf[SplitByPresence[_]]
-            root.key should equal (PathKey("b"))
-
-            // Test the absent side
-            root.absentKey shouldBe a [SplitByPresence[_]]
-            val absentSide = root.absentKey.asInstanceOf[SplitByPresence[_]]
-            absentSide.key should equal (PathKey("a"))
-            absentSide.absentKey shouldBe a [Bucket[_]]
-            absentSide.presentKey shouldBe a [Bucket[_]]
-
-            // Test the present side
-            root.presentKey shouldBe a [SplitByPresence[_]]
-            val presentSide = root.presentKey.asInstanceOf[SplitByPresence[_]]
-            presentSide.key should equal (PathKey("a"))
-
-            // We must go deeper
-            presentSide.absentKey shouldBe a [SplitByPresence[_]]
-            val nestedAbsentSide = presentSide.absentKey.asInstanceOf[SplitByPresence[_]]
-            nestedAbsentSide.key should equal (PathKey("b.c"))
-            nestedAbsentSide.absentKey shouldBe a [Bucket[_]]
-            nestedAbsentSide.presentKey shouldBe a [Bucket[_]]
-
-            presentSide.presentKey shouldBe a [SplitByPresence[_]]
-            val nestedPresentSide = presentSide.presentKey.asInstanceOf[SplitByPresence[_]]
-            nestedPresentSide.key should equal (PathKey("b.c"))
-            nestedPresentSide.absentKey shouldBe a [Bucket[_]]
-            nestedPresentSide.presentKey shouldBe a [Bucket[_]]
+            val expectedShape = SplitByPresence( "b"
+                                               , SplitByPresence( "a"
+                                                                , SplitByPresence("b.c", "foo", "foo")
+                                                                , SplitByPresence("b.c", "foo", "foo")
+                                                                )
+                                               , SplitByPresence("a", "foo", "foo")
+                                               )
+            val expectedTree = new PartitionTree(schema, expectedShape)
+            table.partitionTree should haveTheSameStructureAs (expectedTree)
 
             And("if we read the data, all is still there")
             spark.read.waves(directory).collect() should contain theSameElementsAs (data)

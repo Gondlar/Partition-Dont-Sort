@@ -110,6 +110,30 @@ class PredefinedSplitterSpec extends WavesSpec
       compareFilteredDataframe(newDf, df, col("b.d").isNull)
       compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
     }
+    "split when there are Spill nodes in the new subtree" in {
+      Given("a DataFrame and a PartitionTree")
+      val splitter = new PredefinedSplitter(spill, Seq.empty)
+      splitter.prepare(df, tempDirectory.toString())
+    
+      When("we partition the data frame")
+      splitter.partition()
+
+      Then("the written partition tree looks as defined")
+      val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
+      val result = PartitionTreeHDFSInterface(fs, tempDirectory.toString()).read()
+      result should not equal (None)
+      result.get should haveTheSameStructureAs(spillTree)
+
+      And("We can read everything as a WavesTable")
+      val newDf = spark.read.waves(tempDirectory.toString)
+      newDf.collect() should contain theSameElementsAs (df.collect())
+
+      And("we recieve the correct data when selecting one attribute")
+      compareFilteredDataframe(newDf, df, col("a").isNull)
+      compareFilteredDataframe(newDf, df, col("b").isNotNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
+    }
   }
 
   def compareFilteredDataframe(lhs: DataFrame, rhs: DataFrame, col: Column)

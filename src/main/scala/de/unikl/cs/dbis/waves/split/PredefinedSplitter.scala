@@ -27,6 +27,8 @@ class PredefinedSplitter(
     *   from the given shape
     */
   private var tree: Either[PartitionTree[String],StructType] = null
+
+  private var positions: Map[Int,Int] = Map.empty
   
   override protected def splitGrouper: Grouper = NullGrouper
 
@@ -44,10 +46,19 @@ class PredefinedSplitter(
   
   override protected def split(df: DataFrame): Seq[DataFrame] = {
     val metadata = shape(new CollectBucketMetadataVisitor[String]())
-    if (metadata.length > 1) {
-      metadata.map(metadata => df.filter(makeFilter(df, metadata)))
+    positions = bucketPositions(metadata)
+    val nonSpill = metadata.filter(!_.isSpillBucket)
+    if (nonSpill.length > 1) {
+      nonSpill.map(metadata => df.filter(makeFilter(df, metadata)))
     } else Seq(df)
   }
+
+  private def bucketPositions(metadata: Seq[PartitionMetadata])
+    = metadata.zipWithIndex
+              .filter(!_._1.isSpillBucket)
+              .map(_._2)
+              .zipWithIndex
+              .toMap
 
   private def makeFilter(df: DataFrame, metadata: PartitionMetadata) = {
     val absent = metadata.getAbsent.map(k => df.col(k.toSpark).isNull)
@@ -56,7 +67,7 @@ class PredefinedSplitter(
   }
 
   override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = {
-    val newSubtree = shape(new MapVisitor[String,String]((oldPath, index) => buckets(index).name))
+    val newSubtree = treeByShape(buckets)
     tree match {
       case Left(existingTree) => {
         existingTree.replace(subtreePath, newSubtree)
@@ -64,5 +75,18 @@ class PredefinedSplitter(
       }
       case Right(schema) => new PartitionTree(schema, newSubtree)
     }
+  }
+
+  private def treeByShape(buckets: Seq[PartitionFolder]) = {
+    val fs = getHDFS.fs
+    shape(new MapVisitor[String,String]((oldPath, index) => {
+      positions.get(index) match {
+        case None => {
+          new PartitionFolder(getPath, oldPath, false).mkdir(fs)
+          oldPath
+        }
+        case Some(value) => buckets(value).name
+      }
+    }))
   }
 }

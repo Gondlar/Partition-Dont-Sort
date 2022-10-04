@@ -79,7 +79,7 @@ final case class RecursiveSplitter(
             case None => Logger.log("partition-abort", "metric shows no improvement")
             case Some(best) => {
                 Logger.log("partition-by", best.toString)
-                table.repartition(best.toString, path:_*)
+                table.split(best.toString, path:_*)
                 recurse(path, Present, metadata, best)
                 recurse(path, Absent, metadata, best)
             }

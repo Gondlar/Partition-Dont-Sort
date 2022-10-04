@@ -1,12 +1,14 @@
 package de.unikl.cs.dbis.waves
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import org.scalatest.Inspectors._
+
 import org.apache.spark.sql.AnalysisException
-import org.apache.hadoop.fs.Path
-import de.unikl.cs.dbis.waves.partitions.Bucket
 import org.apache.spark.sql.types.StructType
-import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.hadoop.fs.Path
+
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,SplitByPresence,Present}
 
 import collection.JavaConverters._
 
@@ -76,6 +78,106 @@ class WavesTableSpec extends WavesSpec
 
       val oldDirs = splitTree.getBuckets().map(_.folder(tempDirectory.toString()))
       oldDirs shouldNot contain (dir)
+    }
+  }
+}
+
+class WavesTableOperationsSpec extends WavesSpec
+with RelationFixture with PartitionTreeFixture
+with PartitionTreeMatchers {
+  import WavesTable._
+
+  def getTable = spark.read.waves(directory).getWavesTable.get
+
+  "A WavesTable" can {
+    "repartition its data" when {
+      "its just a bucket" in {
+        Given("a waves table and a desired shape")
+        val table = getTable
+        val shape = SplitByPresence("b.d", "foo", "bar")
+        val tree = new PartitionTree(schema, shape)
+
+        When("we repartition it")
+        table.repartition(Seq.empty, shape)
+
+        Then("it has the desired shape")
+        table.partitionTree should haveTheSameStructureAs (tree)
+        PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
+
+        And("we can still read it as a WavesTable")
+        spark.read.waves(table.basePath).collect() should contain theSameElementsAs (df.collect)
+      }
+      "it has been repartitioned" in {
+        Given("a waves table that has been repartitioned and a desired shape")
+        val table = getTable
+        table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
+        val shape = SplitByPresence("b.d", "foo", "bar")
+        val tree = new PartitionTree(schema, shape)
+
+        When("we repartition it")
+        table.repartition(Seq.empty, shape)
+
+        Then("it has the desired shape")
+        table.partitionTree should haveTheSameStructureAs (tree)
+        PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
+
+        And("we can still read it as a WavesTable")
+        spark.read.waves(table.basePath).collect() should contain theSameElementsAs (df.collect)
+      }
+      "we repartition only a subtree" in {
+        Given("a waves table that has been repartitioned and a desired shape")
+        val table = getTable
+        table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
+        val shape = SplitByPresence("b.d", "foo", "bar")
+        val tree = new PartitionTree(schema, SplitByPresence("a", shape, Bucket("baz")))
+
+        When("we repartition it")
+        table.repartition(Seq(Present), shape)
+
+        Then("it has the desired shape")
+        table.partitionTree should haveTheSameStructureAs (tree)
+        PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
+
+        And("we can still read it as a WavesTable")
+        spark.read.waves(table.basePath).collect() should contain theSameElementsAs (df.collect)
+      }
+    }
+    "split its data" when {
+      "it is just a bucket" in {
+        Given("a waves table and a new split")
+        val table = getTable
+        val split = "b.d"
+        val path = Seq.empty
+
+        When("we split it")
+        table.split(split, path:_*)
+
+        Then("it has the expected shape")
+        val shape = new PartitionTree(schema, SplitByPresence("b.d", "foo", "bar"))
+        table.partitionTree should haveTheSameStructureAs (shape)
+        PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
+
+        And("we can still read it as a WavesTable")
+        spark.read.waves(table.basePath).collect() should contain theSameElementsAs (df.collect)
+      }
+      "we split a subtree" in {
+        Given("a waves table that has been repartitioned and a new split")
+        val table = getTable
+        table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
+        val split = "b.d"
+        val path = Seq(Present)
+        
+        When("we split it")
+        table.split(split, path:_*)
+        
+        Then("it has the expected shape")
+        val shape = new PartitionTree(schema, SplitByPresence("a", SplitByPresence("b.d", "foo", "bar"), Bucket("baz")))
+        table.partitionTree should haveTheSameStructureAs (shape)
+        PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
+
+        And("we can still read it as a WavesTable")
+        spark.read.waves(table.basePath).collect() should contain theSameElementsAs (df.collect)
+      }
     }
   }
 }

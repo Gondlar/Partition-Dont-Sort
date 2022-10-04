@@ -18,8 +18,10 @@ import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
 import de.unikl.cs.dbis.waves.partitions.{
-    PartitionTree,SplitByPresence,Bucket,PartitionTreePath,Present,Absent,PartitionTreeHDFSInterface
+    PartitionTree,TreeNode,SplitByPresence,Bucket,PartitionTreePath,PartitionTreeHDFSInterface
 }
+import de.unikl.cs.dbis.waves.partitions.visitors.CollectBucketsVisitor
+import de.unikl.cs.dbis.waves.split.PredefinedSplitter
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}
@@ -85,46 +87,18 @@ class WavesTable private (
         foo.map(_.folder(basePath).diskSize(fs)).sum
     }
 
-    def repartition(key: String, path : PartitionTreePath *) : Unit = {
-        // Find partition
-        val partition = partitionTree.find(path) match {
-            case Some(bucket@Bucket(_)) => bucket
-            case _ => throw new RuntimeException("Partition not found")
-        }
-        repartition(key, partition)
+    def split(key: String, path : PartitionTreePath *) : Unit = {
+        val newSplit = SplitByPresence(key, s"$key-absent", s"$key-present")
+        repartition(path, newSplit)
     }
 
-    private def repartition(key: String, partition : Bucket[String]) : Unit = {
-        // Modify partition tree
-        val partitionWithKey = PartitionFolder.makeFolder(basePath, false)
-        val partitionWithoutKey = PartitionFolder.makeFolder(basePath, false)
-        val newNode = SplitByPresence(key, partitionWithKey.name, partitionWithoutKey.name)
-        partitionTree.replace(partition, newNode)
-
-        // Repartition
-        val repartitionHelperColumn = "__WavesRepartitionCol__"
-        val tempFolder = PartitionFolder.makeFolder(basePath)
-        val df = spark.read.format("parquet").load(partition.folder(basePath).filename)
-        try {
-            df.withColumn(repartitionHelperColumn, col(key).isNull)
-              .write.format("parquet")
-                    .mode(SaveMode.Overwrite)
-                    .partitionBy(repartitionHelperColumn)
-                    .save(tempFolder.filename)
-            val absent = new PartitionFolder(tempFolder.filename, s"$repartitionHelperColumn=true", false)
-            partitionWithoutKey.moveFrom(absent, fs)
-            val present = new PartitionFolder(tempFolder.filename, s"$repartitionHelperColumn=false", false)
-            partitionWithKey.moveFrom(present, fs)
-        } catch {
-            case e : Throwable => {
-                partitionWithKey.delete(fs)
-                partitionWithoutKey.delete(fs) 
-                throw e
-            }
-        } finally {
-            tempFolder.delete(fs)
-        }
-        writePartitionScheme()
+    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String]) = {
+        val df = partitionTree.find(path)
+                              .get(new CollectBucketsVisitor[String]())
+                              .map(b => spark.read.parquet(b.folder(basePath).filename))
+                              .reduce((lhs, rhs) => lhs.union(rhs))
+        new PredefinedSplitter(shape, path).prepare(df, basePath).partition()
+        partitionTree = hdfsInterface.read().get
     }
 
     def defrag() = {

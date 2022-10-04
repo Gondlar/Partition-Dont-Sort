@@ -87,11 +87,26 @@ class WavesTable private (
         foo.map(_.folder(basePath).diskSize(fs)).sum
     }
 
+    /**
+      * Replace the subtree (or Bucket) at the given path with a new split by
+      * the given key
+      *
+      * @param key the key to split by
+      * @param path the path where the split should be inserted
+      */
     def split(key: String, path : PartitionTreePath *) : Unit = {
         val newSplit = SplitByPresence(key, s"$key-absent", s"$key-present")
         repartition(path, newSplit)
     }
 
+    /**
+      * Change the partitioning of a given subtree to the given shape
+      *
+      * @param path the path to the root of the subtree to repartition
+      * @param shape the shape of the new partitioning, i.e., the resulting
+      *              table will have a partitioning scheme with the same kinds
+      *              of nodes, but the names of the Buckets may differ
+      */
     def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String]) = {
         val df = partitionTree.find(path)
                               .get(new CollectBucketsVisitor[String]())

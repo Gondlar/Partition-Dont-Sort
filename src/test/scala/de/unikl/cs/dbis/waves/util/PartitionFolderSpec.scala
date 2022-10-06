@@ -137,6 +137,32 @@ with TempFolderFixture with SparkFixture {
               reader.close()
               fs.exists(new Path(folderWithoutContent.filename+dir)) shouldBe (false)
             }
+            "be empty" in {
+                implicit val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
+
+                Given("an empty folder")
+                val folder = new PartitionFolder(tempDirectory.toString, "foo", false)
+                folder.mkdir
+
+                Then("it should be empty")
+                folder.isEmpty shouldBe (true)
+
+                When("we put a non-parquet file inside it")
+                val writer = fs.create(new Path(folder.filename + "/foo.txt"))
+                writer.writeInt(5)
+                writer.close()
+
+                Then("it is still empty")
+                folder.isEmpty shouldBe (true)
+
+                When("we put a parquet file in it")
+                val writer2 = fs.create(new Path(folder.filename + "/bar.parquet"))
+                writer2.writeInt(5)
+                writer2.close()
+
+                Then("it no longer empty")
+                folder.isEmpty shouldBe (false)
+            }
         }
         "being created" should {
             "be in the specified state" in {

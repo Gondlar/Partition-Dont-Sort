@@ -1,6 +1,6 @@
 package de.unikl.cs.dbis.waves.util
 
-import org.apache.hadoop.fs.{FileSystem,Path,FileUtil}
+import org.apache.hadoop.fs.{FileSystem,Path,FileUtil,RemoteIterator}
 import java.util.UUID
 
 /**
@@ -17,6 +17,7 @@ class PartitionFolder(
     private var dName: String,
     private var temporary: Boolean
 ) extends Equals {
+    import PartitionFolder.RemoteWrapper
 
     /**
       * @return this folder's base directory
@@ -72,13 +73,8 @@ class PartitionFolder(
     def copyContentsFrom(other: PartitionFolder)(implicit fs: FileSystem) = {
         assert(other != this)
 
-        val it = fs.listFiles(other.file, false)
-        val contents = Array.newBuilder[Path]
-        while (it.hasNext()) {
-            val file = it.next()
-            contents += file.getPath()
-        }
-        FileUtil.copy(fs, contents.result(), fs, file, false, false, fs.getConf())
+        val contents = fs.listFiles(other.file, false).map(_.getPath).toArray
+        FileUtil.copy(fs, contents, fs, file, false, false, fs.getConf())
     }
 
     /**
@@ -153,6 +149,17 @@ class PartitionFolder(
       * @return the folder's size
       */
     def diskSize(implicit fs: FileSystem) = fs.getContentSummary(file).getLength()
+
+    /**
+      * Check if the folder is empty, i.e., does not contain any Parquet files.
+      * A folder with 100 files none of which are Parquet files is considered
+      * empty! Parquet files are identified by their extension.
+      *
+      * @param fs the filesystem this folder is located in
+      * @return true iff the folder is empty
+      */
+    def isEmpty(implicit fs: FileSystem): Boolean
+        = !fs.listFiles(file, false).exists(_.getPath.getName endsWith ".parquet")
 }
 
 object PartitionFolder {
@@ -172,4 +179,9 @@ object PartitionFolder {
       */
     def makeFolder(baseDir: String, temp: Boolean = true)
         = new PartitionFolder(baseDir, UUID.randomUUID().toString(), temp)
+
+    implicit class RemoteWrapper[T](remote: RemoteIterator[T]) extends Iterator[T] {
+        override def hasNext: Boolean = remote.hasNext()
+        override def next(): T = remote.next()
+    }
 }

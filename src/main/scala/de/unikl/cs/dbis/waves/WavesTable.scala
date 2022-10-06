@@ -21,7 +21,7 @@ import de.unikl.cs.dbis.waves.partitions.{
     PartitionTree,TreeNode,SplitByPresence,Spill,Bucket,PartitionTreePath,PartitionTreeHDFSInterface
 }
 import de.unikl.cs.dbis.waves.partitions.visitors.CollectBucketsVisitor
-import de.unikl.cs.dbis.waves.split.PredefinedSplitter
+import de.unikl.cs.dbis.waves.split.{Splitter,PredefinedSplitter}
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}
@@ -36,8 +36,6 @@ class WavesTable private (
     options : CaseInsensitiveStringMap,
     private[waves] var partitionTree : PartitionTree[String]
 ) extends Table with SupportsRead with SupportsWrite {
-    private val fastWrite = options.getBoolean(WavesTable.FAST_WRITE_OPTION, true)
-
     private val hdfsInterface = PartitionTreeHDFSInterface(fs, basePath)
 
     override def capabilities(): ju.Set[TableCapability]
@@ -52,8 +50,7 @@ class WavesTable private (
         = new WavesScanBuilder(this, options)
     
     override def newWriteBuilder(options: LogicalWriteInfo): WriteBuilder
-        = if (fastWrite) WavesFastWriteBuilder(this, options)
-          else null //TODO slow write
+        = WavesFastWriteBuilder(this, options)
 
     private[waves] def makeDelegateTable(partitions : PartitionFolder*) : ParquetTable = {
         val paths = partitions.map(_.filename)
@@ -148,6 +145,18 @@ class WavesTable private (
         partitionTree = hdfsInterface.read().get
     }
 
+    /**
+      * repartition the entire table according to the given splitter
+      *
+      * @param splitter the splitter
+      */
+    def repartition(splitter: Splitter[_]): Unit = {
+      val df = partitionTree.getBuckets()
+                            .map(b => spark.read.parquet(b.folder(basePath).filename))
+                            .reduce((lhs, rhs) => lhs.union(rhs))
+      splitter.prepare(df, basePath).partition()
+    }
+
     def defrag() = {
         for (bucket <-partitionTree.getBuckets()) {
             val defraggedPartition = PartitionFolder.makeFolder(basePath, false)
@@ -196,8 +205,6 @@ object WavesTable {
       * not checked, use with caution.
       */
     val PARTITION_TREE_OPTION = "waves.schema"
-
-    val FAST_WRITE_OPTION = "waves.fastWrite"
 
     def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap) = {
         val hdfsInterface = PartitionTreeHDFSInterface(spark, basePath)
@@ -248,6 +255,19 @@ object WavesTable {
         * @see [[getWavesTable]]
         */
       def isWavesTable: Boolean = getWavesTable.nonEmpty
+
+      /**
+        * Save the DataFrame as a WavesTable.
+        * 
+        * This method immediately partitions the data using to the given
+        * splitter. This can take a while. If you need to write the data quickly
+        * and partition it later, use .save.waves(path) instead.
+        *
+        * @param splitter the splitter deciding the partitioning
+        * @param path the location for saving the data
+        */
+      def saveAsWaves(splitter: Splitter[_], path: String): Unit
+        = splitter.prepare(df, path).partition()
     }
 
     implicit class writer(writer: DataFrameWriter[Row]) {

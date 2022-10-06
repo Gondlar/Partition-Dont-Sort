@@ -78,11 +78,11 @@ class PredefinedSplitter(
   }
 
   private def treeByShape(buckets: Seq[PartitionFolder]) = {
-    val fs = getHDFS.fs
+    implicit val fs = getHDFS.fs
     shape(new MapVisitor[String,String]((oldPath, index) => {
       positions.get(index) match {
         case None => {
-          new PartitionFolder(getPath, oldPath, false).mkdir(fs)
+          new PartitionFolder(getPath, oldPath, false).mkdir
           oldPath
         }
         case Some(value) => buckets(value).name

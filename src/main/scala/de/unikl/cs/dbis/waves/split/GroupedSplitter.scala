@@ -117,27 +117,28 @@ abstract class GroupedSplitter extends Splitter[Unit] {
     protected def writeMany(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder] = {
       val spark = rawData.sparkSession
 
-      val tempPath = new Path(path + PartitionFolder.TEMP_DIR)
+      val tempPath = new Path(s"$path/${PartitionFolder.TEMP_DIR}")
       sortGrouper.matchAll(buckets, rawData)
                  .write
                  .partitionBy(sortGrouper.matchColumn)
                  .parquet(tempPath.toString())
 
       implicit val ec: ExecutionContext = ExecutionContext.global
+      implicit val fs = hdfs.fs
       val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
         Future {
           val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", true)
-          val finalFolder = if (intermediaryFolder.exists(hdfs.fs)) {
+          val finalFolder = if (intermediaryFolder.exists) {
             val data = spark.read
                             .parquet(intermediaryFolder.filename)
                             .drop(sortGrouper.matchColumn.col)
             blocking { writeOne(bucket, data) }
           } else {
             val folder = PartitionFolder.makeFolder(path, false)
-            folder.mkdir(hdfs.fs)
+            folder.mkdir
             folder
           }
-          intermediaryFolder.delete(hdfs.fs)
+          intermediaryFolder.delete
           finalFolder
         }
       }

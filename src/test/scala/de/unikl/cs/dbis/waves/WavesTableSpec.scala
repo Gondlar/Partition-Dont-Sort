@@ -11,6 +11,8 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,SplitByPresence,Present}
 
 import collection.JavaConverters._
+import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.partitions.Spill
 
 class WavesTableSpec extends WavesSpec
   with DataFrameFixture with TempFolderFixture with PartitionTreeFixture
@@ -177,6 +179,72 @@ with PartitionTreeMatchers {
 
         And("we can still read it as a WavesTable")
         spark.read.waves(table.basePath).collect() should contain theSameElementsAs (df.collect)
+      }
+    }
+    "unspill its data" when {
+      "it has no spill nodes" in {
+        Given("a waves table with just a bucket")
+        val table = getTable
+        val originalTree = new PartitionTree(table.schema, table.partitionTree.root)
+
+        When("we unspill the data")
+        table.unspill
+
+        Then("nothing has changed")
+        table.partitionTree should equal (originalTree)
+        spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
+      }
+      "its spill nodes are empty" in {
+        Given("a waves table with an empty spill partition")
+        val table = getTable
+        implicit val fs = table.fs
+        val spillFolder = PartitionFolder.makeFolder(table.basePath, false)
+        val leafBucket = table.partitionTree.root
+        spillFolder.mkdir
+        val spillTree = Spill(leafBucket, Bucket(spillFolder.name))
+        table.partitionTree = new PartitionTree(table.schema, spillTree)
+
+        When("we unspill it")
+        table.unspill
+
+        Then("the spill bucket is no more")
+        table.partitionTree should haveTheSameStructureAs (new PartitionTree(schema, leafBucket))
+        spillFolder.isEmpty shouldBe (true)
+        spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
+      }
+      "it has an empty leaf and a spill bucket with content" in {
+        Given("a waves table with an empty spill partition")
+        val table = getTable
+        implicit val fs = table.fs
+        val leafFolder = PartitionFolder.makeFolder(table.basePath, false)
+        leafFolder.mkdir
+        val spillBucket = table.partitionTree.root.asInstanceOf[Bucket[String]]
+        val spillTree = Spill(Bucket(leafFolder.name), spillBucket)
+        table.partitionTree = new PartitionTree(table.schema, spillTree)
+
+        When("we unspill it")
+        table.unspill
+
+        Then("the data was moved to the bucket")
+        table.partitionTree should haveTheSameStructureAs (new PartitionTree(schema, spillBucket))
+        table.partitionTree.root.asInstanceOf[Bucket[String]].folder(table.basePath).isEmpty shouldBe (false)
+        spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
+      }
+      "it needs to combine the leaf and the spill bucket" in {
+        Given("a waves table with a spill bucket and a leaf bucket")
+        val table = getTable
+        table.split("b.d")
+        val split = table.partitionTree.root.asInstanceOf[SplitByPresence[String]]
+        val leaf = split.absentKey
+        val spill = split.presentKey.asInstanceOf[Bucket[String]]
+        table.partitionTree = new PartitionTree(schema, Spill(leaf, spill))
+
+        When("we unspill it")
+        table.unspill
+
+        Then("the data was moved to the bucket")
+        table.partitionTree should haveTheSameStructureAs(new PartitionTree(schema, leaf))
+        spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
       }
     }
   }

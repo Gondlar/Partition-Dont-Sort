@@ -18,7 +18,7 @@ import org.apache.spark.sql.execution.datasources.v2.parquet.ParquetTable
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 
 import de.unikl.cs.dbis.waves.partitions.{
-    PartitionTree,TreeNode,SplitByPresence,Bucket,PartitionTreePath,PartitionTreeHDFSInterface
+    PartitionTree,TreeNode,SplitByPresence,Spill,Bucket,PartitionTreePath,PartitionTreeHDFSInterface
 }
 import de.unikl.cs.dbis.waves.partitions.visitors.CollectBucketsVisitor
 import de.unikl.cs.dbis.waves.split.PredefinedSplitter
@@ -97,6 +97,38 @@ class WavesTable private (
     def split(key: String, path : PartitionTreePath *) : Unit = {
         val newSplit = SplitByPresence(key, s"$key-absent", s"$key-present")
         repartition(path, newSplit)
+    }
+
+    /**
+      * Move all data from Buckets into appropriate Buckets and delete the
+      * Spill nodes from the tree.
+      * 
+      * Caution: Some splitters, e.g., the [[RandomSplitter]], use Spill nodes
+      * to create multiple Buckets without implying differences in the data. If
+      * you use such a splitter, do not call unspill as it will undo the
+      * partitioning.
+      */
+    def unspill: Unit = {
+      // Find all data in spill buckets
+      val spillBucketPaths = partitionTree.metadata.filter(_.isSpillBucket).map(_.getPath)
+      val hasNonEmptySpillBuckets = spillBucketPaths
+        .map(p => partitionTree.find(p).get.asInstanceOf[Bucket[String]].folder(basePath))
+        .filter(!_.isEmpty(fs))
+        .nonEmpty
+      if (hasNonEmptySpillBuckets) {
+        // repartition all data into the desired partitioning scheme
+        val data = spark.read.parquet(findRequiredPartitions(Seq.empty).map(_.filename):_*)
+        new PredefinedSplitter(partitionTree.root, Seq.empty).prepare(data, basePath).partition()
+        partitionTree = hdfsInterface.read().get
+      }
+
+      // remove the now empty spill buckets
+      for (path <- spillBucketPaths) {
+        val pathToSpillNode = path.init
+        val theSpillNode = partitionTree.find(pathToSpillNode).get.asInstanceOf[Spill[String]]
+        partitionTree.replace(pathToSpillNode, theSpillNode.partitioned)
+      }
+      writePartitionScheme()
     }
 
     /**

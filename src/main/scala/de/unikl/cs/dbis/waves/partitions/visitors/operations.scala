@@ -1,0 +1,12 @@
+package de.unikl.cs.dbis.waves.partitions.visitors
+
+object operations
+extends CollectBucketMetadataOperations
+with CollectBucketOperations
+with CollectFilteredBucketOperations
+with FindBucketOperations
+with FindByPathOperations
+with MapOperations
+with MetadataForPathOperations
+with ReplaceByPathOperations
+with ReplaceSubtreeOperations

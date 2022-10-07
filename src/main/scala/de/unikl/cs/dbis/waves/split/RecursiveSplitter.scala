@@ -8,6 +8,7 @@ import de.unikl.cs.dbis.waves.partitions.{Bucket, PartitionTreePath, SplitByPres
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.util.{PathKey, Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, RowwiseCalculator}
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 import de.unikl.cs.dbis.waves.DefaultSource
 import org.apache.spark.sql.SaveMode
@@ -117,7 +118,7 @@ final case class RecursiveSplitter(
         }
     }
 
-    private def getFolder(table: WavesTable, path: Iterable[PartitionTreePath]) : PartitionFolder
+    private def getFolder(table: WavesTable, path: Seq[PartitionTreePath]) : PartitionFolder
         = table.partitionTree.find(path).get.asInstanceOf[Bucket[String]].folder(table.basePath)
 
 }

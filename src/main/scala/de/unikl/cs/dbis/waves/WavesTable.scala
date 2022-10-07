@@ -20,7 +20,7 @@ import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import de.unikl.cs.dbis.waves.partitions.{
     PartitionTree,TreeNode,SplitByPresence,Spill,Bucket,PartitionTreePath,PartitionTreeHDFSInterface
 }
-import de.unikl.cs.dbis.waves.partitions.visitors.CollectBucketsVisitor
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.split.{Splitter,PredefinedSplitter}
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
@@ -63,7 +63,7 @@ class WavesTable private (
     }
 
     private[waves] def findRequiredPartitions(filters : Iterable[Filter]) : Seq[PartitionFolder]
-        = partitionTree.getBuckets(filters)
+        = partitionTree.bucketsWith(filters)
                        .map(bucket => bucket.folder(basePath))
                        .toSeq
     
@@ -80,7 +80,7 @@ class WavesTable private (
     }
 
     def diskSize() : Long = {
-        val foo = partitionTree.getBuckets()
+        val foo = partitionTree.buckets
         foo.map(_.folder(basePath).diskSize(fs)).sum
     }
 
@@ -138,7 +138,8 @@ class WavesTable private (
       */
     def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String]) = {
         val df = partitionTree.find(path)
-                              .get(new CollectBucketsVisitor[String]())
+                              .get
+                              .buckets
                               .map(b => spark.read.parquet(b.folder(basePath).filename))
                               .reduce((lhs, rhs) => lhs.union(rhs))
         new PredefinedSplitter(shape, path).prepare(df, basePath).partition()
@@ -151,14 +152,14 @@ class WavesTable private (
       * @param splitter the splitter
       */
     def repartition(splitter: Splitter[_]): Unit = {
-      val df = partitionTree.getBuckets()
+      val df = partitionTree.buckets
                             .map(b => spark.read.parquet(b.folder(basePath).filename))
                             .reduce((lhs, rhs) => lhs.union(rhs))
       splitter.prepare(df, basePath).partition()
     }
 
     def defrag() = {
-        for (bucket <-partitionTree.getBuckets()) {
+        for (bucket <-partitionTree.buckets) {
             val defraggedPartition = PartitionFolder.makeFolder(basePath, false)
             try {
                 spark.read
@@ -183,7 +184,7 @@ class WavesTable private (
     }
 
     def vacuum() = {
-        val partitions = partitionTree.getBuckets().map(_.data).toSeq :+ "spill" // leave initial spill partition for benchmark purposes
+        val partitions = partitionTree.buckets.map(_.data).toSeq :+ "spill" // leave initial spill partition for benchmark purposes
         println(partitions)
         for (file <- fs.listStatus(new Path(basePath))) {
             val path = file.getPath()

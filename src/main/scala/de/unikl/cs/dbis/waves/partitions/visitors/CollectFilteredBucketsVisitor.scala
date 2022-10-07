@@ -25,6 +25,8 @@ import org.apache.spark.sql.sources.{
 import scala.collection.mutable.ArrayBuffer
 import de.unikl.cs.dbis.waves.util.{PathKey,Ternary,TernarySet}
 
+import TreeNode.AnyNode
+
 /**
   * Find all Buckets in a PartitionTree that can contain entries
   * satisfying a list of predicates.
@@ -100,4 +102,29 @@ object CollectFilteredBucketsVisitor {
         case StringContains(attribute, value) => operationOnKey(key, present, attribute)
         case EqualNullSafe(attribute, value) => ??? //TODO
     }
+}
+
+trait CollectFilteredBucketOperations {
+  implicit class CollectFilteredBucketsNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Find all Buckets with contents which can satisfy the given filters
+      * If no filters are given, this is equivalent to [[getBuckets]]
+      *
+      * @param filters A collection of filters
+      * @return the Buckets
+      */
+    def bucketsWith(filters: Iterable[Filter])
+      = node(new CollectFilteredBucketsVisitor[Payload](filters))
+  }
+  implicit class CollectFilteredBucketsTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Find all Buckets with contents which can satisfy the given filters
+      * If no filters are given, this is equivalent to [[getBuckets]]
+      *
+      * @param filters A collection of filters
+      * @return the Buckets
+      */
+    def bucketsWith(filters: Iterable[Filter])
+      = tree.root(new CollectFilteredBucketsVisitor[Payload](filters))
+  }
 }

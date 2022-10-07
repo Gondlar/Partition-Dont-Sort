@@ -47,3 +47,36 @@ extends SingleResultVisitor[From,AnyNode[To]] {
       */
     def getBucketCount = visitedBuckets
 }
+
+trait MapOperations {
+  implicit class MapNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Apply func to all buckets and return the resulting PartitionTree
+      *
+      * @param func the function
+      * @return the new partition tree
+      */
+    def map[To](func: (Payload, Int) => To) : AnyNode[To]
+      = node(new MapVisitor(func))
+  }
+  implicit class MapTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Apply func to all buckets and return the resulting PartitionTree
+      *
+      * @param func the function
+      * @return the new partition tree
+      */
+    def map[To](func: (Payload, Int) => To) : PartitionTree[To]
+      = new PartitionTree(tree.globalSchema, tree.root(new MapVisitor(func)))
+
+    /**
+      * Apply func to all buckets. As opposed to [[map]], this function modifies
+      * this tree rather than creating a new one. As a result, func is limited to
+      * functions which return this trees payload type.
+      *
+      * @param func the function
+      */
+    def modify(func: (Payload, Int) => Payload) : Unit
+      = tree.root = tree.root(new MapVisitor(func))
+  }
+}

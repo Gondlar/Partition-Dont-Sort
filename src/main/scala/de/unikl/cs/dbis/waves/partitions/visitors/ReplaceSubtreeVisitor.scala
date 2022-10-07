@@ -64,3 +64,30 @@ extends SingleResultVisitor[Payload,AnyNode[Payload]] {
         theResult
     }
 }
+
+trait ReplaceSubtreeOperations {
+  implicit class ReplaceSubtreeNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Replace one ocurrence of a subtree with a different subtree.
+      * The subtree is matched using object identity, i.e., you need a
+      * reference into the tree.
+      *
+      * @param needle the subtree to be replaced
+      * @param replacement the new subtree to be inserted
+      */
+    def replace(needle: AnyNode[Payload], replacement: AnyNode[Payload])
+      = node(new ReplaceSubtreeVisitor(needle, replacement))
+  }
+  implicit class ReplaceSubtreeTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Replace one ocurrence of a subtree with a different subtree.
+      * The subtree is matched using object identity, i.e., you need a
+      * reference into the tree.
+      *
+      * @param needle the subtree to be replaced
+      * @param replacement the new subtree to be inserted
+      */
+    def replace(needle: AnyNode[Payload], replacement: AnyNode[Payload])
+      = tree.root = tree.root(new ReplaceSubtreeVisitor(needle, replacement))
+  }
+}

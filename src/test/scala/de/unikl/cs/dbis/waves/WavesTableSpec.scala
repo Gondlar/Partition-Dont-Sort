@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.Path
 
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,SplitByPresence,Present}
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 
 import collection.JavaConverters._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
@@ -78,7 +79,7 @@ class WavesTableSpec extends WavesSpec
       val newDir = table.partitionTree.root.asInstanceOf[Bucket[String]].folder(tempDirectory.toString())
       dir should equal (newDir)
 
-      val oldDirs = splitTree.getBuckets().map(_.folder(tempDirectory.toString()))
+      val oldDirs = splitTree.buckets.map(_.folder(tempDirectory.toString()))
       oldDirs shouldNot contain (dir)
     }
   }

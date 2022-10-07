@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import org.apache.spark.sql.{SparkSession, DataFrame, Row}
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Spill,Bucket}
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper,PresenceGrouper,NullGrouper}
 
@@ -22,7 +23,7 @@ class FlatTreeBuilderSpec extends WavesSpec
       val tree = builder.buildTree(folders)
 
       Then("the tree should contain these folders")
-      val result = tree.getBuckets().map(b => b.folder("foo")).toSeq
+      val result = tree.buckets.map(b => b.folder("foo")).toSeq
       result should contain theSameElementsAs (folders)
 
       And("the tree should contain spill nodes and buckets")
@@ -41,7 +42,7 @@ class FlatTreeBuilderSpec extends WavesSpec
       val tree = builder.buildTree(folders)
 
       Then("the tree should contain these folders")
-      val result = tree.getBuckets().map(b => b.folder("foo")).toSeq
+      val result = tree.buckets.map(b => b.folder("foo")).toSeq
       result should contain theSameElementsAs (folders)
 
       And("the tree should contain spill nodes and buckets")

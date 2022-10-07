@@ -30,3 +30,28 @@ final class MetadataForPathVisitor[Payload](
     }
   }
 }
+
+trait MetadataForPathOperations {
+  implicit class MetadataForPathNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Get all paths known to be absent or present in the subtree rooted in
+      * the node referenced by the given path.
+      *
+      * @param path the path
+      * @return a tuple with lists of the absent and present paths
+      */
+    def metadataFor(path : Iterable[PartitionTreePath])
+      = node(new MetadataForPathVisitor[Payload](path))
+  }
+  implicit class MetadataForPathTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Get all paths known to be absent or present in the subtree rooted in
+      * the node referenced by the given path.
+      *
+      * @param path the path
+      * @return a tuple with lists of the absent and present paths
+      */
+    def metadataFor(path : Iterable[PartitionTreePath])
+      = tree.root(new MetadataForPathVisitor[Payload](path))
+  }
+}

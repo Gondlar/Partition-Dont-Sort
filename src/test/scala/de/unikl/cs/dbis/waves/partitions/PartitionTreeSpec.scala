@@ -5,62 +5,11 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.util.{PartitionFolder,PathKey}
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
 import de.unikl.cs.dbis.waves.partitions.visitors.ImpossibleReplacementException
-import de.unikl.cs.dbis.waves.partitions.visitors.PartitionTreeVisitor
 import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 
 class PartitionTreeSpec extends WavesSpec
     with PartitionTreeFixture {
-
-    "A TreeNode" when {
-        "it is a Bucket" should {
-            "be createable by assigning a random name" in {
-                Bucket().data shouldNot equal ("")
-            }
-            "return the correct folder" in {
-                bucket.folder("bar") should equal (new PartitionFolder("bar", "foo", false))
-            }
-            "accept a visitor" in {
-                val visitor = MockVisitor(5)
-                bucket.accept(visitor)
-                visitor.visitBucketCalled shouldBe (true)
-                visitor.visitSpillCalled shouldBe (false)
-                visitor.visitSplitCalled shouldBe (false)
-            }
-            "accept a SingleResultVisitor" in {
-                bucket(MockVisitor(4)) should equal (4)
-            }
-        }
-        "it is a SplitByPresence" should {
-            "be createable from a node's string representation" in {
-                SplitByPresence("foo.bar", Bucket("abc"), Bucket("cde")) should equal (SplitByPresence(PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
-            }
-            "be creatable from leaf node names" in {
-                SplitByPresence("foo.bar", "abc", "cde") should equal (SplitByPresence(PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
-            }
-            "accept a visitor" in {
-                val visitor = MockVisitor(5)
-                split.accept(visitor)
-                visitor.visitBucketCalled shouldBe (false)
-                visitor.visitSpillCalled shouldBe (false)
-                visitor.visitSplitCalled shouldBe (true)
-            }
-            "accept a SingleResultVisitor" in {
-                split(MockVisitor(4)) should equal (4)
-            }
-        }
-        "it is a Spill" should {
-            "accept a visitor" in {
-                val visitor = MockVisitor(5)
-                spill.accept(visitor)
-                visitor.visitBucketCalled shouldBe (false)
-                visitor.visitSpillCalled shouldBe (true)
-                visitor.visitSplitCalled shouldBe (false)
-            }
-            "accept a SingleResultVisitor" in {
-                spill(MockVisitor(4)) should equal (4)
-            }
-        }
-    }
     "A PartitionTree" when {
         "being created" should {
             "reject null as the root" in {
@@ -83,8 +32,8 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.root should equal (bucket)
             }
             "contain the root as its only bucket" in {
-                bucketTree.getBuckets().toStream should equal (Seq(bucket))
-                bucketTree.getBuckets(Seq.empty).toStream should equal (Seq(bucket))
+                bucketTree.buckets.toStream should equal (Seq(bucket))
+                bucketTree.bucketsWith(Seq.empty).toStream should equal (Seq(bucket))
             }
             "find all valid paths" in {
                 bucketTree.find(Seq.empty) should equal (Some(bucket))
@@ -113,7 +62,7 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata())
             }
             "that root should have empty metadata" in {
-              val metadata = bucketTree.metadata()
+              val metadata = bucketTree.metadata
               metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata())
             }
         }
@@ -134,8 +83,8 @@ class PartitionTreeSpec extends WavesSpec
             }
             "contain the two child buckets" in {
                 val buckets = Seq(split.absentKey, split.presentKey)
-                splitTree.getBuckets().toStream should contain theSameElementsAs (buckets)
-                splitTree.getBuckets(Seq.empty).toStream should contain theSameElementsAs (buckets)
+                splitTree.buckets.toStream should contain theSameElementsAs (buckets)
+                splitTree.bucketsWith(Seq.empty).toStream should contain theSameElementsAs (buckets)
             }
             "find all valid paths" in {
                 splitTree.find(Seq.empty) should equal (Some(split))
@@ -166,7 +115,7 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present)))
             }
             "contain that split in its childrens metadata" in {
-              val metadata = splitTree.metadata()
+              val metadata = splitTree.metadata
               val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Absent))
               val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present))
               metadata should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
@@ -189,8 +138,8 @@ class PartitionTreeSpec extends WavesSpec
             }
             "contain the three child buckets" in {
                 val buckets = Seq(spill.rest, spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey, spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey)
-                spillTree.getBuckets().toStream should contain theSameElementsAs (buckets)
-                spillTree.getBuckets(Seq.empty).toStream should contain theSameElementsAs (buckets)
+                spillTree.buckets.toStream should contain theSameElementsAs (buckets)
+                spillTree.bucketsWith(Seq.empty).toStream should contain theSameElementsAs (buckets)
             }
             "find the valid paths" in {
                 spillTree.find(Seq.empty) should equal (Some(spill))
@@ -224,7 +173,7 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(Partitioned)))
             }
             "contain that spill in its childrens metadata" in {
-              val metadata = spillTree.metadata()
+              val metadata = spillTree.metadata
               val restMetadata = PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest))
               val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Partitioned, Absent))
               val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present))

@@ -13,6 +13,7 @@ import org.apache.hadoop.fs.Path
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Absent}
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 
 import de.unikl.cs.dbis.waves.WavesTable._
 

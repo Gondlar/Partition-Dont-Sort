@@ -4,6 +4,8 @@ import de.unikl.cs.dbis.waves.partitions._
 
 import scala.collection.mutable.ArrayBuffer
 
+import TreeNode.AnyNode
+
 /**
   * Visitor to find all Buckets in a PartitionTree
   */
@@ -23,4 +25,23 @@ final class CollectBucketsVisitor[Payload]() extends SingleResultVisitor[Payload
     }
 
     override def result: Seq[Bucket[Payload]] = buckets.result
+}
+
+trait CollectBucketOperations {
+  implicit class CollectBucketsNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Find all Buckets in the PartitionTree
+      *
+      * @return an iterator of Buckets
+      */
+    def buckets = node(new CollectBucketsVisitor[Payload])
+  }
+  implicit class CollectBucketsTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Find all Buckets in the PartitionTree
+      *
+      * @return an iterator of Buckets
+      */
+    def buckets = tree.root(new CollectBucketsVisitor[Payload])
+  }
 }

@@ -10,7 +10,7 @@ import TreeNode.AnyNode
   * @param path the path
   */
 final class FindByPathVisitor[Payload](
-    path : Iterable[PartitionTreePath]
+    path : Seq[PartitionTreePath]
 ) extends NavigatePathVisitor[Payload](path) with SingleResultVisitor[Payload,Option[AnyNode[Payload]]] {
     private var res : Option[AnyNode[Payload]] = None
 
@@ -21,4 +21,27 @@ final class FindByPathVisitor[Payload](
 
     override def invalidStep(node: AnyNode[Payload], step: PartitionTreePath): Unit
       = res = None
+}
+
+trait FindByPathOperations {
+  implicit class FindByPathNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Get a node represented by navigating along a path.
+      * The path consists of String representing the navigational choices
+      *
+      * @param path the path
+      * @return the node at the end of the path or None of no such node exists
+      */
+    def find(path: Seq[PartitionTreePath]) = node(new FindByPathVisitor[Payload](path))
+  }
+  implicit class FindByPathTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Get a node represented by navigating along a path.
+      * The path consists of String representing the navigational choices
+      *
+      * @param path the path
+      * @return the node at the end of the path or None of no such node exists
+      */
+    def find(path: Seq[PartitionTreePath]) = tree.root(new FindByPathVisitor[Payload](path))
+  }
 }

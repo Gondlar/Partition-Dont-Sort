@@ -4,6 +4,8 @@ import de.unikl.cs.dbis.waves.partitions._
 
 import scala.collection.mutable.ArrayBuffer
 
+import TreeNode.AnyNode
+
 /**
   * Visitor to find Metadata for all Buckets in a PartitionTree
   * @param initialMetadata the Metadata if the root. This is useful, e.g., when
@@ -36,4 +38,24 @@ final class CollectBucketMetadataVisitor[Payload](
   }
 
   override def result = builder.result
+}
+
+trait CollectBucketMetadataOperations {
+
+  implicit class CollectBucketMetadataNode[Payload](node: AnyNode[Payload]) {
+    /**
+      * Find the metadata for all Buckets in the tree
+      *
+      * @return the metadata as a sequence in the same order as getBuckets
+      */
+    def metadata = node(new CollectBucketMetadataVisitor[Payload])
+  }
+  implicit class CollectBucketMetadataTree[Payload](tree: PartitionTree[Payload]) {
+    /**
+      * Find the metadata for all Buckets in the tree
+      *
+      * @return the metadata as a sequence in the same order as getBuckets
+      */
+    def metadata = tree.root(new CollectBucketMetadataVisitor[Payload])
+  }
 }

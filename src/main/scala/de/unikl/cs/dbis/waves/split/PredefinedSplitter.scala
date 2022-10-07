@@ -4,7 +4,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
 import de.unikl.cs.dbis.waves.partitions.{TreeNode,PartitionTree,PartitionTreePath,PartitionMetadata}
-import de.unikl.cs.dbis.waves.partitions.visitors.{CollectBucketMetadataVisitor,MapVisitor}
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 
@@ -45,7 +45,7 @@ class PredefinedSplitter(
   }
   
   override protected def split(df: DataFrame): Seq[DataFrame] = {
-    val metadata = shape(new CollectBucketMetadataVisitor[String]())
+    val metadata = shape.metadata
     positions = bucketPositions(metadata)
     val nonSpill = metadata.filter(!_.isSpillBucket)
     if (nonSpill.length > 1) {
@@ -79,7 +79,7 @@ class PredefinedSplitter(
 
   private def treeByShape(buckets: Seq[PartitionFolder]) = {
     implicit val fs = getHDFS.fs
-    shape(new MapVisitor[String,String]((oldPath, index) => {
+    shape.map((oldPath, index) => {
       positions.get(index) match {
         case None => {
           new PartitionFolder(getPath, oldPath, false).mkdir
@@ -87,6 +87,6 @@ class PredefinedSplitter(
         }
         case Some(value) => buckets(value).name
       }
-    }))
+    })
   }
 }

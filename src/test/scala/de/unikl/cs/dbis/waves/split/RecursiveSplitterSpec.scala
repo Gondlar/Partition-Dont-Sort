@@ -14,6 +14,8 @@ import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
 
 import WavesTable._
+import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.sort.LexicographicSorter
 
 class RecursiveSplitterSpec extends WavesSpec
     with RelationFixture with TempFolderFixture
@@ -85,6 +87,15 @@ class RecursiveSplitterSpec extends WavesSpec
 
             And("if we read the data, all is still there")
             spark.read.waves(directory).collect() should contain theSameElementsAs (data)
+        }
+        "accept the NoSorter" in {
+          val splitter = new RecursiveSplitter(0, 0, null)
+          val after = splitter.sortWith(NoSorter)
+          (after eq splitter) shouldBe (true)
+        }
+        "accept no other Sorter" in {
+          val splitter = new RecursiveSplitter(0, 0, null)
+          an [IllegalArgumentException] shouldBe thrownBy (splitter.sortWith(LexicographicSorter))
         }
     }
 }

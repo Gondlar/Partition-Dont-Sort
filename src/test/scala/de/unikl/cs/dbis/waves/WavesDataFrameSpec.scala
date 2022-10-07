@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import WavesTable._
 import de.unikl.cs.dbis.waves.split.Splitter
 import org.apache.spark.sql.DataFrame
+import de.unikl.cs.dbis.waves.sort.Sorter
 
 class WavesDataFrameSpec extends WavesSpec with RelationFixture with PartitionTreeFixture
 with PartitionTreeMatchers {
@@ -71,7 +72,7 @@ with PartitionTreeMatchers {
     var preparedPath: String = null
     var partitionCalled = false
 
-    override def prepare(df: DataFrame, path: String): Splitter[_] = {
+    override def prepare(df: DataFrame, path: String): Splitter[Unit] = {
       preparedData = df
       preparedPath = path
       this
@@ -84,6 +85,7 @@ with PartitionTreeMatchers {
     // do not need
     override def isPrepared: Boolean = ???
     override def getPath: String = ???
+    override def sortWith(sorter: Sorter): Splitter[Unit] = ???
     override protected def load(context: Unit): DataFrame = ???
   }
 }

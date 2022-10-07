@@ -1,8 +1,8 @@
-package de.unikl.cs.dbis.waves.split
+package de.unikl.cs.dbis.waves.sort
 
 import de.unikl.cs.dbis.waves.util.operators.{Grouper, DefinitionLevelGrouper}
 import org.apache.spark.sql.{DataFrame, Column}
-import org.apache.spark.sql.functions.count_distinct
+import org.apache.spark.sql.functions.{count_distinct,size}
 
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 
@@ -12,13 +12,13 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   * 
   * See: Lemire and Kaser, Reordering columns for smaller indexes, 2011 
   */
-trait LexicographicSorter extends GroupedSplitter {
+object LexicographicSorter extends Sorter {
 
   private val SORT_GROUPER = DefinitionLevelGrouper
 
-  override protected def sortGrouper: Grouper = SORT_GROUPER
-  override protected def sort(bucket: DataFrame): DataFrame = {
-    val leafs = data.schema.optionalLeafCount()
+  override def grouper: Grouper = SORT_GROUPER
+  override def sort(bucket: DataFrame): DataFrame = {
+    val leafs = leafCount(bucket)
     val counts = Range(0, leafs).map(i => count_distinct(indexedColumn(i)))
     val aggregate = bucket.agg(counts.head, counts.tail:_*).head()
     val numberOfLevels = Range(0, leafs).map(i => aggregate.getLong(i))
@@ -26,6 +26,13 @@ trait LexicographicSorter extends GroupedSplitter {
                               .sortBy(_._1)
                               .map{case (_, i) => indexedColumn(i)}
     bucket.orderBy(order:_*)
+  }
+
+  private def leafCount(bucket: DataFrame): Int = {
+    val colname = "size"
+    val row = bucket.select(size(SORT_GROUPER.GROUP_COLUMN).as(colname)).head()
+    val index = row.fieldIndex(colname)
+    row.getInt(index)
   }
 
   private def indexedColumn(i: Int): Column = SORT_GROUPER.GROUP_COLUMN(i)

@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.WavesTable
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import de.unikl.cs.dbis.waves.sort.Sorter
 
 class SplitterSpec extends WavesSpec
     with DataFrameFixture {
@@ -20,6 +21,7 @@ class SplitterSpec extends WavesSpec
                     context should equal (5)
                     null
                 }
+                override def sortWith(sorter: Sorter): Splitter[Any] = ???
             }
             splitter.data(5) should equal (null: DataFrame)
         }
@@ -28,8 +30,9 @@ class SplitterSpec extends WavesSpec
 
     case class TestSplitter() extends Splitter[Any] {
         override def isPrepared: Boolean = ???
-        override def prepare(df: DataFrame, path: String): Splitter[_] = ???
+        override def prepare(df: DataFrame, path: String): Splitter[Any] = ???
         override def getPath: String = ???
+        override def sortWith(sorter: Sorter): Splitter[Any] = ???
         override def partition() = ()
         override def load(context: Any): DataFrame = df
         override def data(context: Any): DataFrame = super.data(context)

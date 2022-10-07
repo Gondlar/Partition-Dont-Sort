@@ -14,6 +14,9 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper,PresenceGrouper,NullGrouper}
+import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.sort.Sorter
+import de.unikl.cs.dbis.waves.partitions.Bucket
 
 class GroupedSplitterSpec extends WavesSpec
     with DataFrameFixture with PartitionTreeFixture with TempFolderFixture
@@ -38,11 +41,18 @@ class GroupedSplitterSpec extends WavesSpec
             }
             val sortedSets = ArrayBuilder.make[DataFrame]
             var builtSet: Seq[DataFrame] = Seq.empty
-            new GroupedSplitter {
+            new GroupedSplitter(new Sorter {
+              override def sort(bucket: DataFrame): DataFrame = {
+                  sortedSets += bucket
+                  bucket
+              }
+
+              override def grouper: Grouper = DefinitionLevelGrouper
+
+            }) {
                 override protected def splitGrouper: Grouper = DefinitionLevelGrouper
 
                 override protected def split(df: DataFrame): Seq[DataFrame] = {
-                    sortGrouper should equal (splitGrouper)
                     df.collect() should contain theSameElementsAs Seq(
                         Row(WrappedArray.make(Array(1, 1, 2)), 1),
                         Row(WrappedArray.make(Array(1, 1, 1)), 1),
@@ -52,11 +62,6 @@ class GroupedSplitterSpec extends WavesSpec
                         Row(WrappedArray.make(Array(0, 0, 0)), 2)
                     )
                     frames
-                }
-
-                override protected def sort(bucket: DataFrame): DataFrame = {
-                    sortedSets += bucket
-                    super.sort(bucket)
                 }
 
                 override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = null
@@ -73,19 +78,21 @@ class GroupedSplitterSpec extends WavesSpec
             }
         }
         "use the correct groupers" in {
-          val splitter = new GroupedSplitter {
+          val splitter = new GroupedSplitter(new Sorter {
+
+            override def sort(df: DataFrame): DataFrame = {
+              df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
+              df
+            }
+
+            override def grouper: Grouper = DefinitionLevelGrouper
+          }) {
 
             override protected def splitGrouper: Grouper = PresenceGrouper
-            override protected def sortGrouper: Grouper = DefinitionLevelGrouper
 
             override protected def split(df: DataFrame): Seq[DataFrame] = {
               df.columns should contain theSameElementsAs (PresenceGrouper.columns)
               Seq(df)
-            }
-
-            override protected def sort(df: DataFrame): DataFrame = {
-              df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
-              df
             }
 
             override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = null
@@ -100,6 +107,15 @@ class GroupedSplitterSpec extends WavesSpec
             override protected def writeMetadata(tree: PartitionTree[String]): Unit = ()
           }
           splitter.prepare(df, tempDirectory.toString).partition()
+        }
+        "use the sorter set using sortBy" in {
+          val sorter = new Sorter{
+            var called = false
+            override def sort(bucket: DataFrame): DataFrame = {called = true; bucket}
+            override def grouper: Grouper = NullGrouper
+          }
+          val splitter = TestWriteSplitter(false).sortWith(sorter).prepare(df,tempDirectory.toString).partition()
+          sorter shouldBe 'called
         }
         "directly write single partitions correctly" in {
           Given("A GroupedSplitter")
@@ -202,8 +218,8 @@ class GroupedSplitterSpec extends WavesSpec
           = super.write(buckets, rawData)
 
         override protected def splitGrouper: Grouper = NullGrouper
-        override protected def split(df: DataFrame): Seq[DataFrame] = ???
-        override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = ???
+        override protected def split(df: DataFrame): Seq[DataFrame] = Seq(df)
+        override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = new PartitionTree(schema)
 
         override def writeMetadata(tree: PartitionTree[String]): Unit
           = if(doWrite) super.writeMetadata(tree)

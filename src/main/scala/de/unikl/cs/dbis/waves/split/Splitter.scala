@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.split
 
 import de.unikl.cs.dbis.waves.WavesTable
+import de.unikl.cs.dbis.waves.sort.Sorter
 import org.apache.spark.sql.DataFrame
 
 /**
@@ -21,7 +22,7 @@ abstract class Splitter[Context] {
       * @param path the path the result should be written to
       * @return this splitter for chaining
       */
-    def prepare(df: DataFrame, path: String): Splitter[_]
+    def prepare(df: DataFrame, path: String): Splitter[Context]
 
     /**
       * @return Whether prepare has been called on the Splitter
@@ -40,6 +41,16 @@ abstract class Splitter[Context] {
       */
     protected def assertPrepared
       = if (!isPrepared) throw new IllegalStateException("Splitter was not prepared")
+
+    /**
+      * Sort the resulting partitions. The default value depends on the specific
+      * splitter. Some splitters may reject some or all sorters.
+      *
+      * @param sorter the sorter to use
+      * @return this splitter for chaining
+      * @throws IllegalArgumentException if the given sorter is unsupported
+      */
+    def sortWith(sorter: Sorter): Splitter[Context]
 
     /**
       * Automatically Partition the table

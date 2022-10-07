@@ -3,6 +3,7 @@ package de.unikl.cs.dbis.waves.split
 import org.apache.spark.sql.{SparkSession, DataFrame}
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.Grouper
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
@@ -17,7 +18,9 @@ import org.apache.hadoop.fs.Path
   * finally the sorted buckets are passed to [[buildTree]] in the same order as
   * split returned them.
   */
-abstract class GroupedSplitter extends Splitter[Unit] {
+abstract class GroupedSplitter(
+  protected var sorter: Sorter = NoSorter
+) extends Splitter[Unit] {
 
     private var source: DataFrame = null
     private var path: String = null
@@ -36,6 +39,8 @@ abstract class GroupedSplitter extends Splitter[Unit] {
 
     protected def getHDFS = { assertPrepared; hdfs }
 
+    override def sortWith(sorter: Sorter) = { this.sorter = sorter; this }
+
     override protected def load(context: Unit): DataFrame = source
 
     /**
@@ -45,27 +50,12 @@ abstract class GroupedSplitter extends Splitter[Unit] {
     protected def splitGrouper: Grouper
 
     /**
-      * A Grouper to group the data by. Each grouping represents one kind of data
-      * This grouper is used when sorting the data. By default, it is equal to
-      * the [[splitGrouper]]
-      */
-    protected def sortGrouper: Grouper = splitGrouper
-
-    /**
       * Build buckets based off the grouped data
       *
       * @param df the data groups grouped by [[splitGrouper]]
       * @return the buckets of data represented as sets of data groupings
       */
     protected def split(df: DataFrame): Seq[DataFrame]
-
-    /**
-      * Sort the data within a bucket
-      *
-      * @param bucket the bucket grouped by [[sortGrouper]]
-      * @return the sorted bucket
-      */
-    protected def sort(bucket: DataFrame): DataFrame = bucket
 
     /**
       * Build the [[PartitionTree]] from the given buckets. The list of buckets
@@ -93,7 +83,7 @@ abstract class GroupedSplitter extends Splitter[Unit] {
         try {
           val buckets = split(types)
           val sorted = buckets.map{ b => 
-              sort(sortGrouper.from(splitGrouper, b, data))
+              sorter.sort(sorter.grouper.from(splitGrouper, b, data))
           }
           val folders = write(sorted, data)
           writeMetadata(buildTree(folders))
@@ -108,7 +98,7 @@ abstract class GroupedSplitter extends Splitter[Unit] {
       }
 
     protected def writeOne(bucket: DataFrame, data: DataFrame): PartitionFolder = {
-      val sorted = sortGrouper.sort(bucket, data)
+      val sorted = sorter.grouper.sort(bucket, data)
       val targetFolder = PartitionFolder.makeFolder(path, false)
       sorted.write.parquet(targetFolder.filename)
       targetFolder
@@ -116,6 +106,7 @@ abstract class GroupedSplitter extends Splitter[Unit] {
 
     protected def writeMany(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder] = {
       val spark = rawData.sparkSession
+      val sortGrouper = sorter.grouper
 
       val tempPath = new Path(s"$path/${PartitionFolder.TEMP_DIR}")
       sortGrouper.matchAll(buckets, rawData)

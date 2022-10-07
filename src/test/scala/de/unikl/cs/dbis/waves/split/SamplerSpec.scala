@@ -5,6 +5,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import org.apache.spark.sql.DataFrame
+import de.unikl.cs.dbis.waves.sort.Sorter
 
 class SamplerSpec extends WavesSpec
     with DataFrameFixture {
@@ -40,12 +41,14 @@ class SamplerSpec extends WavesSpec
             super.sample(data, context)
         }
         override def data(context: Any) = super.data(context)
+        override def sortWith(sorter: Sorter): Splitter[Any] = ???
     }
 
     class MockSplitter() extends Splitter[Any] {
-        override def prepare(df: DataFrame, path: String): Splitter[_] = ???
+        override def prepare(df: DataFrame, path: String): Splitter[Any] = ???
         override def getPath: String = ???
         override def isPrepared: Boolean = ???
+        override def sortWith(sorter: Sorter): Splitter[Any] = ???
         override def partition() = ()
         override def load(context: Any): DataFrame = df
     }

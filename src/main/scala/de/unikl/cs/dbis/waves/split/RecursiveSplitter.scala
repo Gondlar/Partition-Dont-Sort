@@ -8,6 +8,7 @@ import de.unikl.cs.dbis.waves.partitions.{Bucket, PartitionTreePath, SplitByPres
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.util.{PathKey, Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, RowwiseCalculator}
+import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 import de.unikl.cs.dbis.waves.DefaultSource
 import org.apache.spark.sql.SaveMode
 
@@ -45,6 +46,12 @@ final case class RecursiveSplitter(
     override def isPrepared = table != null
 
     override def getPath = { assertPrepared; table.basePath }
+
+    override def sortWith(sorter: Sorter) = {
+      if (sorter != NoSorter)
+        throw new IllegalArgumentException("sorter not supported")
+      this
+    }
 
     /**
       * @return the table this splitter writes to

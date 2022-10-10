@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.partitions
 import de.unikl.cs.dbis.waves.partitions.visitors.PartitionTreeVisitor
 import de.unikl.cs.dbis.waves.util.{PartitionFolder, PathKey}
 
-import org.apache.hadoop.shaded.com.google.gson.{
+import com.google.gson.{
     JsonDeserializer,
     JsonSerializer,
     JsonElement,

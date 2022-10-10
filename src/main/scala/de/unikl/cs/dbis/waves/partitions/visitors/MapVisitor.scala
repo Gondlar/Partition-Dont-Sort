@@ -67,7 +67,7 @@ trait MapOperations {
       * @return the new partition tree
       */
     def map[To](func: (Payload, Int) => To) : PartitionTree[To]
-      = new PartitionTree(tree.globalSchema, tree.root(new MapVisitor(func)))
+      = new PartitionTree(tree.globalSchema, tree.sorter, tree.root(new MapVisitor(func)))
 
     /**
       * Apply func to all buckets. As opposed to [[map]], this function modifies

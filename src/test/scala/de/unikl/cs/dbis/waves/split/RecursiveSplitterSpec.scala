@@ -82,7 +82,7 @@ class RecursiveSplitterSpec extends WavesSpec
                                                                 )
                                                , SplitByPresence("a", "foo", "foo")
                                                )
-            val expectedTree = new PartitionTree(schema, expectedShape)
+            val expectedTree = new PartitionTree(schema, NoSorter, expectedShape)
             table.partitionTree should haveTheSameStructureAs (expectedTree)
 
             And("if we read the data, all is still there")

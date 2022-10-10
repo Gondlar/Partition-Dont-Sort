@@ -6,7 +6,7 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import WavesTable._
 import de.unikl.cs.dbis.waves.split.Splitter
 import org.apache.spark.sql.DataFrame
-import de.unikl.cs.dbis.waves.sort.Sorter
+import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 
 class WavesDataFrameSpec extends WavesSpec with RelationFixture with PartitionTreeFixture
 with PartitionTreeMatchers {
@@ -37,7 +37,10 @@ with PartitionTreeMatchers {
       "have the correct schema" in {
         When("we write da dataframe to disk")
         df.schema should equal (schema)
-        df.write.mode(SaveMode.Overwrite).waves(directory, df.schema)
+        df.write.mode(SaveMode.Overwrite)
+                .sorter(NoSorter)
+                .partition(bucket)
+                .waves(directory, df.schema)
 
         Then("the schema on disk is the dataframe's schema")
         val result = PartitionTreeHDFSInterface(spark, directory).read()

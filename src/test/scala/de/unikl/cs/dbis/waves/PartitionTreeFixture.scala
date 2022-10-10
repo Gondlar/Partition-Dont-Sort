@@ -1,10 +1,11 @@
 package de.unikl.cs.dbis.waves
 
 import org.scalatest.Suite
+import org.scalatest.BeforeAndAfterEach
 import de.unikl.cs.dbis.waves.partitions.{
   TreeNode, Bucket, Spill, SplitByPresence, PartitionTree
 }
-import org.scalatest.BeforeAndAfterEach
+import de.unikl.cs.dbis.waves.sort.NoSorter
 
 trait PartitionTreeFixture extends BeforeAndAfterEach
   with SchemaFixture { this: Suite =>
@@ -24,8 +25,8 @@ trait PartitionTreeFixture extends BeforeAndAfterEach
     split = SplitByPresence("b.d", "bar2", "baz2")
     spill = Spill(split, Bucket("foo3"))
 
-    bucketTree = new PartitionTree(schema, bucket)
-    splitTree = new PartitionTree(schema, split)
-    spillTree = new PartitionTree(schema, spill)
+    bucketTree = new PartitionTree(schema, NoSorter, bucket)
+    splitTree = new PartitionTree(schema, NoSorter, split)
+    spillTree = new PartitionTree(schema, NoSorter, spill)
   }
 }

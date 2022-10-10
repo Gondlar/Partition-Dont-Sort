@@ -42,6 +42,8 @@ class GroupedSplitterSpec extends WavesSpec
             val sortedSets = ArrayBuilder.make[DataFrame]
             var builtSet: Seq[DataFrame] = Seq.empty
             new GroupedSplitter(new Sorter {
+
+              override val name = "test"
               override def sort(bucket: DataFrame): DataFrame = {
                   sortedSets += bucket
                   bucket
@@ -80,6 +82,8 @@ class GroupedSplitterSpec extends WavesSpec
         "use the correct groupers" in {
           val splitter = new GroupedSplitter(new Sorter {
 
+            override val name = "test"
+
             override def sort(df: DataFrame): DataFrame = {
               df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
               df
@@ -111,6 +115,8 @@ class GroupedSplitterSpec extends WavesSpec
         "use the sorter set using sortBy" in {
           val sorter = new Sorter{
             var called = false
+
+            override val name = "test"
             override def sort(bucket: DataFrame): DataFrame = {called = true; bucket}
             override def grouper: Grouper = NullGrouper
           }
@@ -219,7 +225,7 @@ class GroupedSplitterSpec extends WavesSpec
 
         override protected def splitGrouper: Grouper = NullGrouper
         override protected def split(df: DataFrame): Seq[DataFrame] = Seq(df)
-        override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = new PartitionTree(schema)
+        override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = new PartitionTree(schema, NoSorter)
 
         override def writeMetadata(tree: PartitionTree[String]): Unit
           = if(doWrite) super.writeMetadata(tree)

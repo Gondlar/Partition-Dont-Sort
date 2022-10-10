@@ -1,15 +1,10 @@
 package de.unikl.cs.dbis.waves.partitions
 
-import org.apache.hadoop.shaded.com.google.gson.{
-    JsonDeserializer,
-    JsonSerializer,
-    JsonElement,
-    JsonObject,
-    JsonArray,
-    JsonDeserializationContext,
-    JsonSerializationContext,
-    JsonParseException,
-    GsonBuilder
+import com.google.gson.{
+    JsonDeserializer, JsonDeserializationContext,
+    JsonSerializer, JsonSerializationContext,
+    JsonElement, JsonObject, JsonArray,
+    JsonParseException, GsonBuilder
 }
 import java.lang.reflect.Type
 import org.apache.spark.sql.types.{StructType, DataType}
@@ -17,7 +12,10 @@ import org.apache.spark.sql.sources.Filter
 
 import de.unikl.cs.dbis.waves.partitions.visitors._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
-import org.apache.spark.sql.catalyst.InternalRow
+import de.unikl.cs.dbis.waves.sort.{
+  Sorter, SorterDeserializer, NoSorter, NoSorterSerializer,
+  LexicographicSorter, LexicographicSorterSerializer
+}
 
 import TreeNode.AnyNode
 
@@ -29,6 +27,7 @@ import TreeNode.AnyNode
   */
 class PartitionTree[Payload](
     val globalSchema: StructType,
+    val sorter: Sorter,
     var root: AnyNode[Payload] = Bucket("spill")
 ) {
     assert(root != null)
@@ -78,6 +77,7 @@ class PartitionTree[Payload](
 object PartitionTree {
     val ROOT_KEY = "root"
     val SCHEMA_KEY = "schema"
+    val SORT_KEY = "sort"
 
     private val GSON = new GsonBuilder()
         .registerTypeAdapter(classOf[PartitionTree[String]], PartitionTreeDeserializer)
@@ -89,6 +89,9 @@ object PartitionTree {
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeDeserializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeSerializer)
         .registerTypeAdapter(classOf[AnyNode[String]], TreeNodeDeserializer)
+        .registerTypeAdapter(classOf[Sorter], SorterDeserializer)
+        .registerTypeAdapter(NoSorter.getClass(), NoSorterSerializer)
+        .registerTypeAdapter(LexicographicSorter.getClass(), LexicographicSorterSerializer)
         .create()
 
     implicit class PathPartitionTree(tree: PartitionTree[String]) {
@@ -102,6 +105,30 @@ object PartitionTree {
       * @return the PartitionTree encoded in the String
       */
     def fromJson(str: String) = GSON.fromJson(str, classOf[PartitionTree[String]])
+
+    implicit class StringNode(tree: AnyNode[String]) {
+      def toJson = PartitionTree.GSON.toJson(tree)
+    }
+
+    /**
+      * Load a TreeNode from a JSON String
+      *
+      * @param str the JSON string
+      * @return the TreeNode encoded in the String
+      */
+    def treeFromJson(str: String) = GSON.fromJson(str, classOf[AnyNode[String]])
+
+    implicit class SorterToJSON(sorter: Sorter) {
+      def toJson = PartitionTree.GSON.toJson(sorter)
+    }
+
+    /**
+      * Load a Sorter from a JSON String
+      *
+      * @param str the JSON string
+      * @return the TreeNode encoded in the String
+      */
+    def sorterFromJson(str: String) = GSON.fromJson(str, classOf[Sorter])
 }
 
 object PartitionTreeSerializer extends JsonSerializer[PartitionTree[String]] {
@@ -110,6 +137,7 @@ object PartitionTreeSerializer extends JsonSerializer[PartitionTree[String]] {
       obj.add(PartitionTree.ROOT_KEY, ctx.serialize(tree.root))
       // do not use schema.toDDL! In general, fromDDL(schema.toDDL) != schema
       obj.addProperty(PartitionTree.SCHEMA_KEY, tree.globalSchema.json) // Yes, this puts a JSON document inside a string in a JSON document. URGH
+      obj.add(PartitionTree.SORT_KEY, ctx.serialize(tree.sorter))
       obj
   }
 }
@@ -120,7 +148,10 @@ object PartitionTreeDeserializer extends JsonDeserializer[PartitionTree[String]]
           case obj: JsonObject => {
               val globalSchema = DataType.fromJson(obj.get(PartitionTree.SCHEMA_KEY).getAsString())
               val root = ctx.deserialize[AnyNode[String]](obj.get(PartitionTree.ROOT_KEY), classOf[AnyNode[String]])
-              new PartitionTree(globalSchema.asInstanceOf[StructType], root)
+              val sort = if (obj.has(PartitionTree.SORT_KEY)) {
+                ctx.deserialize(obj.get(PartitionTree.SORT_KEY), classOf[Sorter])
+              } else NoSorter
+              new PartitionTree(globalSchema.asInstanceOf[StructType], sort, root)
           }
           case _ => throw new JsonParseException(s"$json is not an Object")
       }

@@ -10,7 +10,7 @@ import org.apache.spark.sql.errors.QueryCompilationErrors
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.sources.Filter
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{DataType, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.DataFrameWriter
 
@@ -21,12 +21,16 @@ import de.unikl.cs.dbis.waves.partitions.{
     PartitionTree,TreeNode,SplitByPresence,Spill,Bucket,PartitionTreePath,PartitionTreeHDFSInterface
 }
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
+import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 import de.unikl.cs.dbis.waves.split.{Splitter,PredefinedSplitter}
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}
 import collection.JavaConverters._
 import org.apache.spark.sql.DataFrameReader
+
+import TreeNode.AnyNode
+import PartitionTree._
 
 class WavesTable private (
     override val name : String,
@@ -75,7 +79,7 @@ class WavesTable private (
     private[waves] def insertLocation() = createSpillPartition().folder(basePath)
     
     private[waves] def truncate() = {
-        partitionTree = new PartitionTree(schema)
+        partitionTree = new PartitionTree(schema, partitionTree.sorter)
         insertLocation()
     }
 
@@ -115,7 +119,10 @@ class WavesTable private (
       if (hasNonEmptySpillBuckets) {
         // repartition all data into the desired partitioning scheme
         val data = spark.read.parquet(findRequiredPartitions(Seq.empty).map(_.filename):_*)
-        new PredefinedSplitter(partitionTree.root, Seq.empty).prepare(data, basePath).partition()
+        new PredefinedSplitter(partitionTree.root, Seq.empty)
+          .sortWith(partitionTree.sorter)
+          .prepare(data, basePath)
+          .partition()
         partitionTree = hdfsInterface.read().get
       }
 
@@ -142,7 +149,10 @@ class WavesTable private (
                               .buckets
                               .map(b => spark.read.parquet(b.folder(basePath).filename))
                               .reduce((lhs, rhs) => lhs.union(rhs))
-        new PredefinedSplitter(shape, path).prepare(df, basePath).partition()
+        new PredefinedSplitter(shape, path)
+          .sortWith(partitionTree.sorter)
+          .prepare(df, basePath)
+          .partition()
         partitionTree = hdfsInterface.read().get
     }
 
@@ -202,36 +212,65 @@ object WavesTable {
 
     /**
       * Key for the partition tree option.
-      * If it is set, it must contan a JSON serialized partition tree to use with the Table. Compatibility with the given schema is
-      * not checked, use with caution.
+      * If it is set, it must contain a JSON serialized AnyNode to use with the
+      * Table. Compatibility with the data on disk is not checked, so use with
+      * caution.
       */
-    val PARTITION_TREE_OPTION = "waves.schema"
+    val PARTITION_OPTION = "waves.partitions"
 
-    def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap) = {
-        val hdfsInterface = PartitionTreeHDFSInterface(spark, basePath)
-        val schemaOption = options.get(PARTITION_TREE_OPTION)
-        val partitionTree = if (schemaOption != null) {
-            // partition tree overrides schema
-            PartitionTree.fromJson(schemaOption)
-        } else {
-          hdfsInterface.read() match {
-            case Some(tree) => tree
-            case None => throw QueryCompilationErrors.dataSchemaNotSpecifiedError("waves")
-          }
-        }
-        new WavesTable(name, spark, basePath, hdfsInterface.fs, options, partitionTree)
+    /**
+      * Key for the schema option.
+      * If it is set, it must contain a JSON serialized StructType to use with
+      * the Table. Compatibility with the data on disk is not checked, so use
+      * with caution.
+      */
+    val SCHEMA_OPTION = "waves.schema"
+
+    /**
+      * Key for the sort option.
+      * If it is set, it must contain a JSON serialized Sorter to use with
+      * the Table. Compatibility with the data on disk is not checked, so use
+      * with caution.
+      */
+    val SORT_OPTION = "waves.sort"
+
+    def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap, schema : StructType): WavesTable
+      = apply(name, spark, basePath, options, Some(schema))
+
+    def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap, schema: Option[StructType] = None) = {
+      val hdfsInterface = PartitionTreeHDFSInterface(spark, basePath)
+      val (schemaOption, sorter, partitionOption) = parseOptions(options)
+      val partitionTree = buildTree(schemaOption.orElse(schema), sorter, partitionOption, hdfsInterface)
+      new WavesTable(name, spark, basePath, hdfsInterface.fs, options, partitionTree)
     }
 
-    def apply(name : String, spark : SparkSession, basePath : String, options : CaseInsensitiveStringMap, schema : StructType) = {
-        val schemaOption = options.get(PARTITION_TREE_OPTION)
-        val partitionTree = if (schemaOption != null) {
-            // partition tree overrides schema
-            PartitionTree.fromJson(schemaOption)
-        } else {
-            new PartitionTree(schema)
-        }
-        val fs = new Path(basePath).getFileSystem(spark.sparkContext.hadoopConfiguration)
-        new WavesTable(name, spark, basePath, fs, options, partitionTree)
+    private def parseOptions(options: CaseInsensitiveStringMap) = {
+      val schema = Option(options.get(SCHEMA_OPTION)).map(DataType.fromJson(_).asInstanceOf[StructType])
+      val sorter = Option(options.get(SORT_OPTION)).map(PartitionTree.sorterFromJson(_))
+      val partitions = Option(options.get(PARTITION_OPTION)).map(PartitionTree.treeFromJson(_))
+      (schema, sorter, partitions)
+    }
+
+    private def buildTree(
+      forceSchema: Option[StructType],
+      forceSorter: Option[Sorter],
+      forcePartitions: Option[AnyNode[String]],
+      hdfs: PartitionTreeHDFSInterface
+    ): PartitionTree[String] = {
+      // if all options are forced, just build the tree
+      if (forceSchema.nonEmpty && forcePartitions.nonEmpty && forceSorter.nonEmpty) {
+        return new PartitionTree(forceSchema.get, forceSorter.get, forcePartitions.get)
+      }
+      // load schema from disk
+      val (diskSchema, diskSorter, diskPartitions) = hdfs.read() match {
+        case None => (None, None, None)
+        case Some(diskTree) => (Some(diskTree.globalSchema), Some(diskTree.sorter), Some(diskTree.root))
+      }
+      // set options in the order force > disk > default
+      val schema = forceSchema.orElse(diskSchema).getOrElse(throw QueryCompilationErrors.dataSchemaNotSpecifiedError("waves"))
+      val sorter = forceSorter.orElse(diskSorter).getOrElse(NoSorter)
+      val partitions = forcePartitions.orElse(diskPartitions).getOrElse(Bucket("spill"))
+      new PartitionTree(schema, sorter, partitions)
     }
 
     implicit class implicits(df: DataFrame) {
@@ -282,11 +321,15 @@ object WavesTable {
         * @param path the path to write to
         * @param schema the DataFrame's schema. Yes we need it again, don't ask.
         */
-      def waves(path: String, schema: StructType) = {
-        writer.format(PACKAGE)
-              .option(PARTITION_TREE_OPTION, new PartitionTree(schema).toJson)
-              .save(path)
-      }
+      def waves(path: String, schema: StructType)
+        = writer.format(PACKAGE)
+                .option(SCHEMA_OPTION, schema.json)
+                .save(path)
+
+      def sorter(sorter: Sorter) = writer.option(SORT_OPTION, sorter.toJson)
+
+      def partition(tree: AnyNode[String])
+        = writer.option(PARTITION_OPTION, tree.toJson)
     }
 
     implicit class reader(reader: DataFrameReader) {

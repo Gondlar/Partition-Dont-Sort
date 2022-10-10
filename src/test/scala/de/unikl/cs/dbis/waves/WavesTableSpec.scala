@@ -14,6 +14,7 @@ import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import collection.JavaConverters._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.partitions.Spill
+import de.unikl.cs.dbis.waves.sort.NoSorter
 
 class WavesTableSpec extends WavesSpec
   with DataFrameFixture with TempFolderFixture with PartitionTreeFixture
@@ -21,8 +22,7 @@ class WavesTableSpec extends WavesSpec
 
   val emptyMap = CaseInsensitiveStringMap.empty()
   def schemaMap(schema: StructType) = {
-    val json = new PartitionTree(schema).toJson
-    val map = Map((WavesTable.PARTITION_TREE_OPTION, json)).asJava
+    val map = Map((WavesTable.SCHEMA_OPTION, schema.json)).asJava
     new CaseInsensitiveStringMap(map)
   }
 
@@ -61,6 +61,12 @@ class WavesTableSpec extends WavesSpec
         val table = WavesTable("test", spark, tempDirectory.toString(), schemaMap(schema), StructType(Seq.empty))
         table.schema() should equal (schema)
       }
+      "do so if everything is forced" in {
+        import PartitionTree._
+        val map = Map((WavesTable.SCHEMA_OPTION, schema.json), (WavesTable.SORT_OPTION, NoSorter.toJson), (WavesTable.PARTITION_OPTION, split.toJson)).asJava
+        val options = new CaseInsensitiveStringMap(map)
+        val table = WavesTable("test", spark, tempDirectory.toString(), options)
+      }
     }
   }
   it can {
@@ -98,7 +104,7 @@ with PartitionTreeMatchers {
         Given("a waves table and a desired shape")
         val table = getTable
         val shape = SplitByPresence("b.d", "foo", "bar")
-        val tree = new PartitionTree(schema, shape)
+        val tree = new PartitionTree(schema, NoSorter, shape)
 
         When("we repartition it")
         table.repartition(Seq.empty, shape)
@@ -115,7 +121,7 @@ with PartitionTreeMatchers {
         val table = getTable
         table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
         val shape = SplitByPresence("b.d", "foo", "bar")
-        val tree = new PartitionTree(schema, shape)
+        val tree = new PartitionTree(schema, NoSorter, shape)
 
         When("we repartition it")
         table.repartition(Seq.empty, shape)
@@ -132,7 +138,7 @@ with PartitionTreeMatchers {
         val table = getTable
         table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
         val shape = SplitByPresence("b.d", "foo", "bar")
-        val tree = new PartitionTree(schema, SplitByPresence("a", shape, Bucket("baz")))
+        val tree = new PartitionTree(schema, NoSorter, SplitByPresence("a", shape, Bucket("baz")))
 
         When("we repartition it")
         table.repartition(Seq(Present), shape)
@@ -156,7 +162,7 @@ with PartitionTreeMatchers {
         table.split(split, path:_*)
 
         Then("it has the expected shape")
-        val shape = new PartitionTree(schema, SplitByPresence("b.d", "foo", "bar"))
+        val shape = new PartitionTree(schema, NoSorter, SplitByPresence("b.d", "foo", "bar"))
         table.partitionTree should haveTheSameStructureAs (shape)
         PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
 
@@ -174,7 +180,7 @@ with PartitionTreeMatchers {
         table.split(split, path:_*)
         
         Then("it has the expected shape")
-        val shape = new PartitionTree(schema, SplitByPresence("a", SplitByPresence("b.d", "foo", "bar"), Bucket("baz")))
+        val shape = new PartitionTree(schema, NoSorter, SplitByPresence("a", SplitByPresence("b.d", "foo", "bar"), Bucket("baz")))
         table.partitionTree should haveTheSameStructureAs (shape)
         PartitionTreeHDFSInterface(spark, table.basePath).read.get should equal (table.partitionTree)
 
@@ -186,7 +192,7 @@ with PartitionTreeMatchers {
       "it has no spill nodes" in {
         Given("a waves table with just a bucket")
         val table = getTable
-        val originalTree = new PartitionTree(table.schema, table.partitionTree.root)
+        val originalTree = new PartitionTree(table.schema, NoSorter, table.partitionTree.root)
 
         When("we unspill the data")
         table.unspill
@@ -203,13 +209,13 @@ with PartitionTreeMatchers {
         val leafBucket = table.partitionTree.root
         spillFolder.mkdir
         val spillTree = Spill(leafBucket, Bucket(spillFolder.name))
-        table.partitionTree = new PartitionTree(table.schema, spillTree)
+        table.partitionTree = new PartitionTree(table.schema, NoSorter, spillTree)
 
         When("we unspill it")
         table.unspill
 
         Then("the spill bucket is no more")
-        table.partitionTree should haveTheSameStructureAs (new PartitionTree(schema, leafBucket))
+        table.partitionTree should haveTheSameStructureAs (new PartitionTree(schema, NoSorter, leafBucket))
         spillFolder.isEmpty shouldBe (true)
         spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
       }
@@ -221,13 +227,13 @@ with PartitionTreeMatchers {
         leafFolder.mkdir
         val spillBucket = table.partitionTree.root.asInstanceOf[Bucket[String]]
         val spillTree = Spill(Bucket(leafFolder.name), spillBucket)
-        table.partitionTree = new PartitionTree(table.schema, spillTree)
+        table.partitionTree = new PartitionTree(table.schema, NoSorter, spillTree)
 
         When("we unspill it")
         table.unspill
 
         Then("the data was moved to the bucket")
-        table.partitionTree should haveTheSameStructureAs (new PartitionTree(schema, spillBucket))
+        table.partitionTree should haveTheSameStructureAs (new PartitionTree(schema, NoSorter, spillBucket))
         table.partitionTree.root.asInstanceOf[Bucket[String]].folder(table.basePath).isEmpty shouldBe (false)
         spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
       }
@@ -238,13 +244,13 @@ with PartitionTreeMatchers {
         val split = table.partitionTree.root.asInstanceOf[SplitByPresence[String]]
         val leaf = split.absentKey
         val spill = split.presentKey.asInstanceOf[Bucket[String]]
-        table.partitionTree = new PartitionTree(schema, Spill(leaf, spill))
+        table.partitionTree = new PartitionTree(schema, NoSorter, Spill(leaf, spill))
 
         When("we unspill it")
         table.unspill
 
         Then("the data was moved to the bucket")
-        table.partitionTree should haveTheSameStructureAs(new PartitionTree(schema, leaf))
+        table.partitionTree should haveTheSameStructureAs(new PartitionTree(schema, NoSorter, leaf))
         spark.read.waves(directory).collect() should contain theSameElementsAs (df.collect())
       }
     }

@@ -7,13 +7,14 @@ import de.unikl.cs.dbis.waves.PartitionTreeFixture
 import de.unikl.cs.dbis.waves.partitions.visitors.ImpossibleReplacementException
 import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
+import de.unikl.cs.dbis.waves.sort.NoSorter
 
 class PartitionTreeSpec extends WavesSpec
     with PartitionTreeFixture {
     "A PartitionTree" when {
         "being created" should {
             "reject null as the root" in {
-                an [AssertionError] should be thrownBy (new PartitionTree(schema, null))
+                an [AssertionError] should be thrownBy (new PartitionTree(schema, NoSorter, null))
             }
         }
         "it is just the root" should {
@@ -51,7 +52,7 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.root should equal (split)
             }
             "map correctly" in {
-                bucketTree.map({(payload, index) => index}) should equal (new PartitionTree(bucketTree.globalSchema, Bucket(0)))
+                bucketTree.map({(payload, index) => index}) should equal (new PartitionTree(bucketTree.globalSchema, NoSorter, Bucket(0)))
             }
             "modify correctly" in {
                 bucketTree.modify({(payload, index) => payload + "SUFFIX"})
@@ -104,7 +105,7 @@ class PartitionTreeSpec extends WavesSpec
                 splitTree.root should equal (SplitByPresence("b.d", "bar2", "foo"))
             }
             "map correctly" in {
-                splitTree.map({(payload, index) => index}) should equal (new PartitionTree(splitTree.globalSchema, SplitByPresence(split.key, Bucket(1), Bucket(0))))
+                splitTree.map({(payload, index) => index}) should equal (new PartitionTree(splitTree.globalSchema, NoSorter, SplitByPresence(split.key, Bucket(1), Bucket(0))))
             }
             "modify correctly" in {
                 splitTree.modify({(payload, index) => payload + "SUFFIX"})
@@ -162,7 +163,7 @@ class PartitionTreeSpec extends WavesSpec
                 an [ImpossibleReplacementException] should be thrownBy spillTree.replace(spill.rest, split)
             }
             "map correctly" in {
-                spillTree.map({(payload, index) => index}) should equal (new PartitionTree(spillTree.globalSchema, Spill(SplitByPresence(split.key, Bucket(2), Bucket(1)), Bucket(0))))
+                spillTree.map({(payload, index) => index}) should equal (new PartitionTree(spillTree.globalSchema, NoSorter, Spill(SplitByPresence(split.key, Bucket(2), Bucket(1)), Bucket(0))))
             }
             "modify correctly" in {
                 spillTree.modify({(payload, index) => payload + "SUFFIX"})
@@ -180,7 +181,7 @@ class PartitionTreeSpec extends WavesSpec
               metadata should contain theSameElementsInOrderAs Seq(restMetadata, absentMetadata, presentMetadata)
             }
         }
-    }    
+    }
 }
 
 case class MockVisitor(override val result: Int) extends SingleResultVisitor[String,Int] {

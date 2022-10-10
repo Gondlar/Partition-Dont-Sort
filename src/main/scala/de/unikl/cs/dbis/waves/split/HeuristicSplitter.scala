@@ -11,20 +11,21 @@ import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, EvenHeuristic, Grouped
 import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
 import de.unikl.cs.dbis.waves.util.operators.{Grouper, PresenceGrouper}
 
+import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
+
 class HeuristicSplitter(
   threshold: Long,
   heuristic: Heuristic = EvenHeuristic
 ) extends GroupedSplitter {
   private implicit val ord = Ordering.by[Seq[SplitByPresencePath], Int](_.size)
 
-  private var partitions: PartitionTree[DataFrame] = null
+  private var partitions: AnyNode[DataFrame] = null
   private var queue: PriorityQueue[(Long,Seq[SplitByPresencePath])] = null
 
   private val SPLIT_GROUPER = PresenceGrouper
 
   override def prepare(df: DataFrame, path: String) = {
     super.prepare(df, path)
-    partitions = new PartitionTree(df.schema, Bucket(df))
     queue = PriorityQueue((Long.MaxValue, Seq.empty[SplitByPresencePath]))
     this
   }
@@ -36,7 +37,7 @@ class HeuristicSplitter(
     val calc = GroupedCalculator(data.schema)
     val pathMap = calc.paths(df).zipWithIndex.toMap
 
-    partitions.replace(partitions.root, Bucket(df))
+    partitions = Bucket(df)
     while (queue.nonEmpty) {
       val (count, pathToNext) = queue.dequeue()
       Logger.log("evenSplitter-start-partition", pathToNext)
@@ -53,7 +54,7 @@ class HeuristicSplitter(
           val absent = addPartition(nextData, pathIndex, pathToNext :+ Absent)
           assert(present.intersect(absent).count() == 0)
           val newSplit = SplitByPresence(path, Bucket(present), Bucket(absent))
-          partitions.replace(pathToNext, newSplit)
+          partitions = partitions.replace(pathToNext, newSplit)
         }
       }
       Logger.log("evenSplitter-end-partition", pathToNext)
@@ -73,5 +74,5 @@ class HeuristicSplitter(
   }
 
   override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
-    = partitions.map((_, index) => folders(index).name)
+    = new PartitionTree(data.schema, sorter, partitions.map((_, index) => folders(index).name))
 }

@@ -5,6 +5,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.util.operators.DefinitionLevelGrouper
+import de.unikl.cs.dbis.waves.partitions.PartitionTree
 
 class LexicographicSorterSpec extends WavesSpec
   with DataFrameFixture {
@@ -22,6 +23,16 @@ class LexicographicSorterSpec extends WavesSpec
                                                        , Seq(1, 1, 1)
                                                        , Seq(1, 1, 2)
       ))
+    }
+    "have a name" in {
+      LexicographicSorter.name should equal ("lexicographic")
+    }
+    "be convertable to JSON and back" in {
+      import PartitionTree._
+      
+      val json = LexicographicSorter.toJson
+      json should equal ("\"lexicographic\"")
+      PartitionTree.sorterFromJson(json) should equal (LexicographicSorter)
     }
   }
 }

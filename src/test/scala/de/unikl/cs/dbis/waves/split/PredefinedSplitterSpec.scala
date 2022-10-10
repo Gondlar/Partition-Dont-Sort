@@ -14,6 +14,7 @@ import org.apache.hadoop.fs.Path
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Absent}
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
+import de.unikl.cs.dbis.waves.sort.NoSorter
 
 import de.unikl.cs.dbis.waves.WavesTable._
 
@@ -143,7 +144,7 @@ class PredefinedSplitterSpec extends WavesSpec
       splitter.partition()
 
       Then("the written partition tree looks as defined")
-      val expextedTree = new PartitionTree(schema, shape)
+      val expextedTree = new PartitionTree(schema, NoSorter, shape)
       val result = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs (expextedTree)

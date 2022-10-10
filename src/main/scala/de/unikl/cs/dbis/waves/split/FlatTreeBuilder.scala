@@ -16,7 +16,7 @@ import scala.annotation.tailrec
   */
 trait FlatTreeBuilder extends GroupedSplitter {
   override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
-    = new PartitionTree(data.schema, toTree(folders.map(f => Bucket(f.name))))
+    = new PartitionTree(data.schema, sorter, toTree(folders.map(f => Bucket(f.name))))
 
   // we cannot use fold because AnyNode instances may not have a common ancestor
   private def toTree(folders: Seq[Bucket[String]]): AnyNode[String] = folders.size match {

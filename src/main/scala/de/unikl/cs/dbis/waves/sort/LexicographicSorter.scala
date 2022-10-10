@@ -4,6 +4,11 @@ import de.unikl.cs.dbis.waves.util.operators.{Grouper, DefinitionLevelGrouper}
 import org.apache.spark.sql.{DataFrame, Column}
 import org.apache.spark.sql.functions.{count_distinct,size}
 
+import java.lang.reflect.Type
+import com.google.gson.{
+  JsonSerializer,JsonSerializationContext,JsonElement,JsonPrimitive
+}
+
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 
 /**
@@ -13,6 +18,8 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   * See: Lemire and Kaser, Reordering columns for smaller indexes, 2011 
   */
 object LexicographicSorter extends Sorter {
+
+  override val name = "lexicographic"
 
   private val SORT_GROUPER = DefinitionLevelGrouper
 
@@ -36,4 +43,9 @@ object LexicographicSorter extends Sorter {
   }
 
   private def indexedColumn(i: Int): Column = SORT_GROUPER.GROUP_COLUMN(i)
+}
+
+object LexicographicSorterSerializer extends JsonSerializer[LexicographicSorter.type] {
+  override def serialize(src: LexicographicSorter.type, typeOfSrc: Type, ctx: JsonSerializationContext): JsonElement
+    = new JsonPrimitive(LexicographicSorter.name)
 }

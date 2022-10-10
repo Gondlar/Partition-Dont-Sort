@@ -73,7 +73,7 @@ class PredefinedSplitter(
         existingTree.replace(subtreePath, newSubtree)
         existingTree
       }
-      case Right(schema) => new PartitionTree(schema, newSubtree)
+      case Right(schema) => new PartitionTree(schema, sorter, newSubtree)
     }
   }
 

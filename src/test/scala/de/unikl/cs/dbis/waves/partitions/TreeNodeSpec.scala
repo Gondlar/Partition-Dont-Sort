@@ -64,6 +64,18 @@ class TreeNodeSpec extends WavesSpec
     }
   }
   it can {
+    "be converted to JSON and back" when itIsA {
+      import PartitionTree._
+      "bucket" in {
+        PartitionTree.treeFromJson(bucket.toJson) should equal (bucket)
+      }
+      "split" in {
+        PartitionTree.treeFromJson(split.toJson) should equal (split)
+      }
+      "spill" in {
+        PartitionTree.treeFromJson(spill.toJson) should equal (spill)
+      }
+    }
     "identify its buckets" when itIsA {
       "bucket" in {
         bucket.buckets should equal (Seq(bucket))

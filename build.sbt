@@ -20,8 +20,8 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 //testOptions += Tests.Argument("-oF")
 
-logBuffered in Test := false
-classLoaderLayeringStrategy in Test := ClassLoaderLayeringStrategy.Flat // Needed for coverage tests with spark
+Test / logBuffered := false
+Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat // Needed for coverage tests with spark
                                                                         // Otherwise the ClassLoader does not find parquet
 
 // Overage settings

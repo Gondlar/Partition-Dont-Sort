@@ -4,6 +4,7 @@ import schemas._
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.SchemaFixture
+import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.types.{StructType, DataType}
 
 /**
@@ -41,5 +42,35 @@ class DataTypeSpec extends WavesSpec
                 schema.optionalLeafCount should equal (3)
             }
         }
+    }
+    "A StructType" can {
+      "mark a path as present" when {
+        "the path goes to a leaf" in {
+          val result = schema.withPresent(PathKey("b.d"))
+          val b = result.fields(result.fieldIndex("b"))
+          b should not be 'nullable
+          val bData = b.dataType.asInstanceOf[StructType]
+          val d = bData.fields(bData.fieldIndex("d"))
+          d should not be 'nullable
+        }
+        "the path goes to an inner node" in {
+          val result = schema.withPresent(PathKey("b"))
+          val b = result.fields(result.fieldIndex("b"))
+          b should not be 'nullable
+          val bData = b.dataType.asInstanceOf[StructType]
+          val d = bData.fields(bData.fieldIndex("d"))
+          d shouldBe 'nullable
+        }
+      }
+    }
+    it should {
+      "fail to mark a path as present" when {
+        "the path is too long" in {
+          an [IllegalArgumentException] shouldBe thrownBy (schema.withPresent(PathKey("b.d.f")))
+        }
+        "the path is invalid" in {
+          an [IllegalArgumentException] shouldBe thrownBy (schema.withPresent(PathKey("foo")))
+        }
+      }
     }
 }

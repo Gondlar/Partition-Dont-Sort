@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.util.nested
 
-import org.apache.spark.sql.types.{DataType, StructType, MapType, ArrayType}
+import org.apache.spark.sql.types.{DataType, StructType, StructField, MapType, ArrayType}
+import de.unikl.cs.dbis.waves.util.PathKey
 
 object schemas {
     /**
@@ -143,5 +144,43 @@ object schemas {
           */
         def subAcceptAllRev(visitor : DataTypeVisitor) : Unit
             = tpe.fields.reverseIterator.foreach(_.dataType.accept(visitor))
+
+        /**
+          * Mark the given path as present in the schema, i.e., all StructFields
+          * on the path are not nullable in the result
+          *
+          * @param key the path to mark as present
+          * @return the changed schema
+          * @throws IllegalArgumentException if the given path does not fit the
+          *                                  schema
+          */
+        def withPresent(key: PathKey) = {
+          var rest: Option[PathKey] = Some(key)
+          var result: DataType = null
+          val visitor = new DataTypeVisitor {
+            override def visitLeaf(leaf: DataType): Unit = rest match {
+              case None => result = leaf
+              case Some(_) => throw new IllegalArgumentException(s"key \'$key\' does not exist")
+            }
+
+            override def visitStruct(row: StructType): Unit = rest match {
+              case None => result = row
+              case Some(key) => {
+                val index = row.fieldIndex(key.head)
+                rest = if (key.isNested) Some(key.tail) else None
+                row.subAccept(index, this)
+
+                val builder = Array.newBuilder[StructField]
+                val fields = row.fields.toSeq
+                builder ++= fields.take(index)
+                builder += fields(index).copy(dataType = result, nullable = false)
+                builder ++= fields.drop(index+1)
+                result = StructType(builder.result())
+              }
+            }
+          }
+          tpe.accept(visitor)
+          result.asInstanceOf[StructType]
+        }
     }
 }

@@ -111,6 +111,12 @@ class PartitionMetadata(
   def isSpillBucket = path.lastOption.map(_ == Rest).getOrElse(false)
 
   /**
+    * @return true iff this Metadata belongs to the root of a partition tree,
+    *         i.e., whether its path is empty
+    */
+  def isRoot = path.isEmpty
+
+  /**
     * @return Get the path to the Node this metadata refers to
     */
   def getPath: Seq[PartitionTreePath] = path

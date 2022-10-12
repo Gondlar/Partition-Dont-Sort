@@ -129,11 +129,17 @@ class PartitionMetadataSpec extends WavesSpec
         }
         emptyMetadata.getPath shouldBe empty
       }
+      "be root" in {
+        emptyMetadata shouldBe 'root
+      }
     }
     "it contains a known present path" should {
       behave like anyMetadata(() => emptyMetadata)
       behave like metadataWithoutAbsentKeys(() => presentMetadata)
 
+      "not be root" in {
+        presentMetadata should not be 'root
+      }
       "contain only that present path" in {
         presentMetadata.getPresent should contain theSameElementsAs (Seq(thePathKey))
       }
@@ -181,6 +187,9 @@ class PartitionMetadataSpec extends WavesSpec
       behave like anyMetadata(() => emptyMetadata)
       behave like metadataWithoutPresentKeys(() => absentMetadata)
 
+      "not be root" in {
+        absentMetadata should not be 'root
+      }
       "contain only that absent path" in {
         absentMetadata.getAbsent should contain theSameElementsAs (Seq(thePathKey))
       }

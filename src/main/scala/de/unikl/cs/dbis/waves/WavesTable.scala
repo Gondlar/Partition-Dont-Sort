@@ -119,7 +119,7 @@ class WavesTable private (
       if (hasNonEmptySpillBuckets) {
         // repartition all data into the desired partitioning scheme
         val data = spark.read.parquet(findRequiredPartitions(Seq.empty).map(_.filename):_*)
-        new PredefinedSplitter(partitionTree.root, Seq.empty)
+        new PredefinedSplitter(partitionTree.root)
           .sortWith(partitionTree.sorter)
           .prepare(data, basePath)
           .partition()

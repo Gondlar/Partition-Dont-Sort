@@ -25,7 +25,7 @@ class PredefinedSplitterSpec extends WavesSpec
   "The PredefinedSplitter" can {
     "split a dataframe into predefined partitions" in {
       Given("a DataFrame and a PartitionTree")
-      val splitter = new PredefinedSplitter(split, Seq.empty)
+      val splitter = new PredefinedSplitter(split)
       splitter.prepare(df, tempDirectory.toString())
     
       When("we partition the data frame")
@@ -53,7 +53,7 @@ class PredefinedSplitterSpec extends WavesSpec
       val interface = PartitionTreeHDFSInterface(spark, directory)
       interface.read().get should haveTheSameStructureAs(bucketTree)
 
-      val splitter = new PredefinedSplitter(split, Seq.empty)
+      val splitter = new PredefinedSplitter(split)
       splitter.prepare(data, directory)
       
       When("we partition it")
@@ -112,7 +112,7 @@ class PredefinedSplitterSpec extends WavesSpec
     }
     "split when there are Spill nodes in the new subtree" in {
       Given("a DataFrame and a PartitionTree")
-      val splitter = new PredefinedSplitter(spill, Seq.empty)
+      val splitter = new PredefinedSplitter(spill)
       splitter.prepare(df, tempDirectory.toString())
     
       When("we partition the data frame")
@@ -137,7 +137,7 @@ class PredefinedSplitterSpec extends WavesSpec
     "handle nested splits" in {
       Given("a DataFrame and a PartitionTree")
       val shape = SplitByPresence("a", Bucket("foo"), SplitByPresence("b.d", "bar", "baz"))
-      val splitter = new PredefinedSplitter(shape, Seq.empty)
+      val splitter = new PredefinedSplitter(shape)
       splitter.prepare(df, tempDirectory.toString())
       
       When("we partition it")

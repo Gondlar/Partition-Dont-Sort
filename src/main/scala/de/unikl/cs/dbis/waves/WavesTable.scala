@@ -111,7 +111,7 @@ class WavesTable private (
       */
     def unspill: Unit = {
       // Find all data in spill buckets
-      val spillBucketPaths = partitionTree.metadata.filter(_.isSpillBucket).map(_.getPath)
+      val spillBucketPaths = partitionTree.metadata().filter(_.isSpillBucket).map(_.getPath)
       val hasNonEmptySpillBuckets = spillBucketPaths
         .map(p => partitionTree.find(p).get.asInstanceOf[Bucket[String]].folder(basePath))
         .filter(!_.isEmpty(fs))

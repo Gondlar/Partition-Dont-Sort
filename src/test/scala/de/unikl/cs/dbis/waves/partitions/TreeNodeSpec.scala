@@ -159,18 +159,18 @@ class TreeNodeSpec extends WavesSpec
     }
     "find all its Buckets' metadata" when itIsA {
       "bucket" in {
-        bucket.metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata())
+        bucket.metadata() should contain theSameElementsInOrderAs Seq(PartitionMetadata())
       }
       "split" in {
         val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Absent))
         val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present))
-        split.metadata should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
+        split.metadata() should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
       }
       "spill" in {
         val restMetadata = PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest))
         val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Partitioned, Absent))
         val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present))
-        spill.metadata should contain theSameElementsInOrderAs Seq(restMetadata, absentMetadata, presentMetadata)
+        spill.metadata() should contain theSameElementsInOrderAs Seq(restMetadata, absentMetadata, presentMetadata)
       }
     }
     "find its metadata by path" when itIsA {

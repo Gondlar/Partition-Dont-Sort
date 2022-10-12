@@ -45,7 +45,7 @@ class PredefinedSplitter(
   }
   
   override protected def split(df: DataFrame): Seq[DataFrame] = {
-    val metadata = shape.metadata
+    val metadata = shape.metadata()
     positions = bucketPositions(metadata)
     val nonSpill = metadata.filter(!_.isSpillBucket)
     if (nonSpill.length > 1) {

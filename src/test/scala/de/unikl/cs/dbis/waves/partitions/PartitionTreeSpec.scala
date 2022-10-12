@@ -63,7 +63,7 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata())
             }
             "that root should have empty metadata" in {
-              val metadata = bucketTree.metadata
+              val metadata = bucketTree.metadata()
               metadata should contain theSameElementsInOrderAs Seq(PartitionMetadata())
             }
         }
@@ -116,7 +116,7 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present)))
             }
             "contain that split in its childrens metadata" in {
-              val metadata = splitTree.metadata
+              val metadata = splitTree.metadata()
               val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Absent))
               val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present))
               metadata should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
@@ -174,7 +174,7 @@ class PartitionTreeSpec extends WavesSpec
                 metadata should equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(Partitioned)))
             }
             "contain that spill in its childrens metadata" in {
-              val metadata = spillTree.metadata
+              val metadata = spillTree.metadata()
               val restMetadata = PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest))
               val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Partitioned, Absent))
               val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present))

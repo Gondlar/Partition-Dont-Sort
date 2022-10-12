@@ -48,7 +48,8 @@ trait CollectBucketMetadataOperations {
       *
       * @return the metadata as a sequence in the same order as getBuckets
       */
-    def metadata = node(new CollectBucketMetadataVisitor[Payload])
+    def metadata(initialMetadata: PartitionMetadata = PartitionMetadata())
+      = node(new CollectBucketMetadataVisitor[Payload](initialMetadata))
   }
   implicit class CollectBucketMetadataTree[Payload](tree: PartitionTree[Payload]) {
     /**
@@ -56,6 +57,7 @@ trait CollectBucketMetadataOperations {
       *
       * @return the metadata as a sequence in the same order as getBuckets
       */
-    def metadata = tree.root(new CollectBucketMetadataVisitor[Payload])
+    def metadata(initialMetadata: PartitionMetadata = PartitionMetadata())
+      = tree.root(new CollectBucketMetadataVisitor[Payload](initialMetadata))
   }
 }

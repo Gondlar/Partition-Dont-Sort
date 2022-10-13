@@ -40,4 +40,18 @@ with DataFrameFixture {
       result.collect() should contain theSameElementsInOrderAs (test.drop("b").collect())
     }
   }
+  "The conditionally Transform" when {
+    "its condition parameter is true" should {
+      "apply the transform" in {
+        val transformed = df.transform(conditionally(true, _.filter(col("b").isNull)))
+        transformed.collect() should contain theSameElementsAs (df.filter(col("b").isNull).collect())
+      }
+    }
+    "its condition parameter is false" should {
+      "change nothing" in {
+        val transformed = df.transform(conditionally(false, _.filter(col("b").isNull)))
+        transformed.collect() should contain theSameElementsAs (df.collect())
+      }
+    }
+  }
 }

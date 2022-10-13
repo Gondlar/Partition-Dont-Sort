@@ -147,4 +147,16 @@ object Transform {
     val schema = metadata.getPresent.foldLeft(dropped.schema)((schema, path) => schema.withPresent(path))
     dropped.sparkSession.createDataFrame(dropped.rdd, schema)
   }
+
+  /**
+    * Apply a transform only if a condition holds
+    *
+    * @param condition the condition
+    * @param transform the transform
+    * @param df the DataFrame to transform
+    * @return if condition was true, df with transform applied to it,
+    *         otherwise just df unchanged
+    */
+  def conditionally(condition: Boolean, transform: DataFrame => DataFrame)(df: DataFrame)
+    = if (condition) df.transform(transform) else df
 }

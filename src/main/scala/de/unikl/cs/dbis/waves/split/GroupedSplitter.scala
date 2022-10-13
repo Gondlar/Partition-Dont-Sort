@@ -122,3 +122,29 @@ abstract class GroupedSplitter(
 
     protected def data: IntermediateData = IntermediateData.fromRaw(data(()))
 }
+
+object Transform {
+
+  /**
+    * Modify the schema of the given DataFrame according to the given metadata.
+    * Columns listed as absent in the metadata are removed. Columns listed as
+    * present in the metadata are marked as such in the schema.
+    * 
+    * It is not checked whether the data in the given DataFrame conforms to
+    * the given metadata. If the metadata lists a column as absent which still
+    * contains data in df, that data is lost. If the metadata lists a column as
+    * present even though df has absent values for that column, reading from the
+    * returned DataFrame will fail.
+    *
+    * @param metadata the medatata
+    * @param df the DataFrame to transform
+    * @return the transformed DataFrame
+    */
+  def clipSchema(metadata: PartitionMetadata)(df: DataFrame) = {
+    import de.unikl.cs.dbis.waves.util.nested.schemas._
+
+    val dropped = metadata.getAbsent.foldLeft(df)((df, path) => df.drop(path.toSpark))
+    val schema = metadata.getPresent.foldLeft(dropped.schema)((schema, path) => schema.withPresent(path))
+    dropped.sparkSession.createDataFrame(dropped.rdd, schema)
+  }
+}

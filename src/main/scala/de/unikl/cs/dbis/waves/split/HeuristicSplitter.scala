@@ -6,6 +6,7 @@ import scala.collection.mutable.PriorityQueue
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, Bucket, SplitByPresence}
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresencePath, Absent, Present}
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.split.recursive.{Heuristic, EvenHeuristic, GroupedCalculator}
 import de.unikl.cs.dbis.waves.util.{Logger, PartitionFolder}
@@ -32,7 +33,7 @@ class HeuristicSplitter(
 
   override protected def splitGrouper: Grouper = SPLIT_GROUPER
 
-  override protected def split(df: DataFrame): Seq[DataFrame] = {
+  override protected def split(df: DataFrame): (Seq[DataFrame], Seq[PartitionMetadata]) = {
     Logger.log("evenSplitter-start")
     val calc = GroupedCalculator(data.sourceSchema)
     val pathMap = calc.paths(df).zipWithIndex.toMap
@@ -59,7 +60,7 @@ class HeuristicSplitter(
       }
       Logger.log("evenSplitter-end-partition", pathToNext)
     }
-    partitions.buckets.map(_.data).toSeq
+    (partitions.buckets.map(_.data).toSeq, partitions.metadata())
   }
 
   private def addPartition(df: DataFrame, index : Int, location: Seq[SplitByPresencePath]) = {

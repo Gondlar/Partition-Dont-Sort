@@ -9,14 +9,18 @@ import java.nio.file.Path
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SparkSession, DataFrame, Row}
+import org.apache.spark.sql.functions.col
 import scala.collection.mutable.{ArrayBuilder, WrappedArray}
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import de.unikl.cs.dbis.waves.partitions.Absent
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper,PresenceGrouper,NullGrouper}
 import de.unikl.cs.dbis.waves.sort.NoSorter
 import de.unikl.cs.dbis.waves.sort.Sorter
-import de.unikl.cs.dbis.waves.partitions.Bucket
+import org.apache.spark.sql.types.StructType
 
 class GroupedSplitterSpec extends WavesSpec
     with DataFrameFixture with PartitionTreeFixture with TempFolderFixture
@@ -39,6 +43,7 @@ class GroupedSplitterSpec extends WavesSpec
                 val rdd : RDD[Row] = spark.sparkContext.parallelize(partition.toSeq)
                 spark.sqlContext.createDataFrame(rdd, schema)
             }
+            val testMetadata = Seq.fill(frames.size)(PartitionMetadata(Seq.empty, Seq(PathKey("a")), Seq(Absent)))
             val sortedSets = ArrayBuilder.make[IntermediateData]
             var builtSet: Seq[DataFrame] = Seq.empty
             new GroupedSplitter(new Sorter {
@@ -54,9 +59,9 @@ class GroupedSplitterSpec extends WavesSpec
             }) {
                 override protected def splitGrouper: Grouper = NullGrouper
 
-                override protected def split(df: DataFrame): Seq[DataFrame] = {
+                override protected def split(df: DataFrame): (Seq[DataFrame], Seq[PartitionMetadata]) = {
                     df.collect() should contain theSameElementsAs df.collect()
-                    frames
+                    (frames, testMetadata)
                 }
 
                 override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = null
@@ -85,11 +90,11 @@ class GroupedSplitterSpec extends WavesSpec
             }
 
             override def grouper: Grouper = DefinitionLevelGrouper
-          }) {
+          }) with NoKnownMetadata {
 
             override protected def splitGrouper: Grouper = PresenceGrouper
 
-            override protected def split(df: DataFrame): Seq[DataFrame] = {
+            override protected def splitWithoutMetadata(df: DataFrame): Seq[DataFrame] = {
               df.columns should contain theSameElementsAs (PresenceGrouper.columns)
               Seq(df)
             }
@@ -131,6 +136,28 @@ class GroupedSplitterSpec extends WavesSpec
           And("only the expected calls were made")
           splitter.manyCalled should equal (false)
           splitter.oneCalled should equal (true)
+        }
+        "perform schema modifications when writing" ignore {
+          Given("A GroupedSplitter, a bucket, and its metadata")
+          val metadata = PartitionMetadata(Seq.empty, Seq(PathKey("b")), Seq.empty)
+          val bucket = df.filter(col("b").isNull)
+          val splitter = TestWriteSplitter(true,metadata)
+            .prepare(bucket, tempDirectory.toString)
+            .modifySchema(true)
+            .asInstanceOf[TestWriteSplitter]
+          
+          When("we write the bucket")
+          splitter.partition()
+
+          Then("we can read it again")
+          val expectedSchema = StructType(schema.fields.filter(_.name != "b"))
+          val folder = new File(tempDirectory.toString())
+            .listFiles()
+            .filter(file => file.isDirectory() && file.getName() != PartitionFolder.TEMP_DIR)
+            .head
+          val written = spark.read.schema(expectedSchema).parquet(folder.getPath())
+          written.schema should equal (expectedSchema)
+          written.collect should contain theSameElementsInOrderAs (df.collect())
         }
         "directly write multiple partitions correctly" in {
           Given("A GroupedSplitter")
@@ -200,7 +227,7 @@ class GroupedSplitterSpec extends WavesSpec
         }
     }
 
-    case class TestWriteSplitter(var doWrite: Boolean) extends GroupedSplitter {
+    case class TestWriteSplitter(var doWrite: Boolean, metadata: PartitionMetadata = PartitionMetadata()) extends GroupedSplitter {
         var oneCalled = false
         var manyCalled = false
 
@@ -219,7 +246,8 @@ class GroupedSplitterSpec extends WavesSpec
           = super.write(buckets)
 
         override protected def splitGrouper: Grouper = NullGrouper
-        override protected def split(df: DataFrame): Seq[DataFrame] = Seq(df)
+        override protected def split(df: DataFrame): (Seq[DataFrame], Seq[PartitionMetadata])
+          = (Seq(df), Seq(metadata))
         override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = new PartitionTree(schema, NoSorter)
 
         override def writeMetadata(tree: PartitionTree[String]): Unit

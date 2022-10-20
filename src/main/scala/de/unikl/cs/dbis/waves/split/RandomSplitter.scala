@@ -8,10 +8,10 @@ import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
   */
 class RandomSplitter(
   numPartitions: Int
-) extends GroupedSplitter with FlatTreeBuilder {
+) extends GroupedSplitter with FlatTreeBuilder with NoKnownMetadata {
 
   override protected def splitGrouper: Grouper = NullGrouper
 
-  override protected def split(df: DataFrame): Seq[DataFrame]
+  override protected def splitWithoutMetadata(df: DataFrame): Seq[DataFrame]
     = df.randomSplit(Array.fill(numPartitions)(1)).filter(!_.isEmpty)
 }

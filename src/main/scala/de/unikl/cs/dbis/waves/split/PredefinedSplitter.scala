@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.split
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 
-import de.unikl.cs.dbis.waves.partitions.{TreeNode,PartitionTree,PartitionTreePath,PartitionMetadata}
+import de.unikl.cs.dbis.waves.partitions.{TreeNode,PartitionTree,PartitionMetadata}
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,NullGrouper}
 import de.unikl.cs.dbis.waves.util.PartitionFolder
@@ -16,7 +16,7 @@ import TreeNode.AnyNode
   */
 class PredefinedSplitter(
   shape: AnyNode[String],
-  subtreePath: Seq[PartitionTreePath] = Seq.empty,
+  subtreeMetadata: PartitionMetadata = PartitionMetadata()
 ) extends GroupedSplitter {
 
   /**
@@ -36,7 +36,7 @@ class PredefinedSplitter(
     super.prepare(df, path)
     tree = getHDFS.read() match {
       case Some(value) => Left(value)
-      case None if subtreePath.isEmpty => Right(df.schema)
+      case None if subtreeMetadata.isRoot => Right(df.schema)
       case _ => throw new IllegalArgumentException(
         "the target directory may only be empty when the subtree path points to the root"
       )
@@ -44,13 +44,13 @@ class PredefinedSplitter(
     this
   }
   
-  override protected def split(df: DataFrame): Seq[DataFrame] = {
-    val metadata = shape.metadata()
+  override protected def split(df: DataFrame): (Seq[DataFrame], Seq[PartitionMetadata]) = {
+    val metadata = shape.metadata(subtreeMetadata)
     positions = bucketPositions(metadata)
     val nonSpill = metadata.filter(!_.isSpillBucket)
     if (nonSpill.length > 1) {
-      nonSpill.map(metadata => df.filter(makeFilter(df, metadata)))
-    } else Seq(df)
+      (nonSpill.map(metadata => df.filter(makeFilter(df, metadata))), nonSpill)
+    } else (Seq(df), nonSpill)
   }
 
   private def bucketPositions(metadata: Seq[PartitionMetadata])
@@ -70,7 +70,7 @@ class PredefinedSplitter(
     val newSubtree = treeByShape(buckets)
     tree match {
       case Left(existingTree) => {
-        existingTree.replace(subtreePath, newSubtree)
+        existingTree.replace(subtreeMetadata.getPath, newSubtree)
         existingTree
       }
       case Right(schema) => new PartitionTree(schema, sorter, newSubtree)

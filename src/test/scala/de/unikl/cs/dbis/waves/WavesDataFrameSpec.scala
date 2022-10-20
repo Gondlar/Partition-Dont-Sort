@@ -91,6 +91,7 @@ with PartitionTreeMatchers {
     override def doFinalize(enabled: Boolean): Splitter[Unit] = ???
     override def finalizeEnabled: Boolean = ???
     override def sortWith(sorter: Sorter): Splitter[Unit] = ???
+    override def modifySchema(enabled: Boolean): Splitter[Unit] = ???
     override protected def load(context: Unit): DataFrame = ???
   }
 }

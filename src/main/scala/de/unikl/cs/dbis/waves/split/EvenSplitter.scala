@@ -12,11 +12,11 @@ import org.apache.spark.sql.functions.monotonically_increasing_id
   */
 class EvenSplitter(
   numPartitions: Int
-) extends GroupedSplitter with FlatTreeBuilder {
+) extends GroupedSplitter with FlatTreeBuilder with NoKnownMetadata {
 
   override protected def splitGrouper: Grouper = NullGrouper
 
-  override protected def split(df: DataFrame): Seq[DataFrame] = {
+  override protected def splitWithoutMetadata(df: DataFrame): Seq[DataFrame] = {
     val tmp = TempColumn.apply("part")
     val withPartitionId = df.withColumn(tmp, monotonically_increasing_id().mod(numPartitions))
     0.until(numPartitions)

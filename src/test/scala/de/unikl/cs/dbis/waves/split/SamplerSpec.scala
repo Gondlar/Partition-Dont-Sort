@@ -41,7 +41,6 @@ class SamplerSpec extends WavesSpec
             super.sample(data, context)
         }
         override def data(context: Any) = super.data(context)
-        override def sortWith(sorter: Sorter): Splitter[Any] = ???
     }
 
     class MockSplitter() extends Splitter[Any] {
@@ -51,6 +50,7 @@ class SamplerSpec extends WavesSpec
         override def doFinalize(enabled: Boolean): Splitter[Any] = ???
         override def finalizeEnabled: Boolean = ???
         override def sortWith(sorter: Sorter): Splitter[Any] = ???
+        override def modifySchema(enabled: Boolean): Splitter[Any] = ???
         override def partition() = ()
         override def load(context: Any): DataFrame = df
     }

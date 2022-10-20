@@ -151,7 +151,7 @@ class WavesTable private (
                               .buckets
                               .map(b => spark.read.parquet(b.folder(basePath).filename))
                               .reduce((lhs, rhs) => lhs.union(rhs))
-        new PredefinedSplitter(shape, path)
+        new PredefinedSplitter(shape, partitionTree.metadataFor(path))
           .sortWith(partitionTree.sorter)
           .doFinalize(finalize)
           .prepare(df, basePath)

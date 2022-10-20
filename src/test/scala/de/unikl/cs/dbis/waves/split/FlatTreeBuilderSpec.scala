@@ -50,10 +50,10 @@ class FlatTreeBuilderSpec extends WavesSpec
     }
   }
 
-  case class TestBuilder() extends GroupedSplitter with FlatTreeBuilder {
+  case class TestBuilder() extends GroupedSplitter with FlatTreeBuilder with NoKnownMetadata {
     override protected def load(context: Unit): DataFrame = df
     override protected def splitGrouper: Grouper = ???
-    override protected def split(df: DataFrame): Seq[DataFrame] = ???
+    override protected def splitWithoutMetadata(df: DataFrame): Seq[DataFrame] = ???
 
     override def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String] 
       = super.buildTree(folders)

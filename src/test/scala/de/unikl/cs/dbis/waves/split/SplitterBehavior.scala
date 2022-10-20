@@ -8,6 +8,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 
 import org.apache.spark.sql.DataFrame
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 
 trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFrameFixture with TempFolderFixture =>
 
@@ -48,11 +49,13 @@ trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFr
 
   def deterministicSplitter(splitter: GroupedSplitter) = {
     "produce repeatable results" in {
-      val split = PrivateMethod[Seq[DataFrame]]('split)
+      val split = PrivateMethod[(Seq[DataFrame],Seq[PartitionMetadata])]('split)
 
       splitter.prepare(df, tempDirectory.toString())
-      val dfs1 = splitter invokePrivate split(df)
-      val dfs2 = splitter invokePrivate split(df)
+      val (dfs1,metadata1) = splitter invokePrivate split(df)
+      val (dfs2,metadata2) = splitter invokePrivate split(df)
+
+      metadata1 should contain theSameElementsInOrderAs (metadata2)
       forAll (dfs1.zip(dfs2)) { case (df1, df2) =>
         df1.collect() should contain theSameElementsAs (df1.collect)
         df2.collect() should contain theSameElementsAs (df1.collect)

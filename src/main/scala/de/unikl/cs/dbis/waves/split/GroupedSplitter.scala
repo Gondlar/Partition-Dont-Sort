@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.split
 
 import org.apache.spark.sql.{SparkSession, DataFrame}
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
@@ -11,6 +12,8 @@ import de.unikl.cs.dbis.waves.util.functional._
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
 import scala.concurrent.duration.Duration
 import org.apache.hadoop.fs.Path
+
+import Transform._
 
 /**
   * Implements splitting based off groups of strucuturally identical rows.
@@ -49,6 +52,11 @@ abstract class GroupedSplitter(
 
     override def sortWith(sorter: Sorter) = { this.sorter = sorter; this }
 
+    protected var schemaModificationsEnabled = false
+
+    override def modifySchema(enabled: Boolean)
+      = { schemaModificationsEnabled = enabled; this }
+
     override protected def load(context: Unit): DataFrame = source
 
     /**
@@ -61,9 +69,12 @@ abstract class GroupedSplitter(
       * Build buckets based off the grouped data
       *
       * @param df the data groups grouped by [[splitGrouper]]
-      * @return the buckets of data represented as sets of data groupings
+      * @return the buckets of data represented as sets of data groupings as
+      *         well as the metadata known for each bucket. The metadata is used
+      *         to optimize the written schema if schema modification are
+      *         enabled
       */
-    protected def split(df: DataFrame): Seq[DataFrame]
+    protected def split(df: DataFrame): (Seq[DataFrame], Seq[PartitionMetadata])
 
     /**
       * Build the [[PartitionTree]] from the given buckets. The list of buckets
@@ -89,13 +100,16 @@ abstract class GroupedSplitter(
         val types = data.group(splitGrouper)
         types.groups.persist()
         try {
-          val sorted = for (bucket <- split(types.groups)) yield
+          val (buckets, metadata) = split(types.groups)
+          assert(buckets.size == metadata.size)
+          val sorted = for ((bucket, metadata) <- buckets.zip(metadata)) yield
             types.copy(groups = bucket)
               .group(sorter.grouper)
               .transform(sorter.sort)
               .transform{
                 case IntermediateData(groups, grouper, source) => IntermediateData.fromRaw(grouper.sort(groups, source))
               }.toDF
+	            .transform(conditionally(schemaModificationsEnabled, clipSchema(metadata)))
               .transform(finalize)
           sorted |> write |> buildTree |> writeMetadata
         } finally types.groups.unpersist()

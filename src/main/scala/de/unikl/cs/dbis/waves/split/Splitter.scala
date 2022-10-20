@@ -67,6 +67,17 @@ abstract class Splitter[Context] {
     def sortWith(sorter: Sorter): Splitter[Context]
 
     /**
+      * Modify the partition schemas to crop out unnecessary columns to save
+      * more space. By default, this is disabled. Some splitters may not
+      * support enabling this mode.
+      *
+      * @param enabled whether we do modify the schema
+      * @return this splitter for chaining
+      * @throws IllegalArgumentException if the chosen mode is unsupported
+      */
+    def modifySchema(enabled: Boolean): Splitter[Context]
+
+    /**
       * Automatically Partition the table
       */
     def partition(): Unit

@@ -12,6 +12,7 @@ import org.apache.spark.sql.{DataFrame, Column}
 import org.apache.hadoop.fs.Path
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Absent}
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.sort.NoSorter
@@ -66,7 +67,7 @@ class PredefinedSplitterSpec extends WavesSpec
 
       When("we perform a further split")
       val newShape = SplitByPresence("a", "test1", "test2")
-      val splitter2 = new PredefinedSplitter(newShape, Seq(Absent))
+      val splitter2 = new PredefinedSplitter(newShape, PartitionMetadata(Seq.empty, Seq.empty, Seq(Absent)))
       splitter2.prepare(data.filter(col(split.key.toSpark).isNull), directory)
       splitter2.partition()
 
@@ -162,7 +163,7 @@ class PredefinedSplitterSpec extends WavesSpec
   }
   it should {
     "refuse to prepare an empty directory given a subpath" in {
-      val splitter = new PredefinedSplitter(spill, Seq(Absent))
+      val splitter = new PredefinedSplitter(spill, PartitionMetadata(Seq.empty, Seq.empty, Seq(Absent)))
       an [IllegalArgumentException] shouldBe thrownBy (splitter.prepare(df, tempDirectory.toString))
     }
   }

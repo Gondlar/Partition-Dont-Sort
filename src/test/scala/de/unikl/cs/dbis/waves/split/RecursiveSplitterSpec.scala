@@ -91,11 +91,20 @@ class RecursiveSplitterSpec extends WavesSpec
         "accept the NoSorter" in {
           val splitter = new RecursiveSplitter(0, 0, null)
           val after = splitter.sortWith(NoSorter)
-          (after eq splitter) shouldBe (true)
+          after shouldBe theSameInstanceAs (splitter)
         }
         "accept no other Sorter" in {
           val splitter = new RecursiveSplitter(0, 0, null)
           an [IllegalArgumentException] shouldBe thrownBy (splitter.sortWith(LexicographicSorter))
+        }
+        "allow turning off schema modifications" in {
+          val splitter = new RecursiveSplitter(0, 0, null)
+          val after = splitter.modifySchema(false)
+          after shouldBe theSameInstanceAs (splitter)
+        }
+        "not allow turning on schema modifications" in {
+          val splitter = new RecursiveSplitter(0, 0, null)
+          an [IllegalArgumentException] shouldBe thrownBy (splitter.modifySchema(true))
         }
     }
 }

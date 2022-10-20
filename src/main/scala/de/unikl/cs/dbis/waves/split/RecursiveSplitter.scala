@@ -60,6 +60,12 @@ final case class RecursiveSplitter(
       this
     }
 
+    override def modifySchema(enabled: Boolean) = {
+      if (enabled)
+        throw new IllegalArgumentException("schema modifications are not supported")
+      this
+    }
+
     /**
       * @return the table this splitter writes to
       */

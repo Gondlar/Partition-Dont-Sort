@@ -5,22 +5,23 @@ import org.apache.spark.sql.{SparkSession,SaveMode}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresence,Bucket}
+import de.unikl.cs.dbis.waves.split.PredefinedSplitter
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.WavesTable
 
+import WavesTable._
+
 object InitializeWavesData {
     def main(args: Array[String]) : Unit = {
+        val jobConfig = JobConfig.fromArgs(args)
+        println(jobConfig.isLocal)
+
         Logger.log("job-start")
-        val appName = "InitializeWavesData"
-        val conf = new SparkConf().setAppName(appName)
-        //conf.setMaster("local") // comment this line to run on the cluster
-        val spark = SparkSession.builder().config(conf).getOrCreate()
+        val spark = jobConfig.makeSparkSession("InitializeWavesData")
 
         Logger.log("initialize-start")
-        val df = spark.read.format("json").load(JobConfig.inputPath)
-        df.write.mode(SaveMode.Overwrite).format(JobConfig.wavesFormat).save(JobConfig.wavesPath)
-        val relation = WavesTable(s"Repartition ${JobConfig.wavesPath}", spark, JobConfig.wavesPath, CaseInsensitiveStringMap.empty())
-        Logger.log("convert-done", relation.diskSize())
+        val df = spark.read.json(jobConfig.inputPath)
+        df.write.mode(SaveMode.Overwrite).waves(jobConfig.wavesPath, df.schema)
         val manualShape = SplitByPresence( "quoted_status"
                                          , Bucket("quotes")
                                          , SplitByPresence( "retweeted_status"
@@ -31,7 +32,8 @@ object InitializeWavesData {
                                                                            )
                                                           )
                                          )
-        relation.repartition(Seq.empty, manualShape)
+        df.saveAsWaves(new PredefinedSplitter(manualShape), jobConfig.wavesPath)
+        val relation = spark.read.waves(jobConfig.wavesPath).getWavesTable.get
         Logger.log("partition-done", relation.diskSize())
         relation.vacuum()
         Logger.log("initialize-end")

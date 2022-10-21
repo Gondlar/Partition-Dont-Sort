@@ -9,21 +9,22 @@ import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.split.RecursiveSplitter
 import de.unikl.cs.dbis.waves.split.recursive.SwitchHeuristic
 
+import WavesTable._
+
 object AutopartitionWavesDataSwitch {
     def main(args: Array[String]) : Unit = {
+        val jobConfig = JobConfig.fromArgs(args)
+
         Logger.log("job-start")
-        val appName = "Autopartition WavesData Switch"
-        val conf = new SparkConf().setAppName(appName)
-        //conf.setMaster("local") // comment this line to run on the cluster
-        val spark = SparkSession.builder().config(conf).getOrCreate()
+        val spark = jobConfig.makeSparkSession("Autopartition WavesData Switch")
 
         Logger.log("initialize-start")
-        val df = spark.read.format("json").load(JobConfig.inputPath)
-        df.write.mode(SaveMode.Overwrite).format(JobConfig.wavesFormat).save(JobConfig.wavesPath)
-        val relation = WavesTable(s"Repartition ${JobConfig.wavesPath}", spark, JobConfig.wavesPath, CaseInsensitiveStringMap.empty())
+        val df = spark.read.format("json").load(jobConfig.inputPath)
+        df.write.mode(SaveMode.Overwrite).waves(jobConfig.wavesPath, df.schema)
+        val relation = WavesTable(s"Repartition ${jobConfig.wavesPath}", spark, jobConfig.wavesPath, CaseInsensitiveStringMap.empty())
         Logger.log("convert-done", relation.diskSize())
-        RecursiveSplitter( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", JobConfig.fallbackBlocksize)
-                         , JobConfig.sampleSize
+        RecursiveSplitter( spark.sparkContext.hadoopConfiguration.getLong("dfs.blocksize", jobConfig.fallbackBlocksize)
+                         , jobConfig.sampleSize
                          , SwitchHeuristic)
             .prepare(relation)
             .partition()

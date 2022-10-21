@@ -6,17 +6,18 @@ import org.apache.spark.sql.functions.col
 
 import de.unikl.cs.dbis.waves.util.Logger
 
+import de.unikl.cs.dbis.waves.WavesTable._
+
 object CompleteScanWaves {
   def main(args: Array[String]) : Unit = {
+      val jobConfig = JobConfig.fromArgs(args)
+
       Logger.log("job-start")
-      val appName = "CompleteScanWaves"
-      val conf = new SparkConf().setAppName(appName)
-      // conf.setMaster("local") // comment this line to run on the cluster
-      val spark = SparkSession.builder().config(conf).getOrCreate()
+      val spark = jobConfig.makeSparkSession("CompleteScanWaves")
       
       Logger.log("completeWaves-start")
-      val df = spark.read.format(JobConfig.wavesFormat).load(JobConfig.wavesPath)
-      val count = df.filter(col(JobConfig.completeScanColumn).startsWith(JobConfig.completeScanValue)).count()
+      val df = spark.read.waves(jobConfig.wavesPath)
+      val count = df.filter(col(jobConfig.completeScanColumn).startsWith(jobConfig.scanValue)).count()
       Logger.log("completeWaves-end", count)
 
       Logger.log("job-end")

@@ -6,16 +6,17 @@ import org.apache.spark.sql.functions.col
 
 import de.unikl.cs.dbis.waves.util.Logger
 
+import de.unikl.cs.dbis.waves.WavesTable._
+
 object DeletedTweetsPerUserWaves {
   def main(args: Array[String]) : Unit = {
+      val jobConfig = JobConfig.fromArgs(args)
+
       Logger.log("job-start")
-      val appName = "DeletedTweetsPerUserWaves"
-      val conf = new SparkConf().setAppName(appName)
-      // conf.setMaster("local") // comment this line to run on the cluster
-      val spark = SparkSession.builder().config(conf).getOrCreate()
+      val spark = jobConfig.makeSparkSession("DeletedTweetsPerUserWaves")
       
       Logger.log("deletedWaves-start")
-      val df = spark.read.format(JobConfig.wavesFormat).load(JobConfig.wavesPath)
+      val df = spark.read.waves(jobConfig.wavesPath)
       
       val count = df.filter(col("delete.status.user_id").isNotNull)
                     .groupBy(col("delete.status.user_id"))

@@ -6,16 +6,17 @@ import org.apache.spark.sql.functions.col
 
 import de.unikl.cs.dbis.waves.util.Logger
 
+import de.unikl.cs.dbis.waves.WavesTable._
+
 object ToptweeterWaves {
   def main(args: Array[String]) : Unit = {
+      val jobConfig = JobConfig.fromArgs(args)
+
       Logger.log("job-start")
-      val appName = "ToptweeterWaves"
-      val conf = new SparkConf().setAppName(appName)
-      // conf.setMaster("local") // comment this line to run on the cluster
-      val spark = SparkSession.builder().config(conf).getOrCreate()
+      val spark = jobConfig.makeSparkSession("ToptweeterWaves")
       
       Logger.log("toptweeterWaves-start")
-      val df = spark.read.format(JobConfig.wavesFormat).load(JobConfig.wavesPath)
+      val df = spark.read.waves(jobConfig.wavesPath)
       df.createOrReplaceTempView("twitter")
 
       val count = spark.sql("""

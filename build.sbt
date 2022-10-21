@@ -18,11 +18,12 @@ libraryDependencies += "org.scalatest" %% "scalatest-wordspec" % scalatestVersio
 // Compile settings
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
+// Needed for spark, Otherwise the ClassLoader does not find parquet
+classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+
 //testOptions += Tests.Argument("-oF")
 
 Test / logBuffered := false
-Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat // Needed for coverage tests with spark
-                                                                        // Otherwise the ClassLoader does not find parquet
 
 // Overage settings
 coverageExcludedFiles := Seq(

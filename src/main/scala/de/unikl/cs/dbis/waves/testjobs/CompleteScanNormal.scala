@@ -8,15 +8,14 @@ import de.unikl.cs.dbis.waves.util.Logger
 
 object CompleteScanNormal {
   def main(args: Array[String]) : Unit = {
+      val jobConfig = JobConfig.fromArgs(args)
+
       Logger.log("job-start")
-      val appName = "CompleteScanNormal"
-      val conf = new SparkConf().setAppName(appName)
-      // conf.setMaster("local") // comment this line to run on the cluster
-      val spark = SparkSession.builder().config(conf).getOrCreate()
+      val spark = jobConfig.makeSparkSession("CompleteScanNormal")
       
       Logger.log("completeParquet-start")
-      val df = spark.read.format(JobConfig.parquetFormat).load(JobConfig.parquetPath)
-      val count = df.filter(col(JobConfig.completeScanColumn).startsWith(JobConfig.completeScanValue)).count()
+      val df = spark.read.parquet(jobConfig.parquetPath)
+      val count = df.filter(col(jobConfig.completeScanColumn).startsWith(jobConfig.scanValue)).count()
       Logger.log("completeParquet-end", count)
 
       Logger.log("job-end")

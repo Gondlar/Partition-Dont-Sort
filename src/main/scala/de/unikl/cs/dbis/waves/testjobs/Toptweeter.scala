@@ -8,14 +8,13 @@ import de.unikl.cs.dbis.waves.util.Logger
 
 object Toptweeter {
   def main(args: Array[String]) : Unit = {
+      val jobConfig = JobConfig.fromArgs(args)
+
       Logger.log("job-start")
-      val appName = "Toptweeter"
-      val conf = new SparkConf().setAppName(appName)
-      // conf.setMaster("local") // comment this line to run on the cluster
-      val spark = SparkSession.builder().config(conf).getOrCreate()
+      val spark = jobConfig.makeSparkSession("Toptweeter")
       
       Logger.log("toptweeter-start")
-      val df = spark.read.format(JobConfig.parquetFormat).load(JobConfig.parquetPath)
+      val df = spark.read.parquet(jobConfig.parquetPath)
       df.createOrReplaceTempView("twitter")
 
       val count = spark.sql("""

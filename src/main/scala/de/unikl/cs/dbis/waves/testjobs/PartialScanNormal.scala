@@ -8,15 +8,14 @@ import de.unikl.cs.dbis.waves.util.Logger
 
 object PartialScanNormal {
   def main(args: Array[String]) : Unit = {
+      val jobConfig = JobConfig.fromArgs(args)
+
       Logger.log("job-start")
-      val appName = "PartialScanNormal"
-      val conf = new SparkConf().setAppName(appName)
-      // conf.setMaster("local") // comment this line to run on the cluster
-      val spark = SparkSession.builder().config(conf).getOrCreate()
+      val spark = jobConfig.makeSparkSession("PartialScanNormal")
       
       Logger.log("partialParquet-start")
-      val df = spark.read.format(JobConfig.parquetFormat).load(JobConfig.parquetPath)
-      val count = df.filter(col(JobConfig.partialScanColumn).startsWith(JobConfig.partialScanValue)).count()
+      val df = spark.read.parquet(jobConfig.parquetPath)
+      val count = df.filter(col(jobConfig.partialScanColumn).startsWith(jobConfig.scanValue)).count()
       Logger.log("partialParquet-end", count)
 
       Logger.log("job-end")

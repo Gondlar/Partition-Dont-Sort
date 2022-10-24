@@ -8,12 +8,10 @@ import org.apache.spark.sql.SparkSession
 
 trait SparkFixture extends BeforeAndAfterAll { this: Suite =>
 
-  var spark : SparkSession = null
+  var spark : SparkSession = _
 
   override protected def beforeAll(): Unit = {
-    val conf = new SparkConf().setAppName(SparkFixture.TEST_SESSION_NAME)
-    spark = SparkSession.builder().config(conf).master("local").getOrCreate()
-    spark.sparkContext.setLogLevel("WARN")
+    spark = SparkFixture.startSpark()
 
     super.beforeAll() // To be stackable, must call super.beforeAll
   }
@@ -30,4 +28,11 @@ trait SparkFixture extends BeforeAndAfterAll { this: Suite =>
 
 object SparkFixture {
   val TEST_SESSION_NAME = "waves-scalatest"
+
+  def startSpark() = {
+    val conf = new SparkConf().setAppName(SparkFixture.TEST_SESSION_NAME)
+    val spark = SparkSession.builder().config(conf).master("local").getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")
+    spark
+  }
 }

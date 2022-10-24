@@ -6,14 +6,21 @@ scalaVersion := "2.12.15"
 
 // Project Metadata
 name := "Waves"
-organization := "de.uni-kl.cs.dbis"
+organization := "de.unikl.cs.dbis"
 version := "1.0"
+
+// Full Stack Tests
+lazy val FullStackTest = config("fullstack") extend(Test)
+lazy val root = (project in file("."))
+  .configs(FullStackTest)
+  .settings(inConfig(FullStackTest)(Defaults.testSettings))
+FullStackTest / parallelExecution := false
 
 // Dependancies
 libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
 libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
-libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % "test"
-libraryDependencies += "org.scalatest" %% "scalatest-wordspec" % scalatestVersion % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % "test,fullstack"
+libraryDependencies += "org.scalatest" %% "scalatest-wordspec" % scalatestVersion % "test,fullstack"
 
 // Compile settings
 scalacOptions ++= Seq("-unchecked", "-deprecation")

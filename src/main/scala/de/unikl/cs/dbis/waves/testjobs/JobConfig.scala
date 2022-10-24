@@ -68,7 +68,9 @@ class JobConfig(options: Map[String, String] = Map.empty) {
       case Some(value) => conf.setMaster(value)
       case None => 
     }
-    SparkSession.builder().config(conf).getOrCreate()
+    val spark = SparkSession.builder().config(conf).getOrCreate()
+    spark.sparkContext.setLogLevel("WARN")
+    spark
   }
 }
 

@@ -1,13 +1,14 @@
-package de.unikl.cs.dbis.waves.testjobs
+package de.unikl.cs.dbis.waves.testjobs.split
 
 import org.apache.spark.sql.{SparkSession,DataFrame}
 
 import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.split.Splitter
+import de.unikl.cs.dbis.waves.testjobs.JobConfig
 import de.unikl.cs.dbis.waves.WavesTable._
 import org.apache.spark.sql.SaveMode
 
-package object split {
+trait SplitRunner {
   def runSplitter[T](spark: SparkSession, jobConfig: JobConfig, splitter: Splitter[T])
     = run(spark, jobConfig, (df) => df.saveAsWaves(splitter, jobConfig.wavesPath))
 
@@ -15,7 +16,7 @@ package object split {
     = run(spark, jobConfig, (df) => df.write.mode(SaveMode.Overwrite).waves(jobConfig.wavesPath, df.schema))
 
   def run(spark: SparkSession, jobConfig: JobConfig, job: DataFrame => Unit) = {
-    Logger.log("split-start")
+    Logger.log("split-start", this.getClass().getName())
     val df = spark.read.json(jobConfig.inputPath)
     job(df)
     val relation = spark.read.waves(jobConfig.wavesPath).getWavesTable.get

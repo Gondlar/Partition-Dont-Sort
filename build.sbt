@@ -11,7 +11,7 @@ version := "1.0"
 
 // Full Stack Tests
 lazy val FullStackTest = config("fullstack") extend(Test)
-lazy val root = (project in file("."))
+lazy val waves = (project in file("."))
   .configs(FullStackTest)
   .settings(inConfig(FullStackTest)(Defaults.testSettings))
 FullStackTest / parallelExecution := false

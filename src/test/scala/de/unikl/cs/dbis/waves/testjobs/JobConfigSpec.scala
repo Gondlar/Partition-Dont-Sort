@@ -44,6 +44,20 @@ class JobConfigSpec extends WavesSpec {
         config.getLong("foO") should equal (None)
       }
     }
+    "fetch Boolean options" when {
+      "they exist" in {
+        val config = new JobConfig(Map(("Foo", "true")))
+        config.getBool("foO") should equal (Some(true))
+      }
+      "they do not exist" in {
+        val config = new JobConfig()
+        config.getBool("foO") should equal (None)
+      }
+      "they are invalid" in {
+        val config = new JobConfig(Map(("Foo", "abc")))
+        config.getBool("foO") should equal (None)
+      }
+    }
     "fetch the configured master" when {
       "it is set" in {
         val config = new JobConfig(Map(("master", "local")))

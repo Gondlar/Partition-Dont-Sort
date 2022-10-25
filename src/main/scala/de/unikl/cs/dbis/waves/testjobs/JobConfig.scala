@@ -20,7 +20,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def getString(key: String) = myOptions.get(key.toLowerCase)
 
   /**
-    * * fetch the value for the option with the given name as a Long
+    * fetch the value for the option with the given name as a Long
     *
     * @param key case-insensitive option name
     * @return the value or None if it is unset or not a Long
@@ -28,6 +28,18 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def getLong(key: String) = getString(key).flatMap(v =>
     try Some(v.toLong) catch {
       case e : NumberFormatException => None
+    }
+  )
+
+  /**
+    * fetch the value for the option with the given name as a Boolean
+    *
+    * @param key case-insensitive option name
+    * @return the value or None if it is unset or not a Boolean
+    */
+  def getBool(key: String) = getString(key).flatMap(v =>
+    try Some(v.toBoolean) catch {
+      case e : IllegalArgumentException => None
     }
   )
 

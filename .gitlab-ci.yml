@@ -31,6 +31,7 @@ test:
   script:
     # Execute your project's tests
     - sbt clean coverage test
+    - sbt coverage FullStackTest/test
     - sbt coverageReport
   coverage: '/Statement coverage[A-Za-z\.*]\s*:\s*([^%]+)/'
   artifacts:

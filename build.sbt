@@ -1,40 +1,48 @@
+import bloop.integrations.sbt.BloopDefaults
 
 // Define some versions
 val sparkVersion = "3.2.0"
 val scalatestVersion = "3.2.11"
-scalaVersion := "2.12.15"
 
 // Project Metadata
-name := "Waves"
-organization := "de.unikl.cs.dbis"
-version := "1.0"
 
-// Full Stack Tests
+ThisBuild / organization := "de.unikl.cs.dbis"
+ThisBuild / scalaVersion := "2.12.15"
+ThisBuild / version := "1.0"
+
 lazy val FullStackTest = config("fullstack") extend(Test)
-lazy val waves = (project in file("."))
+
+lazy val waves = project
+  .in(file("."))
   .configs(FullStackTest)
-  .settings(inConfig(FullStackTest)(Defaults.testSettings))
-FullStackTest / parallelExecution := false
+  .settings(
+    name := "waves",
 
-// Dependancies
-libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
-libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
-libraryDependencies += "org.scalatest" %% "scalatest" % scalatestVersion % "test,fullstack"
-libraryDependencies += "org.scalatest" %% "scalatest-wordspec" % scalatestVersion % "test,fullstack"
+    // Full Stack Tests
+    inConfig(FullStackTest)(Defaults.testSettings ++ BloopDefaults.configSettings),
+    FullStackTest / parallelExecution := false,
 
-// Compile settings
-scalacOptions ++= Seq("-unchecked", "-deprecation")
+    // Dependancies
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-core" % sparkVersion,
+      "org.apache.spark" %% "spark-sql" % sparkVersion,
+      "org.scalatest" %% "scalatest" % scalatestVersion % "test,fullstack",
+      "org.scalatest" %% "scalatest-wordspec" % scalatestVersion % "test,fullstack"
+    ),
 
-// Needed for spark, Otherwise the ClassLoader does not find parquet
-classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+    //testOptions += Tests.Argument("-oF")
+    Test / logBuffered := false,
 
-//testOptions += Tests.Argument("-oF")
+    // Compile settings
+    scalacOptions ++= Seq("-unchecked", "-deprecation"),
 
-Test / logBuffered := false
+    // Needed for spark, Otherwise the ClassLoader does not find parquet
+    classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
 
-// Overage settings
-coverageExcludedFiles := Seq(
-    ".*\\/deprecated\\/.*",
-    ".*\\/Main",
-    ".*\\/testjobs/.*"
-).mkString(";")
+    // Coverage settings
+    coverageExcludedFiles := Seq(
+        ".*\\/deprecated\\/.*",
+        ".*\\/Main",
+        ".*\\/testjobs/.*"
+    ).mkString(";")
+  )

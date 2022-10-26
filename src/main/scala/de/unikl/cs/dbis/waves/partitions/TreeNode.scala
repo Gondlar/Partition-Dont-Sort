@@ -22,10 +22,9 @@ import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
 /**
   * A TreeNode is any node in the PartitionTree
   */
-sealed abstract class TreeNode[+Payload, Step <: PartitionTreePath] {
+sealed abstract class TreeNode[+Payload, +Step <: PartitionTreePath] {
     def accept(visitor: PartitionTreeVisitor[Payload]) : Unit
     
-    def apply(step: Step): AnyNode[Payload]
     val navigate: PartialFunction[PartitionTreePath, AnyNode[Payload]]
 
     def apply[T](visitor: SingleResultVisitor[Payload,T]) = {
@@ -50,7 +49,7 @@ case class Bucket[+Payload](data: Payload) extends TreeNode[Payload, BucketPath]
   
   override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
   
-  override def apply(step: BucketPath): AnyNode[Payload] = ??? // BucketPath has no instances
+  // override def apply(step: BucketPath): AnyNode[Payload] = ??? // BucketPath has no instances
   override val navigate: PartialFunction[PartitionTreePath,AnyNode[Payload]]
   = PartialFunction.empty
 }
@@ -81,7 +80,7 @@ object Bucket {
 case class Spill[+Payload](partitioned: AnyNode[Payload], rest: Bucket[Payload]) extends TreeNode[Payload, SpillPath] {
   override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 
-  override def apply(step: SpillPath) = step match {
+  def apply(step: SpillPath) = step match {
     case Partitioned => partitioned
     case Rest => rest
   }
@@ -109,7 +108,7 @@ case class SplitByPresence[+Payload](
 ) extends TreeNode[Payload, SplitByPresencePath] {
     override def accept(visitor: PartitionTreeVisitor[Payload]) = visitor.visit(this)
 
-    override def apply(step: SplitByPresencePath) = step match {
+    def apply(step: SplitByPresencePath) = step match {
       case Present => presentKey
       case Absent => absentKey
     }

@@ -15,12 +15,9 @@ import scala.annotation.tailrec
   * list by using Spill nodes.
   */
 trait FlatTreeBuilder extends GroupedSplitter {
-  override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
-    = new PartitionTree(data.schema, sorter, toTree(folders.map(f => Bucket(f.name))))
-
-  // we cannot use fold because AnyNode instances may not have a common ancestor
-  private def toTree(folders: Seq[Bucket[String]]): AnyNode[String] = folders.size match {
-    case 1 => folders.head
-    case _ => Spill(toTree(folders.tail), folders.head)
+  override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String] = {
+    val buckets = folders.map(f => Bucket(f.name))
+    val tree = buckets.tail.foldLeft(buckets.head: AnyNode[String])((partitioned,bucket) => Spill(partitioned,bucket))
+    new PartitionTree(data.schema, sorter, tree)
   }
 }

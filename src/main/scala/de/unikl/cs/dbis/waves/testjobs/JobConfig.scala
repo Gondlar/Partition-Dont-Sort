@@ -62,7 +62,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def sampleSize = getLong("sampleSize").getOrElse(10*1024*1024L)
 
   def wavesPath = getString("wavesPath").getOrElse(s"$filesystem/out/")
-  def parquetPath = getString("parquetPath").getOrElse(s"${wavesPath}spill/")
+  def useWaves = getBool("useWaves").getOrElse(true)
 
   def completeScanColumn = getString("completeScanColumn").getOrElse("user.name")
   def partialScanColumn = getString("partialScanColumn").getOrElse("quoted_status.user.name")

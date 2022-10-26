@@ -22,7 +22,7 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
   var wavesPath: String = _
   var inputPath: String = _
 
-  override def beforeEach() = {
+  override protected def beforeEach() = {
     super.beforeEach()
 
     wavesPath = s"${tempDirectory.toString()}/waves"
@@ -35,11 +35,15 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     )
   }
 
-  override def afterEach() = {
+  override protected def afterEach() = {
     super.afterEach()
 
-    FileUtils.deleteQuietly(new File(Logger.logDir))
+    clearLogs()
+  }
+
+  def clearLogs(): Unit = {
     Logger.clear()
+    FileUtils.deleteQuietly(new File(Logger.logDir))
   }
 
   def assertCleanedPartitions(buckets: Seq[Bucket[String]]) = {

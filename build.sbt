@@ -42,7 +42,6 @@ lazy val waves = project
     // Coverage settings
     coverageExcludedFiles := Seq(
         ".*\\/deprecated\\/.*",
-        ".*\\/Main",
-        ".*\\/testjobs/.*"
+        ".*\\/Main"
     ).mkString(";")
   )

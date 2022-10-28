@@ -71,12 +71,26 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     val (timestamps, events, data) = new BufferedReader(new FileReader(logs.head))
       .lines().iterator().asScala
       .map(line => {
-        val parts = line.split(",")
+        val parts = parseLogLine(line)
         parts should have length (3)
         noException shouldBe thrownBy (parts(0).toLong)
         (parts(0).toLong, parts(1), parts(2))
       }).toSeq.unzip3
     timestamps shouldBe sorted
     (events, data)
+  }
+
+  private def parseLogLine(line: String) = {
+    val tokens = line.split(",")
+    var logEntries = Seq(tokens.last)
+    for (token <- tokens.init.reverse) {
+      val current = logEntries.head
+      if (current.endsWith("'") && !current.startsWith("'")) {
+        logEntries = (s"$token,$current") +: logEntries.tail
+      } else {
+        logEntries = token +: logEntries
+      }
+    }
+    logEntries
   }
 }

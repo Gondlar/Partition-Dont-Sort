@@ -30,6 +30,7 @@ before_script:
 test:
   script:
     # Execute your project's tests
+    - export SBT_OPTS="-Xmx10G -XX:+UseConcMarkSweepGC"
     - sbt clean coverage test
     - sbt coverage FullStackTest/test
     - sbt coverageReport

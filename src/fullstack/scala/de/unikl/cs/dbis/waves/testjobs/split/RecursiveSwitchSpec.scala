@@ -43,7 +43,7 @@ class RecursiveSwitchSpec extends WavesSpec
       And("The partitions should contain exactly one parquet file")
       assertCleanedPartitions(schema.buckets)
 
-      And("we read the same number of results")
+      And("we read the same results")
       assertReadableResults(spark)
 
       And("the log contains what happened")

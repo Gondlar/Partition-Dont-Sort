@@ -6,39 +6,35 @@ import de.unikl.cs.dbis.waves.SparkFixture
 import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 import de.unikl.cs.dbis.waves.testjobs.IntegrationFixture
 
-import de.unikl.cs.dbis.waves.partitions.{PartitionTree, SplitByPresence, Bucket}
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree, TreeNode, Spill, SplitByPresence, Bucket}
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.WavesTable._
 
 import java.io.File
-import java.io.FileReader
-import java.io.BufferedReader
 
-import scala.collection.JavaConverters._
-
-class RecursiveEvenSpec extends WavesSpec
+class JustSplitSpec extends WavesSpec
   with IntegrationFixture
   with PartitionTreeMatchers {
 
-  "The RecursiveEven Split job" should {
+  "The JustSplit job" should {
     "format the data correctly" in {
       When("we run the manual job")
-      RecursiveEven.main(args)
+      JustSplit.main(args)
 
       Then("We can read the schema")
       val spark = SparkFixture.startSpark()
       val read = PartitionTreeHDFSInterface.apply(spark, wavesPath).read()
       val input = spark.read.json(inputPath)
-      
-      // The schema is not deterministif if two caolumns have the same score so
-      // we can't test a specific structure
+
+      val buckets = (0 to 7).map(_ => Bucket())
+      val manualShape = buckets.tail.foldLeft(buckets.head: TreeNode.AnyNode[String])((partitioned, spill) => Spill(partitioned, spill))
+
       read should not be empty
       val schema = read.get
-      schema should have (
-        'globalSchema (input.schema),
-        'sorter (NoSorter)
-      )
+      val tree = new PartitionTree(input.schema, NoSorter, manualShape)
+      schema should haveTheSameStructureAs(tree)
 
       And("The partitions should contain exactly one parquet file")
       assertCleanedPartitions(schema.buckets)
@@ -48,7 +44,7 @@ class RecursiveEvenSpec extends WavesSpec
 
       And("the log contains what happened")
       val (events, data) = assertLogProperties()
-      events should contain allOf ("'split-start'", "'split-done'", "'split-cleanup-end'")
+      events should contain theSameElementsInOrderAs (Seq("'split-start'", "'split-done'", "'split-cleanup-end'"))
     }
   }
 }

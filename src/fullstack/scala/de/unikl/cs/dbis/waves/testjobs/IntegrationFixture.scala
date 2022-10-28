@@ -60,6 +60,8 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     val data = spark.read.waves(wavesPath)
 
     data.count() should equal (input.count())
+    data.except(input).count() should equal (0)
+    input.except(data).count() should equal (0)
   }
 
   def assertLogProperties() = {

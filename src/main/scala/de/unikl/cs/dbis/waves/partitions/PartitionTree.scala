@@ -150,7 +150,7 @@ object PartitionTreeDeserializer extends JsonDeserializer[PartitionTree[String]]
               val root = ctx.deserialize[AnyNode[String]](obj.get(PartitionTree.ROOT_KEY), classOf[AnyNode[String]])
               val sort = if (obj.has(PartitionTree.SORT_KEY)) {
                 ctx.deserialize(obj.get(PartitionTree.SORT_KEY), classOf[Sorter])
-              } else NoSorter
+              } else NoSorter: Sorter
               new PartitionTree(globalSchema.asInstanceOf[StructType], sort, root)
           }
           case _ => throw new JsonParseException(s"$json is not an Object")

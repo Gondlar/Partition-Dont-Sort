@@ -15,9 +15,11 @@ import org.apache.spark.sql.{DataFrame, Column}
 import de.unikl.cs.dbis.waves.WavesTable._
 
 class EvenSplitterSpec extends WavesSpec
-  with DataFrameFixture with TempFolderFixture {
+  with DataFrameFixture with TempFolderFixture
+  with SplitterBehavior {
 
   "The EvenSplitter" should {
+    behave like deterministicSplitter(new EvenSplitter(2))
     "create disjoint partitions" in {
       When("we partition a data frame")
       val partitionCount = 4

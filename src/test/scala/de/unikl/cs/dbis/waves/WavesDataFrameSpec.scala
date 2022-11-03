@@ -88,6 +88,8 @@ with PartitionTreeMatchers {
     // do not need
     override def isPrepared: Boolean = ???
     override def getPath: String = ???
+    override def doFinalize(enabled: Boolean): Splitter[Unit] = ???
+    override def finalizeEnabled: Boolean = ???
     override def sortWith(sorter: Sorter): Splitter[Unit] = ???
     override protected def load(context: Unit): DataFrame = ???
   }

@@ -37,6 +37,20 @@ abstract class Splitter[Context] {
     def getPath: String
 
     /**
+      * Enable or disable finalizing the resulting partitions. A finalized
+      * partition will consist of a single file. The default is enabled
+      *
+      * @param enabled the iff finalization is to be enabled
+      * @return this splitter for chaining
+      */
+    def doFinalize(enabled: Boolean): Splitter[Context]
+
+    /**
+      * @return Whether finalization is enabled for this splitter
+      */
+    def finalizeEnabled: Boolean
+
+    /**
       * throws an IllegalStateException if this splitter is not prepared
       */
     protected def assertPrepared

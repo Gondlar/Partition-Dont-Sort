@@ -32,6 +32,8 @@ class SplitterSpec extends WavesSpec
         override def isPrepared: Boolean = ???
         override def prepare(df: DataFrame, path: String): Splitter[Any] = ???
         override def getPath: String = ???
+        override def doFinalize(enabled: Boolean): Splitter[Any] = ???
+        override def finalizeEnabled: Boolean = ???
         override def sortWith(sorter: Sorter): Splitter[Any] = ???
         override def partition() = ()
         override def load(context: Any): DataFrame = df

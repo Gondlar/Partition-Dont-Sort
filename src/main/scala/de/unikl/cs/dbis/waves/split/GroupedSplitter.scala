@@ -41,6 +41,12 @@ abstract class GroupedSplitter(
 
     protected def getHDFS = { assertPrepared; hdfs }
 
+    private var doFinalize = true;
+
+    override def doFinalize(enabled: Boolean) = { doFinalize = enabled; this }
+
+    override def finalizeEnabled = doFinalize
+
     override def sortWith(sorter: Sorter) = { this.sorter = sorter; this }
 
     override protected def load(context: Unit): DataFrame = source
@@ -90,9 +96,13 @@ abstract class GroupedSplitter(
               .transform{
                 case IntermediateData(groups, grouper, source) => IntermediateData.fromRaw(grouper.sort(groups, source))
               }.toDF
+              .transform(finalize)
           sorted |> write |> buildTree |> writeMetadata
         } finally types.groups.unpersist()
     }
+
+    protected def finalize(bucket: DataFrame): DataFrame
+      = if (doFinalize) bucket.repartition(1) else bucket
 
     protected def write(buckets: Seq[DataFrame]): Seq[PartitionFolder]
       = buckets match {

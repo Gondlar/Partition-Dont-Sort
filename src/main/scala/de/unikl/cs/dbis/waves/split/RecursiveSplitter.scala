@@ -48,6 +48,12 @@ final case class RecursiveSplitter(
 
     override def getPath = { assertPrepared; table.basePath }
 
+    private var doFinalize = true
+
+    override def doFinalize(enabled: Boolean) = { doFinalize = enabled; this }
+
+    override def finalizeEnabled = doFinalize
+
     override def sortWith(sorter: Sorter) = {
       if (sorter != NoSorter)
         throw new IllegalArgumentException("sorter not supported")

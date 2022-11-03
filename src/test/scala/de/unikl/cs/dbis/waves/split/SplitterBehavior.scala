@@ -28,9 +28,21 @@ trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFr
       val result = splitter.prepare(emptyDf, tempDirectory.toString)
 
       Then("it is prepated")
-      assert(result eq splitter)
+      result should be theSameInstanceAs splitter
       splitter shouldBe 'prepared
       result.getPath should equal (tempDirectory.toString)
+    }
+    "have finalization enabled" in {
+      splitter.finalizeEnabled shouldBe (true)
+    }
+    "be able to toggle finalization" in {
+      val step1 = splitter.doFinalize(false)
+      step1 shouldBe theSameInstanceAs (splitter)
+      step1.finalizeEnabled shouldBe (false)
+
+      val step2 = step1.doFinalize(true)
+      step2 shouldBe theSameInstanceAs (step1)
+      step2.finalizeEnabled shouldBe (true)
     }
   }
 

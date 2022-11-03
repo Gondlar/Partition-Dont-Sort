@@ -34,7 +34,7 @@ test:
     - sbt clean coverage test
     - sbt coverage FullStackTest/test
     - sbt coverageReport
-  timeout: 2 hours
+  timeout: 3 hours
   coverage: '/Statement coverage[A-Za-z\.*]\s*:\s*([^%]+)/'
   artifacts:
     reports:

@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.Grouper
+import de.unikl.cs.dbis.waves.util.operators.AbstractGrouper
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
 import scala.concurrent.duration.Duration
 import org.apache.hadoop.fs.Path
@@ -78,65 +79,35 @@ abstract class GroupedSplitter(
     override def partition(): Unit = {
         assertPrepared
         
-        val types = splitGrouper.group(data)
-        types.persist()
+        val types = data.group(splitGrouper)
+        types.groups.persist()
         try {
-          val buckets = split(types)
+          val buckets = split(types.groups).map(b => types.copy(groups = b))
           val sorted = buckets.map{ b => 
-              sorter.sort(sorter.grouper.from(splitGrouper, b, data))
+            b.group(sorter.grouper).transform(sorter.sort).transform{
+              case IntermediateData(groups, grouper, source) => IntermediateData.fromRaw(grouper.sort(groups, source))
+            }
           }
-          val folders = write(sorted, data)
+          val folders = write(sorted.map(_.toDF))
           writeMetadata(buildTree(folders))
-        } finally types.unpersist()
+        } finally types.groups.unpersist()
     }
 
-    protected def write(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder]
+    protected def write(buckets: Seq[DataFrame]): Seq[PartitionFolder]
       = buckets match {
         // if we have just one bucket, we can forgo a lot of unnecessary steps
-        case head :: Nil => Seq(writeOne(head, rawData))
-        case _ => writeMany(buckets, rawData)
+        case head :: Nil => Seq(writeOne(head))
+        case _ => writeMany(buckets)
       }
 
-    protected def writeOne(bucket: DataFrame, data: DataFrame): PartitionFolder = {
-      val sorted = sorter.grouper.sort(bucket, data)
+    protected def writeOne(bucket: DataFrame): PartitionFolder = {
       val targetFolder = PartitionFolder.makeFolder(path, false)
-      sorted.write.parquet(targetFolder.filename)
+      bucket.write.parquet(targetFolder.filename)
       targetFolder
     }
 
-    protected def writeMany(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder] = {
-      val spark = rawData.sparkSession
-      val sortGrouper = sorter.grouper
+    protected def writeMany(buckets: Seq[DataFrame]): Seq[PartitionFolder]
+      = buckets.par.map(writeOne(_)).seq
 
-      val tempPath = new Path(s"$path/${PartitionFolder.TEMP_DIR}")
-      sortGrouper.matchAll(buckets, rawData)
-                 .write
-                 .partitionBy(sortGrouper.matchColumn)
-                 .parquet(tempPath.toString())
-
-      implicit val ec: ExecutionContext = ExecutionContext.global
-      implicit val fs = hdfs.fs
-      val futureFolders = for ((bucket, bucketId) <- buckets.zipWithIndex) yield {
-        Future {
-          val intermediaryFolder = new PartitionFolder(path, s"${sortGrouper.matchColumn}=$bucketId", true)
-          val finalFolder = if (intermediaryFolder.exists) {
-            val data = spark.read
-                            .parquet(intermediaryFolder.filename)
-                            .drop(sortGrouper.matchColumn.col)
-            blocking { writeOne(bucket, data) }
-          } else {
-            val folder = PartitionFolder.makeFolder(path, false)
-            folder.mkdir
-            folder
-          }
-          intermediaryFolder.delete
-          finalFolder
-        }
-      }
-      val result = Await.result(Future.sequence(futureFolders), Duration.Inf)
-      hdfs.fs.delete(tempPath, true)
-      result
-    }
-
-    protected def data: DataFrame = data(())
+    protected def data: IntermediateData = IntermediateData.fromRaw(data(()))
 }

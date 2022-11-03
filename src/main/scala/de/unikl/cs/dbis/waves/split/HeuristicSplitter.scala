@@ -34,7 +34,7 @@ class HeuristicSplitter(
 
   override protected def split(df: DataFrame): Seq[DataFrame] = {
     Logger.log("evenSplitter-start")
-    val calc = GroupedCalculator(data.schema)
+    val calc = GroupedCalculator(data.sourceSchema)
     val pathMap = calc.paths(df).zipWithIndex.toMap
 
     partitions = Bucket(df)
@@ -74,5 +74,5 @@ class HeuristicSplitter(
   }
 
   override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String]
-    = new PartitionTree(data.schema, sorter, partitions.map((_, index) => folders(index).name))
+    = new PartitionTree(data.sourceSchema, sorter, partitions.map((_, index) => folders(index).name))
 }

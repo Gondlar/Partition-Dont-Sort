@@ -6,14 +6,15 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.util.operators.DefinitionLevelGrouper
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import de.unikl.cs.dbis.waves.split.IntermediateData
 
 class LexicographicSorterSpec extends WavesSpec
   with DataFrameFixture {
 
   "The LexicographicSorter" should {
     "sort lexicographically" in {
-      val grouped = LexicographicSorter.grouper(df)
-      val data = LexicographicSorter.sort(grouped).collect().map(row =>
+      val grouped = IntermediateData.fromRaw(df).group(LexicographicSorter.grouper)
+      val data = LexicographicSorter.sort(grouped).groups.collect().map(row =>
         row.getSeq[Int](row.fieldIndex(DefinitionLevelGrouper.GROUP_COLUMN))
       )
       data should contain theSameElementsInOrderAs (Seq( Seq(0, 0, 0)

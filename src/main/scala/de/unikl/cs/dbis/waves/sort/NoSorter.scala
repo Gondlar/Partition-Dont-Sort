@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.sort
 
 import org.apache.spark.sql.DataFrame
 
+import de.unikl.cs.dbis.waves.split.IntermediateData
 import de.unikl.cs.dbis.waves.util.operators.Grouper
 import de.unikl.cs.dbis.waves.util.operators.NullGrouper
 
@@ -15,7 +16,7 @@ import com.google.gson.{
   */
 object NoSorter extends Sorter {
   override val name = "none"
-  override def sort(bucket: DataFrame): DataFrame = bucket
+  override def sort(bucket: IntermediateData): IntermediateData = bucket
   override def grouper: Grouper = NullGrouper
 }
 

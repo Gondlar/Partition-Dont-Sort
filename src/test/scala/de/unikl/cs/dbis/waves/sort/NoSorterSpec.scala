@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.util.operators.NullGrouper
+import de.unikl.cs.dbis.waves.split.IntermediateData
 
 class NoSorterSpec extends WavesSpec
   with DataFrameFixture {
@@ -13,7 +14,7 @@ class NoSorterSpec extends WavesSpec
   "The NoSorter" should {
     "not sort" in {
       NoSorter.grouper should equal (NullGrouper)
-      NoSorter.sort(df).collect() should contain theSameElementsInOrderAs df.collect()
+      NoSorter.sort(IntermediateData.fromRaw(df)).toDF.collect() should contain theSameElementsInOrderAs df.collect()
     }
     "have a name" in {
       NoSorter.name should equal ("none")

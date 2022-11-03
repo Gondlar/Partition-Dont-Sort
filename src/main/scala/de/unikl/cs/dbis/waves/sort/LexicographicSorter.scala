@@ -10,6 +10,7 @@ import com.google.gson.{
 }
 
 import de.unikl.cs.dbis.waves.util.nested.schemas._
+import de.unikl.cs.dbis.waves.split.IntermediateData
 
 /**
   * Sort the rows lexicographically by their definition level where columns are
@@ -24,15 +25,15 @@ object LexicographicSorter extends Sorter {
   private val SORT_GROUPER = DefinitionLevelGrouper
 
   override def grouper: Grouper = SORT_GROUPER
-  override def sort(bucket: DataFrame): DataFrame = {
-    val leafs = leafCount(bucket)
+  override def sort(bucket: IntermediateData): IntermediateData = {
+    val leafs = leafCount(bucket.groups)
     val counts = Range(0, leafs).map(i => count_distinct(indexedColumn(i)))
-    val aggregate = bucket.agg(counts.head, counts.tail:_*).head()
+    val aggregate = bucket.groups.agg(counts.head, counts.tail:_*).head()
     val numberOfLevels = Range(0, leafs).map(i => aggregate.getLong(i))
     val order = numberOfLevels.zipWithIndex
                               .sortBy(_._1)
                               .map{case (_, i) => indexedColumn(i)}
-    bucket.orderBy(order:_*)
+    bucket.copy(groups = bucket.groups.orderBy(order:_*))
   }
 
   private def leafCount(bucket: DataFrame): Int = {

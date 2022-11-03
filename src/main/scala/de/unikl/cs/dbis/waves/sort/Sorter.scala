@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.sort
 
 import org.apache.spark.sql.DataFrame
+import de.unikl.cs.dbis.waves.split.IntermediateData
 import de.unikl.cs.dbis.waves.util.operators.Grouper
 import java.lang.reflect.Type
 import com.google.gson.{
@@ -19,10 +20,10 @@ trait Sorter {
   /**
     * Sort the data within a bucket
     *
-    * @param bucket the bucket grouped by [[sortGrouper]]
-    * @return the sorted bucket
+    * @param bucket the data to sort, sorted by SortGrouper
+    * @return The sorted result.
     */
-  def sort(bucket: DataFrame): DataFrame
+  def sort(bucket: IntermediateData): IntermediateData
 
   /**
     * A Grouper to group the data by. Each grouping represents one kind of data

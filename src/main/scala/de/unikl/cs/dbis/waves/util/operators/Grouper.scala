@@ -103,6 +103,6 @@ trait Grouper {
     * @param data the source data for the bucket
     * @return the groups in bucket according to this grouper
     */
-  def from(other: Grouper, bucket: DataFrame, data: DataFrame)
-    = if (other == this) bucket else group(other.find(bucket, data))
+  def from(other: Grouper, bucket: DataFrame, contents: DataFrame)
+    = if (other == this) bucket else group(contents)
 }

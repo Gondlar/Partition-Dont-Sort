@@ -39,41 +39,36 @@ class GroupedSplitterSpec extends WavesSpec
                 val rdd : RDD[Row] = spark.sparkContext.parallelize(partition.toSeq)
                 spark.sqlContext.createDataFrame(rdd, schema)
             }
-            val sortedSets = ArrayBuilder.make[DataFrame]
+            val sortedSets = ArrayBuilder.make[IntermediateData]
             var builtSet: Seq[DataFrame] = Seq.empty
             new GroupedSplitter(new Sorter {
 
               override val name = "test"
-              override def sort(bucket: DataFrame): DataFrame = {
+              override def sort(bucket: IntermediateData): IntermediateData = {
                   sortedSets += bucket
                   bucket
               }
 
-              override def grouper: Grouper = DefinitionLevelGrouper
+              override def grouper: Grouper = NullGrouper
 
             }) {
-                override protected def splitGrouper: Grouper = DefinitionLevelGrouper
+                override protected def splitGrouper: Grouper = NullGrouper
 
                 override protected def split(df: DataFrame): Seq[DataFrame] = {
-                    df.collect() should contain theSameElementsAs Seq(
-                        Row(WrappedArray.make(Array(1, 1, 2)), 1),
-                        Row(WrappedArray.make(Array(1, 1, 1)), 1),
-                        Row(WrappedArray.make(Array(1, 0, 0)), 2),
-                        Row(WrappedArray.make(Array(0, 1, 2)), 1),
-                        Row(WrappedArray.make(Array(0, 1, 1)), 1),
-                        Row(WrappedArray.make(Array(0, 0, 0)), 2)
-                    )
+                    df.collect() should contain theSameElementsAs df.collect()
                     frames
                 }
 
                 override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = null
 
-                override protected def write(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder]
+                override protected def write(buckets: Seq[DataFrame]): Seq[PartitionFolder]
                     = { builtSet = buckets; Seq.empty }
 
                 override protected def writeMetadata(tree: PartitionTree[String]): Unit = ()
             }.prepare(df, tempDirectory.toString).partition()
-            sortedSets.result should contain theSameElementsInOrderAs (frames)
+            val sorted = sortedSets.result
+            sorted.map(_.groups) should contain theSameElementsInOrderAs (frames)
+            sorted.map(_.source) should contain theSameElementsInOrderAs (frames)
             builtSet should have length (frames.length)
             forAll((0 until frames.length)) { i =>
                 builtSet(i).collect() should contain theSameElementsAs (frames(i).collect())
@@ -84,8 +79,8 @@ class GroupedSplitterSpec extends WavesSpec
 
             override val name = "test"
 
-            override def sort(df: DataFrame): DataFrame = {
-              df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
+            override def sort(df: IntermediateData): IntermediateData = {
+              df.groups.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
               df
             }
 
@@ -101,12 +96,12 @@ class GroupedSplitterSpec extends WavesSpec
 
             override protected def buildTree(buckets: Seq[PartitionFolder]): PartitionTree[String] = null
 
-            override protected def write(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder] = ({
-              forAll (buckets) ( df =>
-                df.columns should contain theSameElementsAs (DefinitionLevelGrouper.columns)
+            override protected def write(buckets: Seq[DataFrame]): Seq[PartitionFolder] = {
+              forAll (buckets) ( bucket =>
+                bucket.columns should contain theSameElementsAs (df.columns)
               )
               Seq.empty
-            })
+            }
 
             override protected def writeMetadata(tree: PartitionTree[String]): Unit = ()
           }
@@ -117,7 +112,7 @@ class GroupedSplitterSpec extends WavesSpec
             var called = false
 
             override val name = "test"
-            override def sort(bucket: DataFrame): DataFrame = {called = true; bucket}
+            override def sort(bucket: IntermediateData): IntermediateData = {called = true; bucket}
             override def grouper: Grouper = NullGrouper
           }
           val splitter = TestWriteSplitter(false).sortWith(sorter).prepare(df,tempDirectory.toString).partition()
@@ -128,7 +123,7 @@ class GroupedSplitterSpec extends WavesSpec
           val splitter = TestWriteSplitter(true).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write one bucket")
-          val folder = splitter.writeOne(df, df)
+          val folder = splitter.writeOne(df)
 
           Then("we should be able to read it again")
           spark.read.parquet(folder.filename).collect() should contain theSameElementsInOrderAs (df.collect())
@@ -145,7 +140,7 @@ class GroupedSplitterSpec extends WavesSpec
           val b1 = df.limit(3)
           val b2 = df.except(b1)
           val buckets = Seq(b1, b2)
-          val folder = splitter.writeMany(buckets, df)
+          val folder = splitter.writeMany(buckets)
 
           Then("we should be able to read them again")
           forAll (buckets.zip(folder)) { case (bucket, folder) =>
@@ -161,7 +156,7 @@ class GroupedSplitterSpec extends WavesSpec
           val splitter = TestWriteSplitter(false).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write one bucket")
-          splitter.write(Seq(df), df)
+          splitter.write(Seq(df))
 
           Then("the correct method was called")
           splitter.oneCalled should equal (true)
@@ -172,7 +167,7 @@ class GroupedSplitterSpec extends WavesSpec
           val splitter = TestWriteSplitter(false).prepare(df, tempDirectory.toString).asInstanceOf[TestWriteSplitter]
 
           When("we write multiple buckets")
-          splitter.write(Seq(df,df,df), df)
+          splitter.write(Seq(df,df,df))
 
           Then("the correct method was called")
           splitter.oneCalled should equal (false)
@@ -196,7 +191,7 @@ class GroupedSplitterSpec extends WavesSpec
           splitter.doWrite = true
 
           When("we write the partition tree")
-          val result = splitter.writeMany(Seq(emptyDf, df), df)
+          val result = splitter.writeMany(Seq(emptyDf, df))
 
           Then("we can read the contents from disk")
           val data = result.map(f => spark.read.schema(schema).parquet(f.filename).collect())
@@ -211,17 +206,17 @@ class GroupedSplitterSpec extends WavesSpec
 
         override def load(context: Unit): DataFrame = super.load(context)
 
-        override def writeOne(bucket: DataFrame, data: DataFrame): PartitionFolder = {
+        override def writeOne(bucket: DataFrame): PartitionFolder = {
           oneCalled = true
-          if (doWrite) super.writeOne(bucket, data) else null
+          if (doWrite) super.writeOne(bucket) else null
         }
 
-        override def writeMany(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder] = {
+        override def writeMany(buckets: Seq[DataFrame]): Seq[PartitionFolder] = {
           manyCalled = true
-          if (doWrite) super.writeMany(buckets, rawData) else Seq.empty
+          if (doWrite) super.writeMany(buckets) else Seq.empty
         }
-        override def write(buckets: Seq[DataFrame], rawData: DataFrame): Seq[PartitionFolder]
-          = super.write(buckets, rawData)
+        override def write(buckets: Seq[DataFrame]): Seq[PartitionFolder]
+          = super.write(buckets)
 
         override protected def splitGrouper: Grouper = NullGrouper
         override protected def split(df: DataFrame): Seq[DataFrame] = Seq(df)

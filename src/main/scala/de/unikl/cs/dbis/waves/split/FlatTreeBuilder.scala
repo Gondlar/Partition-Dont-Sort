@@ -18,6 +18,6 @@ trait FlatTreeBuilder extends GroupedSplitter {
   override protected def buildTree(folders: Seq[PartitionFolder]): PartitionTree[String] = {
     val buckets = folders.map(f => Bucket(f.name))
     val tree = buckets.tail.foldLeft(buckets.head: AnyNode[String])((partitioned,bucket) => Spill(partitioned,bucket))
-    new PartitionTree(data.schema, sorter, tree)
+    new PartitionTree(data.sourceSchema, sorter, tree)
   }
 }

@@ -91,8 +91,8 @@ abstract class AbstractGrouper(
   }
 
   /**
-    * Given a sequence of data disjoint data frames, return a data frame which
-    * if the union of all given ones with an additional column containing the
+    * Given a sequence of disjoint data frames, return a data frame which
+    * is the union of all given ones with an additional column containing the
     * index of the data frame in the sequence where it originated from.
     * The name of the index column can be found in INDEX_COLUMN
     *

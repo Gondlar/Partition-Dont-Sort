@@ -7,6 +7,7 @@ import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.util.operators.Grouper
 import de.unikl.cs.dbis.waves.util.operators.AbstractGrouper
+import de.unikl.cs.dbis.waves.util.functional._
 import scala.concurrent.{Future, ExecutionContext, blocking, Await}
 import scala.concurrent.duration.Duration
 import org.apache.hadoop.fs.Path
@@ -82,14 +83,14 @@ abstract class GroupedSplitter(
         val types = data.group(splitGrouper)
         types.groups.persist()
         try {
-          val buckets = split(types.groups).map(b => types.copy(groups = b))
-          val sorted = buckets.map{ b => 
-            b.group(sorter.grouper).transform(sorter.sort).transform{
-              case IntermediateData(groups, grouper, source) => IntermediateData.fromRaw(grouper.sort(groups, source))
-            }
-          }
-          val folders = write(sorted.map(_.toDF))
-          writeMetadata(buildTree(folders))
+          val sorted = for (bucket <- split(types.groups)) yield
+            types.copy(groups = bucket)
+              .group(sorter.grouper)
+              .transform(sorter.sort)
+              .transform{
+                case IntermediateData(groups, grouper, source) => IntermediateData.fromRaw(grouper.sort(groups, source))
+              }.toDF
+          sorted |> write |> buildTree |> writeMetadata
         } finally types.groups.unpersist()
     }
 

@@ -159,7 +159,7 @@ with PartitionTreeMatchers {
         val path = Seq.empty
 
         When("we split it")
-        table.split(split, path:_*)
+        table.split(split, path)
 
         Then("it has the expected shape")
         val shape = new PartitionTree(schema, NoSorter, SplitByPresence("b.d", "foo", "bar"))
@@ -177,7 +177,7 @@ with PartitionTreeMatchers {
         val path = Seq(Present)
         
         When("we split it")
-        table.split(split, path:_*)
+        table.split(split, path)
         
         Then("it has the expected shape")
         val shape = new PartitionTree(schema, NoSorter, SplitByPresence("a", SplitByPresence("b.d", "foo", "bar"), Bucket("baz")))

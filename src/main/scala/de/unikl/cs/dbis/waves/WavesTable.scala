@@ -95,7 +95,7 @@ class WavesTable private (
       * @param key the key to split by
       * @param path the path where the split should be inserted
       */
-    def split(key: String, path : PartitionTreePath *) : Unit = {
+    def split(key: String, path : Seq[PartitionTreePath] = Seq.empty) : Unit = {
         val newSplit = SplitByPresence(key, s"$key-absent", s"$key-present")
         repartition(path, newSplit)
     }

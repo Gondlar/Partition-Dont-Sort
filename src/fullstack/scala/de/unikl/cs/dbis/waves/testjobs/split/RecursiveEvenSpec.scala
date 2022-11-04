@@ -31,7 +31,7 @@ class RecursiveEvenSpec extends WavesSpec
       val read = PartitionTreeHDFSInterface.apply(spark, wavesPath).read()
       val input = spark.read.json(inputPath)
       
-      // The schema is not deterministif if two caolumns have the same score so
+      // The schema is not deterministic if two columns have the same score so
       // we can't test a specific structure
       read should not be empty
       val schema = read.get

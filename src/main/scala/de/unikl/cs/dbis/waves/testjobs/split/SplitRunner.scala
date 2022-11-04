@@ -21,7 +21,6 @@ trait SplitRunner {
     job(df)
     val relation = spark.read.waves(jobConfig.wavesPath).getWavesTable.get
     Logger.log("split-done", relation.diskSize())
-    relation.defrag()
     relation.vacuum()
     Logger.log("split-cleanup-end", relation.diskSize())
 

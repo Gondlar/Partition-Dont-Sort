@@ -94,10 +94,11 @@ class WavesTable private (
       *
       * @param key the key to split by
       * @param path the path where the split should be inserted
+      * @param finalize whether the resulting buckets should be finalized
       */
-    def split(key: String, path : Seq[PartitionTreePath] = Seq.empty) : Unit = {
+    def split(key: String, path : Seq[PartitionTreePath] = Seq.empty, finalize: Boolean = true) : Unit = {
         val newSplit = SplitByPresence(key, s"$key-absent", s"$key-present")
-        repartition(path, newSplit)
+        repartition(path, newSplit, finalize)
     }
 
     /**
@@ -142,8 +143,9 @@ class WavesTable private (
       * @param shape the shape of the new partitioning, i.e., the resulting
       *              table will have a partitioning scheme with the same kinds
       *              of nodes, but the names of the Buckets may differ
+      * @param finalize whether the resulting bucket(s) should be finalized
       */
-    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String]) = {
+    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String], finalize: Boolean = true) = {
         val df = partitionTree.find(path)
                               .get
                               .buckets
@@ -151,6 +153,7 @@ class WavesTable private (
                               .reduce((lhs, rhs) => lhs.union(rhs))
         new PredefinedSplitter(shape, path)
           .sortWith(partitionTree.sorter)
+          .doFinalize(finalize)
           .prepare(df, basePath)
           .partition()
         partitionTree = hdfsInterface.read().get
@@ -166,31 +169,6 @@ class WavesTable private (
                             .map(b => spark.read.parquet(b.folder(basePath).filename))
                             .reduce((lhs, rhs) => lhs.union(rhs))
       splitter.prepare(df, basePath).partition()
-    }
-
-    def defrag() = {
-        for (bucket <-partitionTree.buckets) {
-            val defraggedPartition = PartitionFolder.makeFolder(basePath, false)
-            try {
-                spark.read
-                    .format("parquet")
-                    .schema(partitionTree.globalSchema)
-                    .load(bucket.folder(basePath).filename)
-                    .repartition(1)
-                    .write
-                    .mode(SaveMode.Overwrite)
-                    .format("parquet")
-                    .save(defraggedPartition.filename)
-                val newNode = Bucket(defraggedPartition.name)
-                partitionTree.replace(bucket, newNode)
-                writePartitionScheme()
-            } catch {
-                case e : Throwable => {
-                    defraggedPartition.delete(fs)
-                    throw e
-                }
-            }
-        }
     }
 
     def vacuum() = {

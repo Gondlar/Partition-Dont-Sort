@@ -34,9 +34,6 @@ class PlainSpec extends WavesSpec
       val tree = new PartitionTree(input.schema, NoSorter, manualShape)
       schema should haveTheSameStructureAs(tree)
 
-      And("The partitions should contain exactly one parquet file")
-      assertCleanedPartitions(schema.buckets)
-
       And("we read the same results")
       assertReadableResults(spark)
 

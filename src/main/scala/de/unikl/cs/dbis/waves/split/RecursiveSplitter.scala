@@ -90,10 +90,13 @@ final case class RecursiveSplitter(
 
         val best = heursitic.choose(calc, data(currentFolder), metadata, cutoff)
         best match {
-            case None => Logger.log("partition-abort", "metric shows no improvement")
+            case None => {
+              Logger.log("partition-abort", "metric shows no improvement")
+              finalize(path)
+            }
             case Some(best) => {
                 Logger.log("partition-by", best.toString)
-                table.split(best.toString, path)
+                table.split(best.toString, path, false)
                 recurse(path, Present, metadata, best)
                 recurse(path, Absent, metadata, best)
             }
@@ -121,10 +124,13 @@ final case class RecursiveSplitter(
             val metadata = oldMetadata.clone
             metadata.add(newStep, newKey)
             partition(metadata, path)
-        }
+        } else finalize(path)
     }
 
     private def getFolder(table: WavesTable, path: Seq[PartitionTreePath]) : PartitionFolder
         = table.partitionTree.find(path).get.asInstanceOf[Bucket[String]].folder(table.basePath)
+
+    private def finalize(path: Seq[PartitionTreePath])
+      = table.repartition(path, Bucket("foo"))
 
 }

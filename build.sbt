@@ -20,7 +20,10 @@ lazy val waves = project
 
     // Full Stack Tests
     inConfig(FullStackTest)(Defaults.testSettings ++ BloopDefaults.configSettings),
-    FullStackTest / parallelExecution := false,
+    FullStackTest / fork := true,
+    FullStackTest / testGrouping := (FullStackTest / definedTests).value.map { suite =>
+      Tests.Group(suite.name, Seq(suite), Tests.SubProcess(ForkOptions()))
+    },
 
     // Dependancies
     libraryDependencies ++= Seq(

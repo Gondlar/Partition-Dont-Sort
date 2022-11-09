@@ -7,7 +7,7 @@ import de.unikl.cs.dbis.waves.split.PredefinedSplitter
 object Manual extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
-    val spark = jobConfig.makeSparkSession("Autopartition WavesData Even")
+    val spark = jobConfig.makeSparkSession("Manual Partition")
 
     val manualShape = SplitByPresence( "quoted_status"
                                      , Bucket("quotes")

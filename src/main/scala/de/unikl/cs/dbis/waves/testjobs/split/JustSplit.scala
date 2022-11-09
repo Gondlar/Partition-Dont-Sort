@@ -8,7 +8,7 @@ import de.unikl.cs.dbis.waves.split.EvenSplitter
 object JustSplit extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
-    val spark = jobConfig.makeSparkSession("Autopartition WavesData Switch")
+    val spark = jobConfig.makeSparkSession("Autopartition Split")
 
     val splitter = new EvenSplitter(8)
 

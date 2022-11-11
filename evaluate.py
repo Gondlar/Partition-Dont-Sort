@@ -7,32 +7,48 @@ import os
 import time
 
 plot_width = .7
-logdir = "/home/patrick/log"
+logdir = "/home/patrick/currentBatchLogs/queriesSwitch"
+
+experiment_names = [ "UsernameStartsWith", "RetweeterUsernameStartsWith", "DeletedTweetsPerUser" ]
 
 class Experiment:
+    """
+    Experiment wraps working with a run's dictionary representation and serves
+    as a container for multiple runs of the same experiemnt.
+    """
+
     __runs = []
     __identifier = ""
     __isWaves = False
 
-    __JOB_START = "job-start"
-    __JOB_END = "job-end"
+    __QUERY_START = "query-start"
+    __QUERY_RUN = "query-run"
+    __QUERY_END = "query-end"
     __BUILD_SCAN = "build-scan"
     __SCAN_BUILT = "scan-built"
     __CHOSE_BUCKETS = "chose-buckets"
 
-    def _run_start(self):
-        return self.__identifier + "-start"
-
-    def _run_end(self):
-        return self.__identifier + "-end"
-
     def __init__(self, name, iswaves):
+        """
+        Initialize the experiment
+        :param name: The class name of the experiment as specified in the log on query-start
+        :param iswaves: Whether the experiment was run with waves (true) or Parquet (false) as specified in query-run
+        """
         self.__runs = []
-        self.__identifier = name
+        self.__identifier = f"de.unikl.cs.dbis.waves.testjobs.query.{name}$"
         self.__isWaves = iswaves
+    
+    def typeString(self):
+        """
+        A string representation for type of this Experiemnt. Either "Parquet" or "Waves"
+        """
+        if self.__isWaves:
+            return "Waves"
+        else:
+            return "Parquet"
 
     def __str__(self):
-        return self.__identifier + ": " + self.__runs.__str__()
+        return f"{self.__identifier}-{self.typeString()}: {self.__runs}"
 
     def __repr__(self):
         return self.__str__()
@@ -40,12 +56,25 @@ class Experiment:
     def getName(self):
         return self.__identifier
 
-    def addIfMember(self, run):
-        if self._run_start() in run:
+    def isWaves(self):
+        return self.__isWaves
+
+    def addIfMember(self, run: dict):
+        """
+        Append a log file to this experiment if it is a run of this experiment
+        :param run: the log file as a dict
+        """
+        if run.get(self.__QUERY_START)[1] == self.getName() and run.get(self.__QUERY_RUN)[1].lower() == self.__isWaves.__str__().lower():
             self.__runs.append(run)
 
     def getUniqueResult(self):
-        values = np.array([run[self._run_end()][1] for run in self.__runs])
+        """
+        Normally, all runs of an experiment should produce the same result.
+        This method retrieves this result or terminates if the experiments
+        have differing results.
+        :return: this experiements result
+        """
+        values = np.array([run[self.__QUERY_END][1] for run in self.__runs])
         if np.all(values == values[0]):
             return values[0]
         else:
@@ -53,7 +82,13 @@ class Experiment:
             print(self.__runs)
             exit(1)
 
+
     def haveEqualResults(self, other):
+        """
+        Check whether the given Experiment has the same result as this one.
+        Should this not be the case, we terminate.
+        :param other: the other experiement
+        """
         myResult = self.getUniqueResult()
         otherResult = other.getUniqueResult()
         if myResult != otherResult:
@@ -61,11 +96,22 @@ class Experiment:
             print(myResult + " vs. " + otherResult)
             exit(1)
     
+    def matches(self, other):
+        """
+        Check whether the given Experiment is this one's partner, i.e., has the
+        same name but the opposite type
+        """
+        return self.getName() == other.getName() and self.__isWaves != other.__isWaves
+
     def getTimes(self):
+        """
+        Get the times for all runs of this experiment
+        :return: A list of tuples of runtimes. Each tuple contains the time to create a data frame, the time to choose buckets, the time to build a scan and the remaining runtime for each run.
+        """
         times = []
         for run in self.__runs:
-            total_time = run[self.__JOB_END][0] - run[self.__JOB_START][0]
-            run_time = run[self._run_end()][0] - run[self._run_start()][0]
+            total_time = run[self.__QUERY_END][0] - run[self.__QUERY_START][0]
+            run_time = run[self.__QUERY_END][0] - run[self.__QUERY_RUN][0]
             spark_time = total_time - run_time
             if self.__isWaves:
                 chose_buckets = run[self.__CHOSE_BUCKETS][0] - run[self.__BUILD_SCAN][0]
@@ -76,18 +122,33 @@ class Experiment:
                 times.append((spark_time, 0, 0, run_time))
         return times
 
-experiments = [ Experiment("completeParquet", False)
-              , Experiment("completeWaves", True)
-              , Experiment("partialParquet", False)
-              , Experiment("partialWaves", True)
-              ]
-
-def quotes(s):
+def quotes(s: str):
+    """
+    Remove quote marks from a string if they are present
+    :param s: the string to strip
+    :return: the stripped string
+    """
     if s[0] == '\'' and s[-1] == '\'':
         return s[1:-1]
     return s
 
+def crop(s: str, n: int):
+    """
+    Crop a String to at most n characters
+    :param s: the string
+    :param n: the number of characters
+    :return: the cropped string
+    """
+    if len(s) > n:
+        return f"{s[0:n-3]}..."
+    return s
+
 def read_run(path):
+    """
+    Read a logfile into a dict
+    :param path: the path to the logfile
+    :return: the dict
+    """
     data = np.genfromtxt( path
                         , delimiter=','
                         , dtype=None
@@ -102,13 +163,16 @@ def read_run(path):
     return run
 
 # Prepare Data
+experiments = [ Experiment(name, type) for name in experiment_names for type in [True, False]]
 files = [logdir + '/' + filename for filename in os.listdir(logdir) if filename.endswith(".csv")]
 for filename in files:
     run = read_run(filename)
     for exp in experiments:
         exp.addIfMember(run)
-experiments[0].haveEqualResults(experiments[1])
-experiments[2].haveEqualResults(experiments[3])
+for exp1 in experiments:
+    for exp2 in experiments:
+        if exp1.matches(exp2):
+            exp1.haveEqualResults(exp2)
 results = np.array([np.median(exp.getTimes(), axis=0) for exp in experiments])
 results = np.transpose(results)
 ind = np.arange(len(experiments))
@@ -116,8 +180,13 @@ ind = np.arange(len(experiments))
 # Speedup
 total = np.sum(results, axis=0)
 totalWithoutInit = total - results[0]
-print("Complete Scan Speedup: " + str((total[0]/total[1])) + " / " + str((totalWithoutInit[0]/totalWithoutInit[1])))
-print("Partial Scan Speedup: " + str((total[2]/total[3])) + " / " + str((totalWithoutInit[2]/totalWithoutInit[3])))
+for i, exp in enumerate(experiments):
+    if exp.isWaves():
+        continue
+    for j, partner in enumerate(experiments):
+        if partner.matches(exp):            
+            print(f"{exp.getName()} Speedup: {total[i]/total[j]} / {totalWithoutInit[i]/totalWithoutInit[j]}")
+            break
 print(total)
 print(totalWithoutInit)
 
@@ -127,8 +196,8 @@ plt.bar(ind, results[0], plot_width, label='Initialize Spark', capsize=3, color=
 plt.bar(ind, results[1], plot_width, label='Choose Buckets', bottom=results[0], capsize=3, color="tab:orange")
 plt.bar(ind, results[2], plot_width, label='Build Scan', bottom=results[0]+results[1], capsize=3, color="gold")
 plt.bar(ind, results[3], plot_width, label='Run Query', bottom=results[0]+results[1]+results[2], capsize=3, color="tab:green")
-#plt.xticks(ind, [exp.getName() for exp in experiments])
-plt.xticks(ind, ["Q1\nNormal", "Q1\nPartitioned", "Q2\nNormal", "Q2\nPartitioned"])
+plt.xticks(ind, [f"{crop(exp.getName()[38:-1], 15)}\n{exp.typeString()}" for exp in experiments])
+#plt.xticks(ind, ["Q1\nNormal", "Q1\nPartitioned", "Q2\nNormal", "Q2\nPartitioned"])
 
 ax = plt.gca()
 formatter = matplotlib.ticker.FuncFormatter(lambda ms, x: time.strftime('%S', time.gmtime(ms // 1000)))

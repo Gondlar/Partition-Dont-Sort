@@ -33,7 +33,7 @@ lazy val waves = project
       "org.scalatest" %% "scalatest-wordspec" % scalatestVersion % "test,fullstack"
     ),
 
-    //testOptions += Tests.Argument("-oF")
+    //testOptions += Tests.Argument("-oF"),
     Test / logBuffered := false,
 
     // Compile settings

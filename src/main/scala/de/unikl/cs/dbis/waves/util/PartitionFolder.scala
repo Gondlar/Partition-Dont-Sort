@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.util
 
 import org.apache.hadoop.fs.{FileSystem,Path,FileUtil,RemoteIterator}
 import java.util.UUID
+import org.apache.spark.sql.SparkSession
 
 /**
   * This class represents a folder which contains a bucket
@@ -160,6 +161,15 @@ class PartitionFolder(
       */
     def isEmpty(implicit fs: FileSystem): Boolean
         = !fs.listFiles(file, false).exists(_.getPath.getName endsWith ".parquet")
+
+    /**
+      * Find the filesystem which contains this folder
+      *
+      * @param spark the current spark session
+      * @return the filesystem
+      */
+    def filesystem(spark: SparkSession)
+      = file.getFileSystem(spark.sparkContext.hadoopConfiguration)
 }
 
 object PartitionFolder {

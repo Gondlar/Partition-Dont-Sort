@@ -5,12 +5,15 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.{DataFrameFixture, PartitionTreeFixture, TempFolderFixture}
 
 import java.io.File
-import java.nio.file.Path
 import org.apache.commons.io.FileUtils
+import org.apache.hadoop.fs.Path
+import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.format.converter.ParquetMetadataConverter
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SparkSession, DataFrame, Row}
 import org.apache.spark.sql.functions.col
-import scala.collection.mutable.{ArrayBuilder, WrappedArray}
+import org.apache.spark.sql.types.StructType
+
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.Absent
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
@@ -20,7 +23,9 @@ import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.operators.{Grouper,DefinitionLevelGrouper,PresenceGrouper,NullGrouper}
 import de.unikl.cs.dbis.waves.sort.NoSorter
 import de.unikl.cs.dbis.waves.sort.Sorter
-import org.apache.spark.sql.types.StructType
+
+import scala.collection.mutable.{ArrayBuilder, WrappedArray}
+import scala.collection.JavaConverters._
 
 class GroupedSplitterSpec extends WavesSpec
     with DataFrameFixture with PartitionTreeFixture with TempFolderFixture
@@ -137,7 +142,7 @@ class GroupedSplitterSpec extends WavesSpec
           splitter.manyCalled should equal (false)
           splitter.oneCalled should equal (true)
         }
-        "perform schema modifications when writing" ignore {
+        "perform schema modifications when writing" in {
           Given("A GroupedSplitter, a bucket, and its metadata")
           val metadata = PartitionMetadata(Seq.empty, Seq(PathKey("b")), Seq.empty)
           val bucket = df.filter(col("b").isNull)
@@ -149,15 +154,26 @@ class GroupedSplitterSpec extends WavesSpec
           When("we write the bucket")
           splitter.partition()
 
-          Then("we can read it again")
+          Then("the written file has the correct schema")
           val expectedSchema = StructType(schema.fields.filter(_.name != "b"))
           val folder = new File(tempDirectory.toString())
             .listFiles()
             .filter(file => file.isDirectory() && file.getName() != PartitionFolder.TEMP_DIR)
             .head
-          val written = spark.read.schema(expectedSchema).parquet(folder.getPath())
+          val files = folder.listFiles().filter(_.getName().endsWith(".parquet"))
+          files should have length (1)
+          val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
+                                                    , new Path(files.head.toString())
+                                                    , ParquetMetadataConverter.NO_FILTER)
+                                .getFileMetaData().getSchema()
+          parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("a"), Seq("e")))
+          parquetSchema.getType(Seq("a"):_*).getRepetition().name() should equal ("OPTIONAL")
+          parquetSchema.getType(Seq("e"):_*).getRepetition().name() should equal ("REQUIRED")
+
+          And("we can read it again")
+          val written = spark.createDataFrame(spark.read.schema(expectedSchema).parquet(folder.getPath()).rdd, expectedSchema)
+          written.collect should contain theSameElementsInOrderAs (bucket.drop("b").collect())
           written.schema should equal (expectedSchema)
-          written.collect should contain theSameElementsInOrderAs (df.collect())
         }
         "directly write multiple partitions correctly" in {
           Given("A GroupedSplitter")

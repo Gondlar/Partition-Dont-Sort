@@ -60,7 +60,7 @@ class WavesTable private (
         val paths = partitions.map(_.filename)
         ParquetTable( s"Delegate ParquetTable for ${name}"
                     , spark
-                    , options
+                    , new CaseInsensitiveStringMap((options.asScala + (("mergeSchema", "true"))).asJava)
                     , paths
                     , Some(schema())
                     , classOf[ParquetFileFormat])

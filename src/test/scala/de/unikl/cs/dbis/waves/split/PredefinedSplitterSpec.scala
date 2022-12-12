@@ -10,6 +10,8 @@ import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 import org.apache.hadoop.fs.Path
+import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.format.converter.ParquetMetadataConverter
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Absent}
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
@@ -18,6 +20,7 @@ import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.sort.NoSorter
 
 import de.unikl.cs.dbis.waves.WavesTable._
+import de.unikl.cs.dbis.waves.partitions.Present
 
 class PredefinedSplitterSpec extends WavesSpec
   with RelationFixture with PartitionTreeFixture with TempFolderFixture
@@ -149,6 +152,43 @@ class PredefinedSplitterSpec extends WavesSpec
       val result = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs (expextedTree)
+
+      And("We can read everything as a WavesTable")
+      val newDf = spark.read.waves(tempDirectory.toString)
+      newDf.collect() should contain theSameElementsAs (df.collect())
+
+      And("we recieve the correct data when selecting one attribute")
+      compareFilteredDataframe(newDf, df, col("a").isNull)
+      compareFilteredDataframe(newDf, df, col("b").isNotNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
+    }
+    "handle splits with schema modifications" in {
+      Given("a DataFrame and a PartitionTree")
+      val shape = SplitByPresence("a", Bucket("foo"), SplitByPresence("b.d", "bar", "baz"))
+      val splitter = new PredefinedSplitter(shape)
+      splitter.modifySchema(true).prepare(df, tempDirectory.toString())
+      
+      When("we partition it")
+      splitter.partition()
+
+      Then("the written partition tree looks as defined")
+      val expextedTree = new PartitionTree(schema, NoSorter, shape)
+      val result = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
+      result should not equal (None)
+      result.get should haveTheSameStructureAs (expextedTree)
+
+      val folder = result.get.find(Seq(Absent, Present)).get.asInstanceOf[Bucket[String]].folder(tempDirectory.toString())
+      implicit val fs = folder.filesystem(spark)
+      import de.unikl.cs.dbis.waves.util.PartitionFolder._
+      for (foo <- fs.listFiles(folder.file, false) if foo.getPath().getName().endsWith(".parquet")) {
+        val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
+                                                 , foo.getPath()
+                                                 , ParquetMetadataConverter.NO_FILTER)
+            .getFileMetaData().getSchema()
+        parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("b", "c"), Seq("b", "d"), Seq("e")))
+        parquetSchema.getType(Seq("b", "d"):_*).getRepetition().name() should equal ("REQUIRED")
+      }
 
       And("We can read everything as a WavesTable")
       val newDf = spark.read.waves(tempDirectory.toString)

@@ -10,7 +10,7 @@ import org.apache.spark.sql.SaveMode
 
 trait SplitRunner {
   def runSplitter[T](spark: SparkSession, jobConfig: JobConfig, splitter: Splitter[T])
-    = run(spark, jobConfig, (df) => df.saveAsWaves(splitter, jobConfig.wavesPath))
+    = run(spark, jobConfig, (df) => df.saveAsWaves(splitter.modifySchema(jobConfig.modifySchema), jobConfig.wavesPath))
 
   def runPlain(spark: SparkSession, jobConfig: JobConfig)
     = run(spark, jobConfig, (df) => df.write.mode(SaveMode.Overwrite).waves(jobConfig.wavesPath, df.schema))

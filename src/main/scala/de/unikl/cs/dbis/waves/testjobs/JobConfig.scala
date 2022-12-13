@@ -63,6 +63,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
 
   def wavesPath = getString("wavesPath").getOrElse(s"$filesystem/out/")
   def useWaves = getBool("useWaves").getOrElse(true)
+  def modifySchema = getBool("modifySchema").getOrElse(false)
 
   def completeScanColumn = getString("completeScanColumn").getOrElse("user.name")
   def partialScanColumn = getString("partialScanColumn").getOrElse("quoted_status.user.name")

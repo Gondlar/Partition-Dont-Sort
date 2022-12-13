@@ -22,7 +22,7 @@ class ManualSpec extends WavesSpec
     "using schema modifications" should {
       behave like split({
         Manual.main(args :+ "modifySchema=true")
-      }, specificTests)
+      }, specificTests, usesSchemaModifications = true)
     }
   }
 

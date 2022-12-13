@@ -20,7 +20,7 @@ class GroupedSwitchSpec extends WavesSpec
     "using schema modifications" should {
       behave like split({
         GroupedSwitch.main(args :+ "modifySchema=true")
-      }, specificTests)
+      }, specificTests, usesSchemaModifications = true)
     }
   }
 

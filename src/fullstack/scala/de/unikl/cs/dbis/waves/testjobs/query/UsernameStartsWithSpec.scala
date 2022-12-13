@@ -10,12 +10,12 @@ class UsernameStartsWithSpec extends WavesSpec
 
   "The UsernameStartsWith Query job" when {
     "using waves" should {
-      behave like queryWithResult("20", true, {
+      behave like queryWithResult("9", true, {
         UsernameStartsWith.main(args)
       })
     }
     "using parquet" should {
-      behave like queryWithResult("20", false, {
+      behave like queryWithResult("9", false, {
         UsernameStartsWith.main(args :+ "useWaves=false")
       })
     }

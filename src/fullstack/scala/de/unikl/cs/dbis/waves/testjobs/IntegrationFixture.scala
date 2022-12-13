@@ -11,6 +11,9 @@ import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.util.Logger
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.SparkSession
+import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.format.converter.ParquetMetadataConverter
+import org.apache.hadoop.fs.Path
 import java.io.{File, BufferedReader, FileReader}
 
 import scala.collection.JavaConverters._
@@ -63,6 +66,30 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     data.except(input).count() should equal (0)
     input.except(data).count() should equal (0)
   }
+
+  def assertUnmodifiedSchema(spark: SparkSession, buckets: Seq[Bucket[String]]) = {
+    val schemas = readSchemas(spark, buckets)
+    if (schemas.size > 1) {
+      schemas.toSet.size should equal (1)
+    }
+  }
+
+  def assertModifiedSchema(spark: SparkSession, buckets: Seq[Bucket[String]]) = {
+    val schemas = readSchemas(spark, buckets)
+    if (buckets.size > 1) {
+      schemas.toSet.size should be > 1
+    }
+  }
+
+  private def readSchemas(spark: SparkSession, buckets: Seq[Bucket[String]])
+    = for {bucket <- buckets;
+           file <- new File(bucket.folder(wavesPath).filename).listFiles().filter(_.getName().endsWith(".parquet"))
+    } yield {
+      new ParquetFileReader( spark.sparkContext.hadoopConfiguration
+                           , new Path(file.toString)
+                           , ParquetMetadataConverter.NO_FILTER)
+        .getFileMetaData().getSchema()
+    }
 
   def assertLogProperties() = {
     val logs = new File("log/")

@@ -10,12 +10,12 @@ class RetweeterUsernameStartsWithSpec extends WavesSpec
 
   "The UsernameStartsWith Query job" when {
     "using waves" should {
-      behave like queryWithResult("2", true, {
+      behave like queryWithResult("1", true, {
         RetweeterUsernameStartsWith.main(args)
       })
     }
     "using parquet" should {
-      behave like queryWithResult("2", false, {
+      behave like queryWithResult("1", false, {
         RetweeterUsernameStartsWith.main(args :+ "useWaves=false")
       })
     }

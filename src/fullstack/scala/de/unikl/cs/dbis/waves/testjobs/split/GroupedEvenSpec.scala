@@ -20,7 +20,7 @@ class GroupedEvenSpec extends WavesSpec
     "using schema modifications" should {
       behave like split({
         GroupedEven.main(args :+ "modifySchema=true")
-      }, specificTests)
+      }, specificTests, usesSchemaModifications = true)
     }
   }
 

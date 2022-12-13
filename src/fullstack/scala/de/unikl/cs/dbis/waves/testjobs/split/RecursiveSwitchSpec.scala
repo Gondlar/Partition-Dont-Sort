@@ -20,7 +20,7 @@ class RecursiveSwitchSpec extends WavesSpec
     "using schema modifications" should {
       behave like split({
         RecursiveSwitch.main(args :+ "modifySchema=true")
-      }, specificTests)
+      }, specificTests, usesSchemaModifications = true)
     }
   }
 

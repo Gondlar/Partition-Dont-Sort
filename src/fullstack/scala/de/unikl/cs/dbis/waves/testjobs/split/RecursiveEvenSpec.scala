@@ -20,7 +20,7 @@ class RecursiveEvenSpec extends WavesSpec
     "using schema modifications" should {
       behave like split({
         RecursiveEven.main(args :+ "modifySchema=true")
-      }, specificTests)
+      }, specificTests, usesSchemaModifications = true)
     }
   }
 

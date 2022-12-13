@@ -14,7 +14,8 @@ trait SplitFixture extends IntegrationFixture {
   def split(
     splitAction: => Unit,
     testAction: (StructType, PartitionTree[String], Seq[String], Seq[String]) => Unit,
-    enforceSingleFilesPerPartition:  Boolean = true
+    enforceSingleFilesPerPartition:  Boolean = true,
+    usesSchemaModifications: Boolean = false
   ) = {
     "format the data correctly" in {
       When("we run the job")
@@ -32,6 +33,14 @@ trait SplitFixture extends IntegrationFixture {
       if (enforceSingleFilesPerPartition) {
         And("the partitions should contain exactly one parquet file")
         assertCleanedPartitions(schema.buckets)
+      }
+
+      if (usesSchemaModifications) {
+        And("The schema is modified")
+        assertModifiedSchema(spark, schema.buckets)
+      } else {
+        And("The schema is not modified")
+        assertUnmodifiedSchema(spark, schema.buckets)
       }
 
       And("we read the same results")

@@ -36,6 +36,7 @@ class SplitterSpec extends WavesSpec
         override def finalizeEnabled: Boolean = ???
         override def sortWith(sorter: Sorter): Splitter[Any] = ???
         override def modifySchema(enabled: Boolean): Splitter[Any] = ???
+        override def schemaModificationsEnabled: Boolean = ???
         override def partition() = ()
         override def load(context: Any): DataFrame = df
         override def data(context: Any): DataFrame = super.data(context)

@@ -60,11 +60,14 @@ final case class RecursiveSplitter(
       this
     }
 
+    private var doModifySchema = false
+
     override def modifySchema(enabled: Boolean) = {
-      if (enabled)
-        throw new IllegalArgumentException("schema modifications are not supported")
+      doModifySchema = enabled
       this
     }
+
+    override def schemaModificationsEnabled = doModifySchema
 
     /**
       * @return the table this splitter writes to
@@ -136,7 +139,6 @@ final case class RecursiveSplitter(
     private def getFolder(table: WavesTable, path: Seq[PartitionTreePath]) : PartitionFolder
         = table.partitionTree.find(path).get.asInstanceOf[Bucket[String]].folder(table.basePath)
 
-    private def finalize(path: Seq[PartitionTreePath])
-      = table.repartition(path, Bucket("foo"))
+    private def finalize(path: Seq[PartitionTreePath]) = table.repartition(path, Bucket("foo"), modifySchema = doModifySchema)
 
 }

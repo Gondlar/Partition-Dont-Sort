@@ -52,10 +52,12 @@ abstract class GroupedSplitter(
 
     override def sortWith(sorter: Sorter) = { this.sorter = sorter; this }
 
-    protected var schemaModificationsEnabled = false
+    protected var doSchemaModifications = false
 
     override def modifySchema(enabled: Boolean)
-      = { schemaModificationsEnabled = enabled; this }
+      = { doSchemaModifications = enabled; this }
+
+    override def schemaModificationsEnabled = doSchemaModifications
 
     override protected def load(context: Unit): DataFrame = source
 

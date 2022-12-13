@@ -5,11 +5,18 @@ import de.unikl.cs.dbis.waves.RelationFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 
+import java.io.File
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.hadoop.fs.Path
+import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.format.converter.ParquetMetadataConverter
+
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket}
+import de.unikl.cs.dbis.waves.partitions.Absent
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.split.recursive.{AbstractHeuristic, PartitionMetricCalculator, ColumnMetric}
 
@@ -64,9 +71,7 @@ class RecursiveSplitterSpec extends WavesSpec
             val table = splitter.getTable
             table.basePath should equal (tempDirectory.toString)
         }
-        // We cannot test the exact sampling amount because spark does not
-        // guarantee exact numbers 
-        "return a sample of the data" in {
+        "split a table according to the heuristic" in {
             Given("A table and a recursive splitter")
             val table = WavesTable("RecursiveSplitterTest", spark, directory, CaseInsensitiveStringMap.empty)
             val splitter = RecursiveSplitter(0, Int.MaxValue, MockHeuristic()).prepare(table)
@@ -88,6 +93,40 @@ class RecursiveSplitterSpec extends WavesSpec
             And("if we read the data, all is still there")
             spark.read.waves(directory).collect() should contain theSameElementsAs (data)
         }
+        "use schema modifications" in {
+            Given("A table and a recursive splitter")
+            val table = WavesTable("RecursiveSplitterTest", spark, directory, CaseInsensitiveStringMap.empty)
+            val splitter = RecursiveSplitter(0, Int.MaxValue, MockHeuristic()).prepare(table).modifySchema(true)
+            
+            When("we partition the table")
+            splitter.partition()
+            
+            Then("The partition tree looks as expected")
+            val expectedShape = SplitByPresence( "b"
+                                               , SplitByPresence( "a"
+                                                                , SplitByPresence("b.c", "foo", "foo")
+                                                                , SplitByPresence("b.c", "foo", "foo")
+                                                                )
+                                               , SplitByPresence("a", "foo", "foo")
+                                               )
+            val expectedTree = new PartitionTree(schema, NoSorter, expectedShape)
+            table.partitionTree should haveTheSameStructureAs (expectedTree)
+
+            And("the schema is modified")
+            val file = new File(table.partitionTree.root.find(Seq(Absent, Absent)).get.asInstanceOf[Bucket[String]].folder(directory).filename)
+              .listFiles()
+              .filter(file => file.getName().endsWith(".parquet"))
+              .head
+            val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
+                                                    , new Path(file.toString())
+                                                    , ParquetMetadataConverter.NO_FILTER)
+                                .getFileMetaData().getSchema()
+            parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("e")))
+            parquetSchema.getType(Seq("e"):_*).getRepetition().name() should equal ("REQUIRED")
+
+            And("if we read the data, all is still there")
+            spark.read.waves(directory).collect() should contain theSameElementsAs (data)
+        }
         "accept the NoSorter" in {
           val splitter = new RecursiveSplitter(0, 0, null)
           val after = splitter.sortWith(NoSorter)
@@ -96,15 +135,6 @@ class RecursiveSplitterSpec extends WavesSpec
         "accept no other Sorter" in {
           val splitter = new RecursiveSplitter(0, 0, null)
           an [IllegalArgumentException] shouldBe thrownBy (splitter.sortWith(LexicographicSorter))
-        }
-        "allow turning off schema modifications" in {
-          val splitter = new RecursiveSplitter(0, 0, null)
-          val after = splitter.modifySchema(false)
-          after shouldBe theSameInstanceAs (splitter)
-        }
-        "not allow turning on schema modifications" in {
-          val splitter = new RecursiveSplitter(0, 0, null)
-          an [IllegalArgumentException] shouldBe thrownBy (splitter.modifySchema(true))
         }
     }
 }

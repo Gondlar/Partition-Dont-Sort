@@ -45,6 +45,15 @@ trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFr
       step2 shouldBe theSameInstanceAs (step1)
       step2.finalizeEnabled shouldBe (true)
     }
+    "be able to toggle schema modifications" in {
+      val step1 = splitter.modifySchema(true)
+      step1 shouldBe theSameInstanceAs (splitter)
+      step1.schemaModificationsEnabled shouldBe (true)
+      
+      val step2 = step1.modifySchema(false)
+      step2 shouldBe theSameInstanceAs (step1)
+      step2.schemaModificationsEnabled shouldBe (false)
+    }
   }
 
   def deterministicSplitter(splitter: GroupedSplitter) = {

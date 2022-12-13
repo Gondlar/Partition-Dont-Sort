@@ -145,15 +145,16 @@ class WavesTable private (
       *              of nodes, but the names of the Buckets may differ
       * @param finalize whether the resulting bucket(s) should be finalized
       */
-    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String], finalize: Boolean = true) = {
-        val df = partitionTree.find(path)
-                              .get
-                              .buckets
-                              .map(b => spark.read.parquet(b.folder(basePath).filename))
-                              .reduce((lhs, rhs) => lhs.union(rhs))
+    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String], finalize: Boolean = true, modifySchema: Boolean = false) = {
+        val files = partitionTree.find(path)
+          .get
+          .buckets
+          .map{ _.folder(basePath).filename }
+        val df = spark.createDataFrame(spark.read.schema(schema()).parquet(files:_*).rdd, schema())
         new PredefinedSplitter(shape, partitionTree.metadataFor(path))
           .sortWith(partitionTree.sorter)
           .doFinalize(finalize)
+          .modifySchema(modifySchema)
           .prepare(df, basePath)
           .partition()
         partitionTree = hdfsInterface.read().get

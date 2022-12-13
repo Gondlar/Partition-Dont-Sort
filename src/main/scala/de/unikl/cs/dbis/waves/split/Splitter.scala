@@ -78,6 +78,11 @@ abstract class Splitter[Context] {
     def modifySchema(enabled: Boolean): Splitter[Context]
 
     /**
+      * @return Whether schema modifications are enabled for this splitter
+      */
+    def schemaModificationsEnabled: Boolean
+
+    /**
       * Automatically Partition the table
       */
     def partition(): Unit

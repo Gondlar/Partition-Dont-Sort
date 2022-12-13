@@ -17,7 +17,7 @@ class RecursiveEvenSpec extends WavesSpec
         RecursiveEven.main(args)
       }, specificTests)
     }
-    "using schema modifications" ignore {
+    "using schema modifications" should {
       behave like split({
         RecursiveEven.main(args :+ "modifySchema=true")
       }, specificTests)

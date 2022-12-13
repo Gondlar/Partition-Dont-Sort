@@ -1,6 +1,5 @@
 package de.unikl.cs.dbis.waves.testjobs.query
 
-import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.testjobs.IntegrationFixture
 import de.unikl.cs.dbis.waves.testjobs.split.Plain
 
@@ -18,7 +17,7 @@ trait QueryFixture extends IntegrationFixture {
     action: => Unit,
     additionalLogs: Seq[String] = Seq.empty
   ) = {
-    "read the data correcytly" in {
+    "read the data correctly" in {
       When("we run the job")
       action
 

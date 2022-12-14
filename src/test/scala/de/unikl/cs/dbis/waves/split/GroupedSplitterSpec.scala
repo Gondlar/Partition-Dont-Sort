@@ -155,12 +155,10 @@ class GroupedSplitterSpec extends WavesSpec
           splitter.partition()
 
           Then("the written file has the correct schema")
+          implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
           val expectedSchema = StructType(schema.fields.filter(_.name != "b"))
-          val folder = new File(tempDirectory.toString())
-            .listFiles()
-            .filter(file => file.isDirectory() && file.getName() != PartitionFolder.TEMP_DIR)
-            .head
-          val files = folder.listFiles().filter(_.getName().endsWith(".parquet"))
+          val folder = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).next()
+          val files = folder.parquetFiles.toSeq
           files should have length (1)
           val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
                                                     , new Path(files.head.toString())
@@ -171,7 +169,7 @@ class GroupedSplitterSpec extends WavesSpec
           parquetSchema.getType(Seq("e"):_*).getRepetition().name() should equal ("REQUIRED")
 
           And("we can read it again")
-          val written = spark.createDataFrame(spark.read.schema(expectedSchema).parquet(folder.getPath()).rdd, expectedSchema)
+          val written = spark.createDataFrame(spark.read.schema(expectedSchema).parquet(folder.filename).rdd, expectedSchema)
           written.collect should contain theSameElementsInOrderAs (bucket.drop("b").collect())
           written.schema should equal (expectedSchema)
         }

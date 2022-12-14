@@ -152,6 +152,17 @@ class PartitionFolder(
     def diskSize(implicit fs: FileSystem) = fs.getContentSummary(file).getLength()
 
     /**
+      * List all Parquet files in this folder
+      *
+      * @param fs the filesystem this folder is located in
+      * @return An iterator over all paths to Parquet files
+      */
+    def parquetFiles(implicit fs: FileSystem): Iterator[Path]
+      = fs.listFiles(file, false)
+        .map(_.getPath)
+        .filter(_.getName() endsWith ".parquet")
+
+    /**
       * Check if the folder is empty, i.e., does not contain any Parquet files.
       * A folder with 100 files none of which are Parquet files is considered
       * empty! Parquet files are identified by their extension.
@@ -160,7 +171,7 @@ class PartitionFolder(
       * @return true iff the folder is empty
       */
     def isEmpty(implicit fs: FileSystem): Boolean
-        = !fs.listFiles(file, false).exists(_.getPath.getName endsWith ".parquet")
+        = !parquetFiles.hasNext
 
     /**
       * Find the filesystem which contains this folder
@@ -193,5 +204,18 @@ object PartitionFolder {
     implicit class RemoteWrapper[T](remote: RemoteIterator[T]) extends Iterator[T] {
         override def hasNext: Boolean = remote.hasNext()
         override def next(): T = remote.next()
+    }
+
+    /**
+      * Find all PartitionFolders in a given directory
+      *
+      * @param baseDir the path to the directory
+      * @param fs the filesystem the directory is located in
+      * @return an iterator over all PartitionFolders in that directory
+      */
+    def allInDirectory(baseDir: Path)(implicit fs: FileSystem) = {
+      fs.listStatus(baseDir).iterator
+        .filter(file => file.isDirectory() && file.getPath.getName() != TEMP_DIR)
+        .map(file => new PartitionFolder(baseDir.toString, file.getPath.getName(), false))
     }
 }

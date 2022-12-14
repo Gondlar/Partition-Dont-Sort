@@ -6,13 +6,15 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 
 import java.nio.file.Files
-import java.nio.file.Path
+import org.apache.hadoop.fs.Path
 import org.apache.commons.io.FileUtils
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 import de.unikl.cs.dbis.waves.WavesTable._
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class HeuristicSplitterSpec extends WavesSpec
     with DataFrameFixture with TempFolderFixture
@@ -26,13 +28,14 @@ class HeuristicSplitterSpec extends WavesSpec
             new HeuristicSplitter(2).prepare(df, tempDirectory.toString()).partition()
 
             Then("there are more than two partitions")
-            val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())
+            implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
+            val partitions = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq
             partitions.length shouldBe >= (2)
 
             And("The partitions are cleaned up")
             forAll (partitions) { dir =>
-              dir.getName() should not contain "="
-              dir.listFiles.filter(_.getName.endsWith(".parquet")) should have size (1)
+              dir.name should not contain "="
+              dir.parquetFiles.toSeq should have size (1)
             }
 
             And("We can read everything as a WavesTable")

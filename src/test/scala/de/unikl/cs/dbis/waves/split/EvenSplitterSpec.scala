@@ -6,13 +6,15 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 
 import java.nio.file.Files
-import java.nio.file.Path
+import org.apache.hadoop.fs.Path
 import org.apache.commons.io.FileUtils
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 import de.unikl.cs.dbis.waves.WavesTable._
+import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 class EvenSplitterSpec extends WavesSpec
   with DataFrameFixture with TempFolderFixture
@@ -26,15 +28,16 @@ class EvenSplitterSpec extends WavesSpec
       new EvenSplitter(partitionCount).prepare(df, tempDirectory.toString).partition()
 
       Then("there is the correct number of partitions")
-      val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())
+      implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
+      val partitions = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq
       partitions.length should equal (partitionCount)
 
-      And("The partitions are cleaned up")
+      And("The partitions are cleaned up")      
       forAll (partitions) { partition =>
-        partition.getName() should not contain "="
-        val files = partition.listFiles.filter(_.getName.endsWith(".parquet"))
+        partition.name should not contain "="
+        val files = partition.parquetFiles.toSeq
         files should have size (1)
-        spark.read.parquet(files.head.getPath()).count() should equal (2)
+        spark.read.parquet(files.head.toString).count() should equal (2)
       }
 
       And("We can read everything as a WavesTable")

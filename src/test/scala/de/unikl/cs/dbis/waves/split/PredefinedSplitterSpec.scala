@@ -180,10 +180,9 @@ class PredefinedSplitterSpec extends WavesSpec
 
       val folder = result.get.find(Seq(Absent, Present)).get.asInstanceOf[Bucket[String]].folder(tempDirectory.toString())
       implicit val fs = folder.filesystem(spark)
-      import de.unikl.cs.dbis.waves.util.PartitionFolder._
-      for (foo <- fs.listFiles(folder.file, false) if foo.getPath().getName().endsWith(".parquet")) {
+      for (path <- folder.parquetFiles) {
         val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
-                                                 , foo.getPath()
+                                                 , path
                                                  , ParquetMetadataConverter.NO_FILTER)
             .getFileMetaData().getSchema()
         parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("b", "c"), Seq("b", "d"), Seq("e")))

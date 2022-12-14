@@ -49,12 +49,12 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     FileUtils.deleteQuietly(new File(Logger.logDir))
   }
 
-  def assertCleanedPartitions(buckets: Seq[Bucket[String]]) = {
+  def assertCleanedPartitions(spark: SparkSession, buckets: Seq[Bucket[String]]) = {
+    implicit val fs = buckets.head.folder(wavesPath).filesystem(spark)
     forAll (buckets) { bucket =>
-      val dir = new File(bucket.folder(wavesPath).filename)
-      dir should be ('exists)
-      val files = dir.listFiles().filter(_.getName().endsWith(".parquet"))
-      files should have length (1)
+      val dir = bucket.folder(wavesPath)
+      dir.exists shouldBe (true)
+      dir.parquetFiles should have length (1)
     }
   }
 
@@ -81,15 +81,17 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     }
   }
 
-  private def readSchemas(spark: SparkSession, buckets: Seq[Bucket[String]])
-    = for {bucket <- buckets;
-           file <- new File(bucket.folder(wavesPath).filename).listFiles().filter(_.getName().endsWith(".parquet"))
+  private def readSchemas(spark: SparkSession, buckets: Seq[Bucket[String]]) = {
+    implicit val fs = buckets.head.folder(wavesPath).filesystem(spark)
+    for {bucket <- buckets;
+         path <- bucket.folder(wavesPath).parquetFiles
     } yield {
       new ParquetFileReader( spark.sparkContext.hadoopConfiguration
-                           , new Path(file.toString)
+                           , path
                            , ParquetMetadataConverter.NO_FILTER)
         .getFileMetaData().getSchema()
     }
+  }
 
   def assertLogProperties() = {
     val logs = new File("log/")

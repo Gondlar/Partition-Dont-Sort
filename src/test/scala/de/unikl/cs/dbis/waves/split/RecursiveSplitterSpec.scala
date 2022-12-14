@@ -113,13 +113,12 @@ class RecursiveSplitterSpec extends WavesSpec
             table.partitionTree should haveTheSameStructureAs (expectedTree)
 
             And("the schema is modified")
-            val file = new File(table.partitionTree.root.find(Seq(Absent, Absent)).get.asInstanceOf[Bucket[String]].folder(directory).filename)
-              .listFiles()
-              .filter(file => file.getName().endsWith(".parquet"))
-              .head
+            val folder = table.partitionTree.root.find(Seq(Absent, Absent)).get.asInstanceOf[Bucket[String]].folder(directory)
+            implicit val fs = folder.filesystem(spark)
+            val file = folder.parquetFiles.next
             val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
-                                                    , new Path(file.toString())
-                                                    , ParquetMetadataConverter.NO_FILTER)
+                                                     , new Path(file.toString())
+                                                     , ParquetMetadataConverter.NO_FILTER)
                                 .getFileMetaData().getSchema()
             parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("e")))
             parquetSchema.getType(Seq("e"):_*).getRepetition().name() should equal ("REQUIRED")

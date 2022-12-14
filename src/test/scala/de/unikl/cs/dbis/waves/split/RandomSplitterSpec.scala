@@ -6,13 +6,15 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 
 import java.nio.file.Files
-import java.nio.file.Path
+import org.apache.hadoop.fs.Path
 import org.apache.commons.io.FileUtils
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 import de.unikl.cs.dbis.waves.WavesTable._
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class RandomSplitterSpec extends WavesSpec
   with DataFrameFixture with TempFolderFixture {
@@ -24,7 +26,8 @@ class RandomSplitterSpec extends WavesSpec
       new RandomSplitter(partitionCount).prepare(df, tempDirectory.toString).partition()
 
       Then("there is the correct number of partitions")
-      val partitions = tempDirectory.toFile().listFiles.filter(_.isDirectory())
+      implicit val fs = PartitionTreeHDFSInterface(spark, tempDirectory.toString).fs
+      val partitions = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq
       partitions.length shouldBe <= (partitionCount)
       if (partitions.length < partitionCount) {
         alert(s"Got less than $partitionCount partitions. This can be random chance, but is a bug if it persists")
@@ -32,8 +35,8 @@ class RandomSplitterSpec extends WavesSpec
 
       And("The partitions are cleaned up")
       forAll (partitions) { partition =>
-        partition.getName() should not contain "="
-        partition.listFiles.filter(_.getName.endsWith(".parquet")) should have size (1)
+        partition.name should not contain "="
+        partition.parquetFiles.toSeq should have size (1)
       }
 
       And("We can read everything as a WavesTable")

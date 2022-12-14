@@ -32,7 +32,7 @@ trait SplitFixture extends IntegrationFixture {
 
       if (enforceSingleFilesPerPartition) {
         And("the partitions should contain exactly one parquet file")
-        assertCleanedPartitions(schema.buckets)
+        assertCleanedPartitions(spark, schema.buckets)
       }
 
       if (usesSchemaModifications) {

@@ -5,6 +5,8 @@ import de.unikl.cs.dbis.waves.TempFolderFixture
 import de.unikl.cs.dbis.waves.SparkFixture
 
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.FileSystem
+import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 class PartitonFolderSpec extends WavesSpec
 with TempFolderFixture with SparkFixture {
@@ -148,20 +150,40 @@ with TempFolderFixture with SparkFixture {
                 folder.isEmpty shouldBe (true)
 
                 When("we put a non-parquet file inside it")
-                val writer = fs.create(new Path(folder.filename + "/foo.txt"))
-                writer.writeInt(5)
-                writer.close()
+                placeFile(folder, "foo.txt")
 
                 Then("it is still empty")
                 folder.isEmpty shouldBe (true)
 
                 When("we put a parquet file in it")
-                val writer2 = fs.create(new Path(folder.filename + "/bar.parquet"))
-                writer2.writeInt(5)
-                writer2.close()
+                placeFile(folder, "bar.parquet")
 
                 Then("it no longer empty")
                 folder.isEmpty shouldBe (false)
+            }
+            "list all of its parquet files" in {
+              Given("an empty folder")
+              val folder = PartitionFolder.makeFolder(tempDirectory.toString, false)
+              implicit val fs = folder.filesystem(spark)
+              folder.mkdir
+
+              When("we list all parquet files")
+              val files = folder.parquetFiles.toSeq
+
+              Then("there should be no files")
+              files shouldBe empty
+
+              When("we place files in the folder")
+              placeFile(folder, "foo.txt")
+              placeFile(folder, "bar.parquet")
+              placeFile(folder, "foobar.parquet")
+              placeFile(folder, "parquet.txt")
+
+              Then("we get a list of all parquet files")
+              folder.parquetFiles.toSeq should contain theSameElementsAs (Seq(
+                new Path(s"file:${folder.filename}/bar.parquet"),
+                new Path(s"file:${folder.filename}/foobar.parquet")
+              ))
             }
         }
         "being created" should {
@@ -180,6 +202,38 @@ with TempFolderFixture with SparkFixture {
                     'isTemporary (false)
                 )
             }
+            "find no directories in an empty folder" in {
+              implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
+              fs.mkdirs(new Path(tempDirectory.toString))
+              PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq shouldBe empty
+            }
+            "find all directories in a folder" in {
+              Given("a folder with subfolders")
+              implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
+              val basePath = new Path(tempDirectory.toString)
+              fs.mkdirs(basePath)
+              placeFolder(basePath, "foo")
+              placeFolder(basePath, "bar")
+              placeFolder(basePath, PartitionFolder.TEMP_DIR)
+
+              When("we list all folders")
+              val folders = PartitionFolder.allInDirectory(basePath).toSeq
+
+              Then("we find all folders except the temp folder")
+              folders should contain theSameElementsAs Seq(
+                new PartitionFolder(tempDirectory.toString, "foo", false),
+                new PartitionFolder(tempDirectory.toString, "bar", false)
+              )
+            }
         }
-    }   
+    }
+
+    def placeFile(folder: PartitionFolder, name: String)(implicit fs: FileSystem) = {
+      val writer = fs.create(new Path(s"${folder.filename}/$name"))
+      writer.writeInt(5)
+      writer.close
+    }
+
+    def placeFolder(parent: Path, name: String)(implicit fs: FileSystem)
+      = fs.mkdirs(parent.suffix("/" + name))
 }

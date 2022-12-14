@@ -2,13 +2,11 @@ package de.unikl.cs.dbis.waves.split
 
 import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
-import de.unikl.cs.dbis.waves.{DataFrameFixture, PartitionTreeFixture, TempFolderFixture}
+import de.unikl.cs.dbis.waves.{DataFrameFixture, PartitionTreeFixture, TempFolderFixture, ParquetFixture}
 
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
-import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.format.converter.ParquetMetadataConverter
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SparkSession, DataFrame, Row}
 import org.apache.spark.sql.functions.col
@@ -29,6 +27,7 @@ import scala.collection.JavaConverters._
 
 class GroupedSplitterSpec extends WavesSpec
     with DataFrameFixture with PartitionTreeFixture with TempFolderFixture
+    with ParquetFixture
     with SplitterBehavior {
 
     "The GroupedSplitter" should {
@@ -160,10 +159,7 @@ class GroupedSplitterSpec extends WavesSpec
           val folder = PartitionFolder.allInDirectory(tempDirectory).next()
           val files = folder.parquetFiles.toSeq
           files should have length (1)
-          val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
-                                                    , new Path(files.head.toString())
-                                                    , ParquetMetadataConverter.NO_FILTER)
-                                .getFileMetaData().getSchema()
+          val parquetSchema = readParquetSchema(spark, new Path(files.head.toString()))
           parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("a"), Seq("e")))
           parquetSchema.getType(Seq("a"):_*).getRepetition().name() should equal ("OPTIONAL")
           parquetSchema.getType(Seq("e"):_*).getRepetition().name() should equal ("REQUIRED")

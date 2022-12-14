@@ -4,6 +4,7 @@ import org.scalatest.Suite
 import org.scalatest.BeforeAndAfterEach
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.TempFolderFixture
+import de.unikl.cs.dbis.waves.ParquetFixture
 import org.scalatest.Inspectors._
 
 import de.unikl.cs.dbis.waves.WavesTable._
@@ -11,15 +12,14 @@ import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.util.Logger
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.SparkSession
-import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.format.converter.ParquetMetadataConverter
 import org.apache.hadoop.fs.Path
 import java.io.{File, BufferedReader, FileReader}
 
 import scala.collection.JavaConverters._
 
 trait IntegrationFixture extends WavesSpec
-with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
+with BeforeAndAfterEach with TempFolderFixture
+with ParquetFixture { this: Suite =>
 
   var args: Array[String] = _
   var wavesPath: String = _
@@ -85,12 +85,7 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
     implicit val fs = getFS(spark)
     for {bucket <- buckets;
          path <- bucket.folder(wavesPath).parquetFiles
-    } yield {
-      new ParquetFileReader( spark.sparkContext.hadoopConfiguration
-                           , path
-                           , ParquetMetadataConverter.NO_FILTER)
-        .getFileMetaData().getSchema()
-    }
+    } yield { readParquetSchema(spark, path) }
   }
 
   def assertLogProperties() = {

@@ -3,14 +3,13 @@ package de.unikl.cs.dbis.waves.split
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.RelationFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
+import de.unikl.cs.dbis.waves.ParquetFixture
 import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 
 import java.io.File
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.hadoop.fs.Path
-import org.apache.parquet.hadoop.ParquetFileReader
-import org.apache.parquet.format.converter.ParquetMetadataConverter
 
 import de.unikl.cs.dbis.waves.WavesTable
 import de.unikl.cs.dbis.waves.util.PathKey
@@ -25,7 +24,7 @@ import de.unikl.cs.dbis.waves.sort.NoSorter
 import de.unikl.cs.dbis.waves.sort.LexicographicSorter
 
 class RecursiveSplitterSpec extends WavesSpec
-    with RelationFixture with TempFolderFixture
+    with RelationFixture with TempFolderFixture with ParquetFixture
     with SplitterBehavior with PartitionTreeMatchers {
 
     "The RecursiveSplitter" should {
@@ -116,10 +115,7 @@ class RecursiveSplitterSpec extends WavesSpec
             val folder = table.partitionTree.root.find(Seq(Absent, Absent)).get.asInstanceOf[Bucket[String]].folder(directory)
             implicit val fs = folder.filesystem(spark)
             val file = folder.parquetFiles.next
-            val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
-                                                     , new Path(file.toString())
-                                                     , ParquetMetadataConverter.NO_FILTER)
-                                .getFileMetaData().getSchema()
+            val parquetSchema = readParquetSchema(spark, file)
             parquetSchema.getPaths() should contain theSameElementsAs (Seq(Seq("e")))
             parquetSchema.getType(Seq("e"):_*).getRepetition().name() should equal ("REQUIRED")
 

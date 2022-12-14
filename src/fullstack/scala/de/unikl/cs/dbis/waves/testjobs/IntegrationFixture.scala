@@ -28,7 +28,7 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
   override protected def beforeEach() = {
     super.beforeEach()
 
-    wavesPath = s"${tempDirectory.toString()}/waves"
+    wavesPath = s"$tempDirectory/waves"
     inputPath = "/data/twitter"
     args = Array(
       "master=local",
@@ -50,7 +50,7 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
   }
 
   def assertCleanedPartitions(spark: SparkSession, buckets: Seq[Bucket[String]]) = {
-    implicit val fs = buckets.head.folder(wavesPath).filesystem(spark)
+    implicit val fs = getFS(spark)
     forAll (buckets) { bucket =>
       val dir = bucket.folder(wavesPath)
       dir.exists shouldBe (true)
@@ -82,7 +82,7 @@ with BeforeAndAfterEach with TempFolderFixture { this: Suite =>
   }
 
   private def readSchemas(spark: SparkSession, buckets: Seq[Bucket[String]]) = {
-    implicit val fs = buckets.head.folder(wavesPath).filesystem(spark)
+    implicit val fs = getFS(spark)
     for {bucket <- buckets;
          path <- bucket.folder(wavesPath).parquetFiles
     } yield {

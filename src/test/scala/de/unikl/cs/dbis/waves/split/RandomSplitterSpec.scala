@@ -13,7 +13,6 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 import de.unikl.cs.dbis.waves.WavesTable._
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class RandomSplitterSpec extends WavesSpec
@@ -23,11 +22,11 @@ class RandomSplitterSpec extends WavesSpec
     "create disjoint partitions" in {
       When("we partition a data frame")
       val partitionCount = 2
-      new RandomSplitter(partitionCount).prepare(df, tempDirectory.toString).partition()
+      new RandomSplitter(partitionCount).prepare(df, tempDirectory).partition()
 
       Then("there is the correct number of partitions")
-      implicit val fs = PartitionTreeHDFSInterface(spark, tempDirectory.toString).fs
-      val partitions = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq
+      implicit val fs = getFS(spark)
+      val partitions = PartitionFolder.allInDirectory(tempDirectory).toSeq
       partitions.length shouldBe <= (partitionCount)
       if (partitions.length < partitionCount) {
         alert(s"Got less than $partitionCount partitions. This can be random chance, but is a bug if it persists")
@@ -40,7 +39,7 @@ class RandomSplitterSpec extends WavesSpec
       }
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.waves(tempDirectory.toString)
+      val newDf = spark.read.waves(tempDirectory)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we can recieve the correct data when selecting one attribute")

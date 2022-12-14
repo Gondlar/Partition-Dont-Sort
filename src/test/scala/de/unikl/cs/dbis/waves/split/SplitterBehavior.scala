@@ -26,12 +26,12 @@ trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFr
       splitter should not be 'prepared
 
       When("we prepare it")
-      val result = splitter.prepare(emptyDf, tempDirectory.toString)
+      val result = splitter.prepare(emptyDf, tempDirectory)
 
       Then("it is prepated")
       result should be theSameInstanceAs splitter
       splitter shouldBe 'prepared
-      result.getPath should equal (tempDirectory.toString)
+      result.getPath should equal (tempDirectory)
     }
     "have finalization enabled" in {
       splitter.finalizeEnabled shouldBe (true)
@@ -60,7 +60,7 @@ trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFr
     "produce repeatable results" in {
       val split = PrivateMethod[(Seq[DataFrame],Seq[PartitionMetadata])]('split)
 
-      splitter.prepare(df, tempDirectory.toString())
+      splitter.prepare(df, tempDirectory)
       val (dfs1,metadata1) = splitter invokePrivate split(df)
       val (dfs2,metadata2) = splitter invokePrivate split(df)
 

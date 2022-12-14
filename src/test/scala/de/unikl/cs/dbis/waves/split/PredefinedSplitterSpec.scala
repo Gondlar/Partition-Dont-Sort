@@ -30,19 +30,19 @@ class PredefinedSplitterSpec extends WavesSpec
     "split a dataframe into predefined partitions" in {
       Given("a DataFrame and a PartitionTree")
       val splitter = new PredefinedSplitter(split)
-      splitter.prepare(df, tempDirectory.toString())
+      splitter.prepare(df, tempDirectory)
     
       When("we partition the data frame")
       splitter.partition()
 
       Then("the written partition tree looks as defined")
-      val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
-      val result = PartitionTreeHDFSInterface(fs, tempDirectory.toString()).read()
+      val fs = getFS(spark)
+      val result = PartitionTreeHDFSInterface(fs, tempDirectory).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs(splitTree)
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.waves(tempDirectory.toString)
+      val newDf = spark.read.waves(tempDirectory)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we recieve the correct data when selecting one attribute")
@@ -93,19 +93,19 @@ class PredefinedSplitterSpec extends WavesSpec
     "merge an existing tree's partitions" in {
       Given("a tree on disk")
       val splitter = new PredefinedSplitter(split)
-      splitter.prepare(df, tempDirectory.toString()).partition()
+      splitter.prepare(df, tempDirectory).partition()
 
       When("we merge that tree")
       val merger = new PredefinedSplitter(bucket)
-      merger.prepare(df,tempDirectory.toString()).partition()
+      merger.prepare(df,tempDirectory).partition()
 
       Then("the written partition tree looks as defined")
-      val tree = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
+      val tree = PartitionTreeHDFSInterface(spark, tempDirectory).read()
       tree should not equal (None)
       tree.get should haveTheSameStructureAs (bucketTree)
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.waves(tempDirectory.toString())
+      val newDf = spark.read.waves(tempDirectory)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we recieve the correct data when selecting one attribute")
@@ -117,19 +117,19 @@ class PredefinedSplitterSpec extends WavesSpec
     "split when there are Spill nodes in the new subtree" in {
       Given("a DataFrame and a PartitionTree")
       val splitter = new PredefinedSplitter(spill)
-      splitter.prepare(df, tempDirectory.toString())
+      splitter.prepare(df, tempDirectory)
     
       When("we partition the data frame")
       splitter.partition()
 
       Then("the written partition tree looks as defined")
-      val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
-      val result = PartitionTreeHDFSInterface(fs, tempDirectory.toString()).read()
+      val fs = getFS(spark)
+      val result = PartitionTreeHDFSInterface(fs, tempDirectory).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs(spillTree)
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.waves(tempDirectory.toString)
+      val newDf = spark.read.waves(tempDirectory)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we recieve the correct data when selecting one attribute")
@@ -142,19 +142,19 @@ class PredefinedSplitterSpec extends WavesSpec
       Given("a DataFrame and a PartitionTree")
       val shape = SplitByPresence("a", Bucket("foo"), SplitByPresence("b.d", "bar", "baz"))
       val splitter = new PredefinedSplitter(shape)
-      splitter.prepare(df, tempDirectory.toString())
+      splitter.prepare(df, tempDirectory)
       
       When("we partition it")
       splitter.partition()
 
       Then("the written partition tree looks as defined")
       val expextedTree = new PartitionTree(schema, NoSorter, shape)
-      val result = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
+      val result = PartitionTreeHDFSInterface(spark, tempDirectory).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs (expextedTree)
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.waves(tempDirectory.toString)
+      val newDf = spark.read.waves(tempDirectory)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we recieve the correct data when selecting one attribute")
@@ -167,18 +167,18 @@ class PredefinedSplitterSpec extends WavesSpec
       Given("a DataFrame and a PartitionTree")
       val shape = SplitByPresence("a", Bucket("foo"), SplitByPresence("b.d", "bar", "baz"))
       val splitter = new PredefinedSplitter(shape)
-      splitter.modifySchema(true).prepare(df, tempDirectory.toString())
+      splitter.modifySchema(true).prepare(df, tempDirectory)
       
       When("we partition it")
       splitter.partition()
 
       Then("the written partition tree looks as defined")
       val expextedTree = new PartitionTree(schema, NoSorter, shape)
-      val result = PartitionTreeHDFSInterface(spark, tempDirectory.toString()).read()
+      val result = PartitionTreeHDFSInterface(spark, tempDirectory).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs (expextedTree)
 
-      val folder = result.get.find(Seq(Absent, Present)).get.asInstanceOf[Bucket[String]].folder(tempDirectory.toString())
+      val folder = result.get.find(Seq(Absent, Present)).get.asInstanceOf[Bucket[String]].folder(tempDirectory)
       implicit val fs = folder.filesystem(spark)
       for (path <- folder.parquetFiles) {
         val parquetSchema = new ParquetFileReader( spark.sparkContext.hadoopConfiguration
@@ -190,7 +190,7 @@ class PredefinedSplitterSpec extends WavesSpec
       }
 
       And("We can read everything as a WavesTable")
-      val newDf = spark.read.waves(tempDirectory.toString)
+      val newDf = spark.read.waves(tempDirectory)
       newDf.collect() should contain theSameElementsAs (df.collect())
 
       And("we recieve the correct data when selecting one attribute")
@@ -203,7 +203,7 @@ class PredefinedSplitterSpec extends WavesSpec
   it should {
     "refuse to prepare an empty directory given a subpath" in {
       val splitter = new PredefinedSplitter(spill, PartitionMetadata(Seq.empty, Seq.empty, Seq(Absent)))
-      an [IllegalArgumentException] shouldBe thrownBy (splitter.prepare(df, tempDirectory.toString))
+      an [IllegalArgumentException] shouldBe thrownBy (splitter.prepare(df, tempDirectory))
     }
   }
 

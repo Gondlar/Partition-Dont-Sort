@@ -53,23 +53,23 @@ class RecursiveSplitterSpec extends WavesSpec
             val dfTable = df.getWavesTable.get
 
             When("we prepare that DataFrame")
-            splitter.prepare(df, tempDirectory.toString)
+            splitter.prepare(df, tempDirectory)
 
             Then("the prepared table is a new one")
             val table = splitter.getTable
             table should not equal dfTable
-            table.basePath should equal (tempDirectory.toString)
+            table.basePath should equal (tempDirectory)
         }
         "prepare a new table if the given df does not read from waves" in {
             Given("a recursive splitter and a df that reads from a WavesTable")
             val splitter = RecursiveSplitter(0, Int.MaxValue, MockHeuristic())
 
             When("we prepare that DataFrame")
-            splitter.prepare(df, tempDirectory.toString)
+            splitter.prepare(df, tempDirectory)
 
             Then("the a new table is prepared")
             val table = splitter.getTable
-            table.basePath should equal (tempDirectory.toString)
+            table.basePath should equal (tempDirectory)
         }
         "split a table according to the heuristic" in {
             Given("A table and a recursive splitter")

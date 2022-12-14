@@ -213,9 +213,12 @@ object PartitionFolder {
       * @param fs the filesystem the directory is located in
       * @return an iterator over all PartitionFolders in that directory
       */
-    def allInDirectory(baseDir: Path)(implicit fs: FileSystem) = {
+    def allInDirectory(baseDir: Path)(implicit fs: FileSystem): Iterator[PartitionFolder] = {
       fs.listStatus(baseDir).iterator
         .filter(file => file.isDirectory() && file.getPath.getName() != TEMP_DIR)
         .map(file => new PartitionFolder(baseDir.toString, file.getPath.getName(), false))
     }
+
+    def allInDirectory(baseDir: String)(implicit fs: FileSystem): Iterator[PartitionFolder]
+      = allInDirectory(new Path(baseDir))
 }

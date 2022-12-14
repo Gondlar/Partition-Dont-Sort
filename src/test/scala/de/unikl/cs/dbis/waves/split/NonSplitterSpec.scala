@@ -14,7 +14,6 @@ import org.apache.spark.sql.{DataFrame, Column}
 
 import de.unikl.cs.dbis.waves.WavesTable._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 class NonSplitterSpec extends WavesSpec
     with DataFrameFixture with TempFolderFixture {
@@ -23,11 +22,11 @@ class NonSplitterSpec extends WavesSpec
 
         "create a single partition" in {
             When("we partition a data frame")
-            new NonSplitter().prepare(df, tempDirectory.toString).partition()
+            new NonSplitter().prepare(df, tempDirectory).partition()
 
             Then("there is exactly one partition")
-            implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
-            val partitions = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq
+            implicit val fs = getFS(spark)
+            val partitions = PartitionFolder.allInDirectory(tempDirectory).toSeq
             partitions.length should equal (1)
             val partition = partitions.head
 
@@ -36,7 +35,7 @@ class NonSplitterSpec extends WavesSpec
             partition.parquetFiles.toSeq should have size (1)
 
             And("We can read everything as a WavesTable")
-            val newDf = spark.read.waves(tempDirectory.toString)
+            val newDf = spark.read.waves(tempDirectory)
             newDf.collect() should contain theSameElementsAs (df.collect())
 
             And("we can recieve the correct data when selecting one attribute")

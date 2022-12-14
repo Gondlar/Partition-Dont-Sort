@@ -29,50 +29,50 @@ class WavesTableSpec extends WavesSpec
   "A WavesTable" when {
     "we create it with a known schema" should {
       "have that schema" in {
-          val table = WavesTable("test", spark, tempDirectory.toString(), emptyMap, schema)
+          val table = WavesTable("test", spark, tempDirectory, emptyMap, schema)
           table.schema() should equal (schema)
       }
       "write that schema" in {
-        val table = WavesTable("test", spark, tempDirectory.toString(), emptyMap, schema)
+        val table = WavesTable("test", spark, tempDirectory, emptyMap, schema)
         table.writePartitionScheme()
 
-        val written = PartitionTreeHDFSInterface(spark, tempDirectory.toString).read()
+        val written = PartitionTreeHDFSInterface(spark, tempDirectory).read()
         written should not equal (None)
         written.get.globalSchema should equal (schema)
       }
     }
     "we create it without a schema" should {
       "load the schema from disk" in {
-        PartitionTreeHDFSInterface(spark, tempDirectory.toString).write(bucketTree)
-        val table = WavesTable("test", spark, tempDirectory.toString(), emptyMap)
+        PartitionTreeHDFSInterface(spark, tempDirectory).write(bucketTree)
+        val table = WavesTable("test", spark, tempDirectory, emptyMap)
         table.schema() should equal (schema)
       }
       "fail if there is no schema on disk" in {
-        an [AnalysisException] shouldBe thrownBy (WavesTable("test", spark, tempDirectory.toString(), emptyMap))
+        an [AnalysisException] shouldBe thrownBy (WavesTable("test", spark, tempDirectory, emptyMap))
       }
     }
     "we force the schema using an option" should {
       "prefer that schema over what is on disk" in {
         // No schema on disk, if it didn't prefer the schema option this would fail
-        val table = WavesTable("test", spark, tempDirectory.toString(), schemaMap(schema))
+        val table = WavesTable("test", spark, tempDirectory, schemaMap(schema))
         table.schema should equal (schema)
       }
       "prefer that schema over one passed as parameter" in {
-        val table = WavesTable("test", spark, tempDirectory.toString(), schemaMap(schema), StructType(Seq.empty))
+        val table = WavesTable("test", spark, tempDirectory, schemaMap(schema), StructType(Seq.empty))
         table.schema() should equal (schema)
       }
       "do so if everything is forced" in {
         import PartitionTree._
         val map = Map((WavesTable.SCHEMA_OPTION, schema.json), (WavesTable.SORT_OPTION, NoSorter.toJson), (WavesTable.PARTITION_OPTION, split.toJson)).asJava
         val options = new CaseInsensitiveStringMap(map)
-        val table = WavesTable("test", spark, tempDirectory.toString(), options)
+        val table = WavesTable("test", spark, tempDirectory, options)
       }
     }
   }
   it can {
     "be truncated" in {
       Given("a table with a tree with multiple buckets")
-      val table = WavesTable("test", spark, tempDirectory.toString(), emptyMap, schema)
+      val table = WavesTable("test", spark, tempDirectory, emptyMap, schema)
       table.partitionTree = splitTree
 
       When("we truncate it")
@@ -82,10 +82,10 @@ class WavesTableSpec extends WavesSpec
       table.partitionTree should haveTheSameStructureAs(bucketTree)
 
       And("the returned folder is part of the new tree, not the old one")
-      val newDir = table.partitionTree.root.asInstanceOf[Bucket[String]].folder(tempDirectory.toString())
+      val newDir = table.partitionTree.root.asInstanceOf[Bucket[String]].folder(tempDirectory)
       dir should equal (newDir)
 
-      val oldDirs = splitTree.buckets.map(_.folder(tempDirectory.toString()))
+      val oldDirs = splitTree.buckets.map(_.folder(tempDirectory))
       oldDirs shouldNot contain (dir)
     }
   }

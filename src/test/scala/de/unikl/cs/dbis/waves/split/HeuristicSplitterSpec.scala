@@ -13,7 +13,6 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
 
 import de.unikl.cs.dbis.waves.WavesTable._
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class HeuristicSplitterSpec extends WavesSpec
@@ -25,11 +24,11 @@ class HeuristicSplitterSpec extends WavesSpec
         "split a dataframe into partitions" in {
             When("we partition a data frame")
             // noException shouldBe thrownBy (new EvenSplitter(df, 2, baseDirectory.toString).partition())
-            new HeuristicSplitter(2).prepare(df, tempDirectory.toString()).partition()
+            new HeuristicSplitter(2).prepare(df, tempDirectory).partition()
 
             Then("there are more than two partitions")
-            implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
-            val partitions = PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq
+            implicit val fs = getFS(spark)
+            val partitions = PartitionFolder.allInDirectory(tempDirectory).toSeq
             partitions.length shouldBe >= (2)
 
             And("The partitions are cleaned up")
@@ -39,7 +38,7 @@ class HeuristicSplitterSpec extends WavesSpec
             }
 
             And("We can read everything as a WavesTable")
-            val newDf = spark.read.waves(tempDirectory.toString)
+            val newDf = spark.read.waves(tempDirectory)
             newDf.collect() should contain theSameElementsAs (df.collect())
 
             And("we can recieve the correct data when selecting one attribute")

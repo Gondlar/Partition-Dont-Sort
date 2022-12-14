@@ -3,7 +3,6 @@ package de.unikl.cs.dbis.waves
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import org.apache.spark.sql.AnalysisException
-import java.nio.file.Path
 
 import collection.JavaConverters._
 
@@ -11,12 +10,12 @@ class DefaultSourceSpec extends WavesSpec
 with DataFrameFixture with TempFolderFixture with PartitionTreeFixture
 with PartitionTreeMatchers {
 
-  def generatePathOption(path: Path)
+  def generatePathOption(path: String)
     = new CaseInsensitiveStringMap(Map(("path", path.toString())).asJava)
 
   "The DefaultSource" can {
     "infer a schema from disk" in {
-      PartitionTreeHDFSInterface(spark, tempDirectory.toString).write(bucketTree)
+      PartitionTreeHDFSInterface(spark, tempDirectory).write(bucketTree)
       DefaultSource().inferSchema(generatePathOption(tempDirectory)) should equal (schema)
     }
     "construct a new table" in {
@@ -25,12 +24,12 @@ with PartitionTreeMatchers {
       val table = result.asInstanceOf[WavesTable]
       table.schema() should equal (schema)
       table.name should startWith ("waves ")
-      table.basePath should equal (tempDirectory.toString())
+      table.basePath should equal (tempDirectory)
       table.partitionTree should haveTheSameStructureAs (bucketTree)
     }
     "load a table from disk" in {
       Given("a partition tree on disk")
-      PartitionTreeHDFSInterface(spark, tempDirectory.toString).write(splitTree)
+      PartitionTreeHDFSInterface(spark, tempDirectory).write(splitTree)
       val pathOption = generatePathOption(tempDirectory)
 
       When("we load the table")
@@ -43,7 +42,7 @@ with PartitionTreeMatchers {
       Then("the table has the tree from disk")
       table.schema() should equal (schema)
       table.name should startWith ("waves ")
-      table.basePath should equal (tempDirectory.toString())
+      table.basePath should equal (tempDirectory)
       table.partitionTree should haveTheSameStructureAs (splitTree)
     }
   }

@@ -13,17 +13,17 @@ class PartitionTreeHDFSInterfaceSpec extends WavesSpec
 
     "A PartitionTreeHDFSInterface" should {
         "be constructable from spark" in {
-          noException shouldBe thrownBy (PartitionTreeHDFSInterface(spark, tempDirectory.toString).read())
+          noException shouldBe thrownBy (PartitionTreeHDFSInterface(spark, tempDirectory).read())
         }
 
         "be constructable from fs" in {
-          val fs = new Path(tempDirectory.toString).getFileSystem(spark.sparkContext.hadoopConfiguration)
-          noException shouldBe thrownBy (PartitionTreeHDFSInterface(fs, tempDirectory.toString).read())
+          val fs = getFS(spark)
+          noException shouldBe thrownBy (PartitionTreeHDFSInterface(fs, tempDirectory).read())
         }
 
         "be identical after writing and reading" in {
           Given("A HDFSInterface and a partition tree")
-          val interface = PartitionTreeHDFSInterface(spark, tempDirectory.toString)
+          val interface = PartitionTreeHDFSInterface(spark, tempDirectory)
 
           When("we write the tree and read it again")
           interface.write(spillTree)

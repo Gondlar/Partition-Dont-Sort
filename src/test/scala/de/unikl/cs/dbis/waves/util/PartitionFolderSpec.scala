@@ -6,7 +6,6 @@ import de.unikl.cs.dbis.waves.SparkFixture
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.fs.FileSystem
-import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 class PartitonFolderSpec extends WavesSpec
 with TempFolderFixture with SparkFixture {
@@ -58,10 +57,10 @@ with TempFolderFixture with SparkFixture {
                 (folder == new PartitionFolder("test2", "foo", false)) should be (false)
             }
             "perform filesystem operations" in {
-                implicit val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
+                implicit val fs = getFS(spark)
                 
                 When("we create a folder object")
-                val folder = new PartitionFolder(tempDirectory.toString, "test", false)
+                val folder = new PartitionFolder(tempDirectory, "test", false)
                 
                 Then("it does not exist on file")
                 folder.exists should be (false)
@@ -100,12 +99,12 @@ with TempFolderFixture with SparkFixture {
                 folder.exists should be (false)
             }
             "copy contents from another directory" in {
-              implicit val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
+              implicit val fs = getFS(spark)
               val file = "/foo.txt"
               val dir = "/subdir"
 
               Given("A directory with contents")
-              val folderWithContent = new PartitionFolder(tempDirectory.toString, "full", false)
+              val folderWithContent = new PartitionFolder(tempDirectory, "full", false)
               folderWithContent.mkdir
               val writer = fs.create(new Path(folderWithContent.filename + file))
               writer.writeInt(5)
@@ -115,7 +114,7 @@ with TempFolderFixture with SparkFixture {
               fs.mkdirs(new Path(folderWithContent.filename+dir))
 
               And("an empty dir")
-              val folderWithoutContent = new PartitionFolder(tempDirectory.toString, "empty", false)
+              val folderWithoutContent = new PartitionFolder(tempDirectory, "empty", false)
               folderWithoutContent.mkdir
 
               Then("that directory should have the content's size")
@@ -140,10 +139,10 @@ with TempFolderFixture with SparkFixture {
               fs.exists(new Path(folderWithoutContent.filename+dir)) shouldBe (false)
             }
             "be empty" in {
-                implicit val fs = new Path(tempDirectory.toString()).getFileSystem(spark.sparkContext.hadoopConfiguration)
+                implicit val fs = getFS(spark)
 
                 Given("an empty folder")
-                val folder = new PartitionFolder(tempDirectory.toString, "foo", false)
+                val folder = new PartitionFolder(tempDirectory, "foo", false)
                 folder.mkdir
 
                 Then("it should be empty")
@@ -163,7 +162,7 @@ with TempFolderFixture with SparkFixture {
             }
             "list all of its parquet files" in {
               Given("an empty folder")
-              val folder = PartitionFolder.makeFolder(tempDirectory.toString, false)
+              val folder = PartitionFolder.makeFolder(tempDirectory, false)
               implicit val fs = folder.filesystem(spark)
               folder.mkdir
 
@@ -203,26 +202,25 @@ with TempFolderFixture with SparkFixture {
                 )
             }
             "find no directories in an empty folder" in {
-              implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
-              fs.mkdirs(new Path(tempDirectory.toString))
-              PartitionFolder.allInDirectory(new Path(tempDirectory.toString)).toSeq shouldBe empty
+              implicit val fs = getFS(spark)
+              fs.mkdirs(new Path(tempDirectory))
+              PartitionFolder.allInDirectory(tempDirectory).toSeq shouldBe empty
             }
             "find all directories in a folder" in {
               Given("a folder with subfolders")
-              implicit val fs = PartitionTreeHDFSInterface.apply(spark, tempDirectory.toString).fs
-              val basePath = new Path(tempDirectory.toString)
-              fs.mkdirs(basePath)
-              placeFolder(basePath, "foo")
-              placeFolder(basePath, "bar")
-              placeFolder(basePath, PartitionFolder.TEMP_DIR)
+              implicit val fs = getFS(spark)
+              fs.mkdirs(new Path(tempDirectory))
+              placeFolder(tempDirectory, "foo")
+              placeFolder(tempDirectory, "bar")
+              placeFolder(tempDirectory, PartitionFolder.TEMP_DIR)
 
               When("we list all folders")
-              val folders = PartitionFolder.allInDirectory(basePath).toSeq
+              val folders = PartitionFolder.allInDirectory(tempDirectory).toSeq
 
               Then("we find all folders except the temp folder")
               folders should contain theSameElementsAs Seq(
-                new PartitionFolder(tempDirectory.toString, "foo", false),
-                new PartitionFolder(tempDirectory.toString, "bar", false)
+                new PartitionFolder(tempDirectory, "foo", false),
+                new PartitionFolder(tempDirectory, "bar", false)
               )
             }
         }
@@ -234,6 +232,6 @@ with TempFolderFixture with SparkFixture {
       writer.close
     }
 
-    def placeFolder(parent: Path, name: String)(implicit fs: FileSystem)
-      = fs.mkdirs(parent.suffix("/" + name))
+    def placeFolder(parent: String, name: String)(implicit fs: FileSystem)
+      = fs.mkdirs(new Path(s"$parent/$name"))
 }

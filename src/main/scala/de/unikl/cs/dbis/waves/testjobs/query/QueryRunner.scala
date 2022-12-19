@@ -16,13 +16,18 @@ trait QueryRunner {
     val tree = PartitionTreeHDFSInterface(spark, basePath).read().get
     val folders = tree.buckets.map(_.folder(basePath).filename)
     val useWaves = jobConfig.useWaves
+    val schemaModificationsEnabled = jobConfig.modifySchema
 
     // Create the dataframe
     Logger.log("query-start", getClass().getName())
     val df = if (useWaves) {
       spark.read.waves(basePath)
      } else {
-      spark.read.parquet(folders:_*)
+      if (schemaModificationsEnabled) {
+        spark.read.option("mergeSchema", true).parquet(folders:_*)
+      } else {
+        spark.read.parquet(folders:_*)
+      }
     }
 
     // Run the query

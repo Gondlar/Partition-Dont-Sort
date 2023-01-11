@@ -20,6 +20,18 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def getString(key: String) = myOptions.get(key.toLowerCase)
 
   /**
+    * fetch the value for the option with the given name as an Int
+    *
+    * @param key case-insensitive option name
+    * @return the value or None if it is unset or not a Int
+    */
+  def getInt(key: String) = getString(key).flatMap(v =>
+    try Some(v.toInt) catch {
+      case e : NumberFormatException => None
+    }
+  )
+
+  /**
     * fetch the value for the option with the given name as a Long
     *
     * @param key case-insensitive option name

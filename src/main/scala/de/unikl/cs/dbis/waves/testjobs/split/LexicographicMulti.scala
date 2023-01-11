@@ -8,9 +8,10 @@ import de.unikl.cs.dbis.waves.split.EvenSplitter
 object LexicographicMulti extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
-    val spark = jobConfig.makeSparkSession("Autopartition Lexicographic Multi")
+    val numPartitions = jobConfig.getInt("numPartitions").getOrElse(8)
+    val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Multi $numPartitions")
 
-    val splitter = new EvenSplitter(8).sortWith(LexicographicSorter)
+    val splitter = new EvenSplitter(numPartitions).sortWith(LexicographicSorter)
 
     runSplitter(spark, jobConfig, splitter)
   }

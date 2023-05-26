@@ -55,6 +55,15 @@ final case class PathKey(identifiers: Seq[String]) {
     def tail = if (identifiers.size == 1) throw new NoSuchElementException
                else PathKey(identifiers.tail)
 
+    /**
+      * Calculate the path to this key's parent
+      * 
+      * A call to this method is only valid if this PathKey is nested
+      *
+      * @return the path key
+      */
+    def parent = if (isNested) PathKey(identifiers.init)
+                 else throw new NoSuchElementException
 
     /**
       * Whether this PathKey represents a nested node, i.e., the path has more than one step

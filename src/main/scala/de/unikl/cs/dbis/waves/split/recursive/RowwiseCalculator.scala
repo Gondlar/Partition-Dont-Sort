@@ -13,9 +13,9 @@ case class RowwiseCalculator() extends AbstractPartitionMetricCalculator {
   
   private var optional = 0
   
-  override def calc(df: DataFrame): PartitionMetric = {
+  override def calcRaw(df: DataFrame): PartitionMetric = {
     optional = df.schema.optionalNodeCount
-    super.calc(df)
+    super.calcRaw(df)
   }
   
   override protected def optionalCount: Int = optional

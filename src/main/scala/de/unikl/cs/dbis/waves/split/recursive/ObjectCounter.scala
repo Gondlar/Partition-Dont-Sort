@@ -63,6 +63,17 @@ class ObjectCounter private[recursive] (
       */
     def size = values.length
 
+    /**
+      * Produce a map from the given keys to the values of this object counter
+      *
+      * @param keys the keys, e.g., the paths to the optional nodes
+      * @return a map from keys to their values in the counter
+      */
+    def toMap[A](keys: Seq[A]) = {
+      assert(keys.size == size)
+      keys.zip(values).toMap
+    }
+
     override def equals(other: Any): Boolean = other match {
       case counter: ObjectCounter => counter.values sameElements values
       case _ => false

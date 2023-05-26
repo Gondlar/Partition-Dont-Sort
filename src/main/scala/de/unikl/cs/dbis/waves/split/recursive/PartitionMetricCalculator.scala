@@ -8,6 +8,7 @@ import de.unikl.cs.dbis.waves.util.PathKey
   */
 trait PartitionMetricCalculator {
   def calc(df: DataFrame): PartitionMetric
+  def calcRaw(df: DataFrame): PartitionMetric
   def paths(df: DataFrame): Iterator[PathKey]
 }
 
@@ -16,9 +17,11 @@ trait PartitionMetricCalculator {
   */
 abstract class AbstractPartitionMetricCalculator extends PartitionMetricCalculator {
 
+  override def calcRaw(df: DataFrame): PartitionMetric
+    = df.rdd.mapPartitions(combine).reduce(reduce)
+
   override def calc(df: DataFrame): PartitionMetric = {
-    val metric@(size, present, switch)
-      = df.rdd.mapPartitions(combine).reduce(reduce)
+    val metric@(size, present, switch) = calcRaw(df)
     weighByLeafs(switch, df)
     distanceToCenter(present, size)
     metric

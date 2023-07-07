@@ -180,6 +180,9 @@ class PartitionTreeSpec extends WavesSpec
               val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present))
               metadata should contain theSameElementsInOrderAs Seq(restMetadata, absentMetadata, presentMetadata)
             }
+            "find the node's shape" in {
+              spillTree.shape should equal (Spill(SplitByPresence("b.d", Bucket(()), Bucket(())), Bucket(())))
+            }
         }
     }
 }

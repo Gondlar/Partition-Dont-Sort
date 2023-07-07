@@ -58,6 +58,14 @@ trait MapOperations {
       */
     def map[To](func: (Payload, Int) => To) : AnyNode[To]
       = node(new MapVisitor(func))
+
+    /**
+      * Return the shape of this tree, i.e., an equivalent tree where all Bucket
+      * payloads have been replaced with the Unit type.
+      *
+      * @return the tree's shape
+      */
+    def shape = map({case _ => ()})
   }
   implicit class MapTree[Payload](tree: PartitionTree[Payload]) {
     /**
@@ -68,6 +76,14 @@ trait MapOperations {
       */
     def map[To](func: (Payload, Int) => To) : PartitionTree[To]
       = new PartitionTree(tree.globalSchema, tree.sorter, tree.root(new MapVisitor(func)))
+
+    /**
+      * Return the shape of this tree, i.e., an equivalent tree where all Bucket
+      * payloads have been replaced with the Unit type.
+      *
+      * @return the tree's shape
+      */
+    def shape = tree.root.shape
 
     /**
       * Apply func to all buckets. As opposed to [[map]], this function modifies

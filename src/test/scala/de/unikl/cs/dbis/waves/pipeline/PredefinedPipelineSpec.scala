@@ -31,7 +31,7 @@ class PredefinedPipelineSpec extends WavesSpec
   with PartitionTreeMatchers {
 
   def makePipeline(shape: AnyNode[String])
-    = new Pipeline(Seq(Predefined(shape.map({case _ => ()})), BucketsFromShape), DataframeSink)
+    = new Pipeline(Seq(Predefined(shape.shape), BucketsFromShape), DataframeSink)
 
   "A Pipeline with a predefined split" can {
     "split a dataframe into predefined buckets" in {

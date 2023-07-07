@@ -1,0 +1,63 @@
+package de.unikl.cs.dbis.waves.pipeline
+
+import de.unikl.cs.dbis.waves.split.Splitter
+import org.apache.spark.sql.DataFrame
+import de.unikl.cs.dbis.waves.sort.Sorter
+import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
+import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
+import de.unikl.cs.dbis.waves.sort.NoSorter
+
+class Pipeline(
+  steps: Seq[PipelineStep],
+  sink: PipelineSink
+) extends Splitter[Nothing] {
+
+  var initialState: Option[PipelineState] = None
+
+  override def prepare(df: DataFrame, path: String): Splitter[Nothing]
+    = { initialState = Some(PipelineState(df, path)); this }
+
+  override def isPrepared: Boolean = initialState.isDefined
+
+  override def getPath: String = initialState.get.path
+
+  override def doFinalize(enabled: Boolean): Splitter[Nothing]
+    = { assertPrepared; DoFinalize(initialState.get) = enabled; this }
+
+  override def finalizeEnabled: Boolean
+    = { assertPrepared; DoFinalize(initialState.get) }
+
+  override def modifySchema(enabled: Boolean): Splitter[Nothing]
+    = { assertPrepared; ModifySchema(initialState.get) = enabled; this }
+
+  override def schemaModificationsEnabled: Boolean
+    = { assertPrepared; ModifySchema(initialState.get) }
+
+  override def partition(): Unit = {
+    assertPrepared
+
+    // Run all steps sequentially followed by the sink
+    var currentState = initialState.get
+    for (step <- steps) {
+      currentState = step(currentState)
+    }
+    //TODO: modify schema
+    //TODO: finalize
+    val buckets = sink(currentState)
+
+    // write metadata
+    require(Shape.isDefined(currentState))
+    val shape = treeByShape(buckets, Shape(currentState))
+    val tree = new PartitionTree(Schema(currentState), NoSorter, shape)
+    currentState.hdfs.write(tree)
+  }
+
+  private def treeByShape(buckets: Seq[PartitionFolder], shape: AnyNode[Unit])
+    = shape.map({case ((), index) => buckets(index).name})
+
+  override def sortWith(sorter: Sorter): Splitter[Nothing]
+    = throw new UnsupportedOperationException("use an appropriate step in the pipeline")
+  override protected def load(context: Nothing): DataFrame = ???
+}

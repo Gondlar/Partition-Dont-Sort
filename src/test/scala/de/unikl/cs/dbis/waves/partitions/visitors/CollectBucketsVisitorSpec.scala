@@ -20,18 +20,18 @@ class CollectBucketsVisitorSpec extends WavesSpec
             "find the split's children" in {
                 val visitor = new CollectBucketsVisitor[String]()
                 split.accept(visitor)
-                visitor.result should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
+                visitor.result should contain theSameElementsInOrderAs (Seq(split.absentKey, split.presentKey))
             }
         }
         "visiting a spill" should {
             "find the spill's children" in {
                 val leafs = Seq( spill.rest
-                               , spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey
                                , spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey
+                               , spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey
                                )
                 val visitor = new CollectBucketsVisitor[String]()
                 spill.accept(visitor)
-                visitor.result should contain theSameElementsAs (leafs)
+                visitor.result should contain theSameElementsInOrderAs (leafs)
             }
         }
     }

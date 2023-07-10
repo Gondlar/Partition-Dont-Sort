@@ -1,13 +1,15 @@
 package de.unikl.cs.dbis.waves.pipeline
 
 import de.unikl.cs.dbis.waves.split.Splitter
+
 import org.apache.spark.sql.DataFrame
-import de.unikl.cs.dbis.waves.sort.Sorter
+
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
-import de.unikl.cs.dbis.waves.partitions.visitors.operations._
-import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
+import de.unikl.cs.dbis.waves.sort.Sorter
 import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class Pipeline(
   steps: Seq[PipelineStep],
@@ -21,16 +23,23 @@ class Pipeline(
 
   override def isPrepared: Boolean = initialState.isDefined
 
-  override def getPath: String = initialState.get.path
+  override def getPath: String
+    = { assertPrepared; initialState.get.path }
 
-  override def doFinalize(enabled: Boolean): Splitter[Nothing]
-    = { assertPrepared; DoFinalize(initialState.get) = enabled; this }
+  override def doFinalize(enabled: Boolean): Splitter[Nothing] = {
+      assertPrepared
+      initialState = Some(DoFinalize(initialState.get) = enabled)
+      this
+    }
 
   override def finalizeEnabled: Boolean
     = { assertPrepared; DoFinalize(initialState.get) }
 
-  override def modifySchema(enabled: Boolean): Splitter[Nothing]
-    = { assertPrepared; ModifySchema(initialState.get) = enabled; this }
+  override def modifySchema(enabled: Boolean): Splitter[Nothing] = {
+    assertPrepared
+    initialState = Some(ModifySchema(initialState.get) = enabled)
+    this
+  }
 
   override def schemaModificationsEnabled: Boolean
     = { assertPrepared; ModifySchema(initialState.get) }

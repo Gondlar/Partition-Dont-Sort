@@ -5,35 +5,32 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.RelationFixture
 import de.unikl.cs.dbis.waves.TempFolderFixture
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
-import de.unikl.cs.dbis.waves.ParquetFixture
 import de.unikl.cs.dbis.waves.PartitionTreeMatchers
+import de.unikl.cs.dbis.waves.split.SplitterBehavior
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Column}
-import org.apache.hadoop.fs.Path
 
-import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Absent}
-import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
+import de.unikl.cs.dbis.waves.partitions.{PartitionTree,SplitByPresence,Bucket,Present,Absent}
+import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.sort.NoSorter
 
 import de.unikl.cs.dbis.waves.WavesTable._
-import de.unikl.cs.dbis.waves.partitions.Present
 import de.unikl.cs.dbis.waves.pipeline.split.Predefined
-import de.unikl.cs.dbis.waves.pipeline.sink.DataframeSink
-import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.pipeline.split.BucketsFromShape
+import de.unikl.cs.dbis.waves.pipeline.sink.DataframeSink
 
 class PredefinedPipelineSpec extends WavesSpec
   with RelationFixture with PartitionTreeFixture with TempFolderFixture
-  with ParquetFixture
-  with PartitionTreeMatchers {
+  with SplitterBehavior with PartitionTreeMatchers {
 
   def makePipeline(shape: AnyNode[String])
     = new Pipeline(Seq(Predefined(shape.shape), BucketsFromShape), DataframeSink)
 
   "A Pipeline with a predefined split" can {
+    behave like unpreparedSplitter(makePipeline(Bucket("foo")))
     "split a dataframe into predefined buckets" in {
       Given("a DataFrame and a PartitionTree")
       val splitter = makePipeline(split)

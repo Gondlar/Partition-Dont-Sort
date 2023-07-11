@@ -23,7 +23,7 @@ class FlatShapeBuilderSpec extends WavesSpec {
       }
       "derive the correct shape" when {
         "there are multiple buckets" in {
-          Given("A state and a desired shape")
+          Given("A state with multiple buckets")
           val state = Buckets(PipelineState(null, null)) = Seq(null, null)
 
           When("we apply the FlatShapeBuilder step")
@@ -34,7 +34,7 @@ class FlatShapeBuilderSpec extends WavesSpec {
           Shape(result) should equal (Spill(Bucket(()), Bucket(())))
         }
         "there is just one bucket" in {
-          Given("A state and a desired shape")
+          Given("A state with one bucket")
           val state = Buckets(PipelineState(null, null)) = Seq(null)
 
           When("we apply the FlatShapeBuilder step")

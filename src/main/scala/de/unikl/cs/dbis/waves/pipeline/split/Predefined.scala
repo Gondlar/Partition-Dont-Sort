@@ -10,9 +10,7 @@ import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
   */
 final case class Predefined(
   shape: AnyNode[Unit]
-) extends PipelineStep {
-
-  override def supports(state: PipelineState): Boolean = true
+) extends PipelineStep with NoPrerequisites {
 
   override def run(state: PipelineState): PipelineState
     = Shape(state) = shape

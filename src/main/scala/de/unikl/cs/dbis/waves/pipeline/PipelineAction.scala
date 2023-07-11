@@ -7,7 +7,7 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
   * 
   * The type parameter is the action's result type.
   */
-trait PipelineAction[T] {
+trait PipelineAction[+T] {
 
   /**
     * Perform the step on the given state.
@@ -60,3 +60,10 @@ trait PipelineStep extends PipelineAction[PipelineState]
   * it has written based on it.
   */
 trait PipelineSink extends PipelineAction[Seq[PartitionFolder]]
+
+/**
+  * A mixin to mark actions which are always supported
+  */
+trait NoPrerequisites extends PipelineAction[Any] {
+  final override def  supports(state: PipelineState) = true
+}

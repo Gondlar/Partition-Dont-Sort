@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.util.operators.TempColumn
 
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import de.unikl.cs.dbis.waves.pipeline.Buckets
+import de.unikl.cs.dbis.waves.pipeline.NoPrerequisites
 
 /**
   * This PipelineStep splits the input data into buckets of approximately even
@@ -18,11 +19,9 @@ import de.unikl.cs.dbis.waves.pipeline.Buckets
   *   strictly positive. While 1 is supported, consider using [[SingleBucket]]
   *   instead.
   */
-final case class RandomBuckets(numPartitions: Int) extends PipelineStep {
+final case class RandomBuckets(numPartitions: Int) extends PipelineStep with NoPrerequisites {
 
   require(numPartitions > 0)
-
-  override def supports(state: PipelineState): Boolean = true
 
   override def run(state: PipelineState): PipelineState = {
     val buckets = state.data.randomSplit(Array.fill(numPartitions)(1)).filter(!_.isEmpty)

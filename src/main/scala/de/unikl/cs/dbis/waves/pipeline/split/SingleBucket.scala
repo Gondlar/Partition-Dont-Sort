@@ -11,9 +11,7 @@ import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
   * which consists of a single bucket and a corresponding Buckets list which
   * just contains the input DataFrame.
   */
-object SingleBucket extends PipelineStep {
-
-  override def supports(state: PipelineState): Boolean = true
+object SingleBucket extends PipelineStep with NoPrerequisites {
 
   override def run(state: PipelineState): PipelineState
     = Buckets(Shape(state) = Bucket(())) = Seq(state.data)

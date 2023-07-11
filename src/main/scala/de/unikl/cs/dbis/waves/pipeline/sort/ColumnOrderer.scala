@@ -17,7 +17,7 @@ trait ColumnOrderer {
     * @param state the state
     * @return true iff it is supported
     */
-  def isSupported(state: PipelineState): Boolean
+  def supports(state: PipelineState): Boolean
 
   /**
     * Return a column order for the given DataFrame and state

@@ -17,14 +17,14 @@ class DataframeSinkSpec extends WavesSpec
     "buckets are undefined" should {
       "not be supported" in {
         val emptyState = PipelineState(null,null)
-        DataframeSink.isSupported(emptyState) shouldBe (false)
+        (DataframeSink supports emptyState) shouldBe (false)
       }
     }
     "buckets are defined" should {
       "be supported" in {
         val emptyState = PipelineState(null,null)
         val withBuckets = Buckets(emptyState) = Seq()
-        DataframeSink.isSupported(withBuckets) shouldBe (true)
+        (DataframeSink supports withBuckets) shouldBe (true)
       }
       "store each bucket as a Partition" when {
         "there are multiple buckets" in {

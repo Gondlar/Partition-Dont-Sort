@@ -13,7 +13,7 @@ import org.apache.spark.sql.Row
   */
 object BucketsFromShape extends PipelineStep {
 
-  override def isSupported(state: PipelineState): Boolean
+  override def supports(state: PipelineState): Boolean
     = Shape.isDefined(state)
 
   override def run(state: PipelineState): PipelineState =  {

@@ -10,7 +10,7 @@ final case class DummyColumnOrderer(
   order: Seq[Column] = Seq.empty
 ) extends ColumnOrderer {
 
-  override def isSupported(state: PipelineState): Boolean = supported
+  override def supports(state: PipelineState): Boolean = supported
 
   override def sort(state: PipelineState, df: DataFrame): Seq[Column]
     = order

@@ -13,8 +13,8 @@ final case class GlobalOrder(
   sorter: ColumnOrderer
 ) extends PipelineStep {
 
-  override def isSupported(state: PipelineState): Boolean
-    = sorter.isSupported(state)
+  override def supports(state: PipelineState): Boolean
+    = sorter supports state
 
   override def run(state: PipelineState): PipelineState
     = GlobalSortorder(state) = sorter.sort(state, state.data)

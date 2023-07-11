@@ -14,14 +14,14 @@ class GlobalOrderSpec extends WavesSpec {
       "not be supported" in {
         val state = PipelineState(null,null)
         val sorter = DummyColumnOrderer(false)
-        GlobalOrder(sorter).isSupported(state) shouldBe (false)
+        (GlobalOrder(sorter) supports state) shouldBe (false)
       }
     }
     "the Column orderer is supported" should {
       "be supported" in {
         val state = PipelineState(null,null)
         val sorter = DummyColumnOrderer(true)
-        GlobalOrder(sorter).isSupported(state) shouldBe (true)
+        (GlobalOrder(sorter) supports state) shouldBe (true)
       }
       "set the global sorter to the correct value" in {
         Given("A sorter and a state")

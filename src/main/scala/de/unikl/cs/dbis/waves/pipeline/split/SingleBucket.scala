@@ -13,7 +13,7 @@ import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
   */
 object SingleBucket extends PipelineStep {
 
-  override def isSupported(state: PipelineState): Boolean = true
+  override def supports(state: PipelineState): Boolean = true
 
   override def run(state: PipelineState): PipelineState
     = Buckets(Shape(state) = Bucket(())) = Seq(state.data)

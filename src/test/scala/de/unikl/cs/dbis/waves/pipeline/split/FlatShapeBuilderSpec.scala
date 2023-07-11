@@ -14,12 +14,12 @@ class FlatShapeBuilderSpec extends WavesSpec {
   "The FlatShapeBuilder Step" when {
     "no buckets are given" should {
       "not be supported" in {
-        FlatShapeBuilder.isSupported(PipelineState(null, null)) shouldBe (false)
+        (FlatShapeBuilder supports PipelineState(null, null)) shouldBe (false)
       }
     }
     "buckets are given" should {
       "be supported" in {
-        FlatShapeBuilder.isSupported(Buckets(PipelineState(null, null)) = Seq()) shouldBe (true)
+        (FlatShapeBuilder supports (Buckets(PipelineState(null, null)) = Seq())) shouldBe (true)
       }
       "derive the correct shape" when {
         "there are multiple buckets" in {

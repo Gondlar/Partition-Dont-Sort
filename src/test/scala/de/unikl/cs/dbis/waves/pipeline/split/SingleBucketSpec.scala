@@ -15,7 +15,7 @@ class SingleBucketSpec extends WavesSpec
 
   "The FlatShapeBuilder Step" should {
     "always be supported" in {
-      SingleBucket.isSupported(PipelineState(null, null)) shouldBe (true)
+      (SingleBucket supports PipelineState(null, null)) shouldBe (true)
     }
     "set the buckets and shape correctly" in {
       Given("an empty state")

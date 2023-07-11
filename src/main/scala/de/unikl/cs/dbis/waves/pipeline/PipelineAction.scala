@@ -20,7 +20,7 @@ trait PipelineAction[T] {
     * @return the result of the action
     */
   final def apply(state: PipelineState) : T = {
-    require(isSupported(state))
+    require(supports(state))
     run(state)
   }
 
@@ -31,7 +31,7 @@ trait PipelineAction[T] {
     * @param state the state
     * @return true iff the state is supported.
     */
-  def isSupported(state: PipelineState): Boolean
+  def supports(state: PipelineState): Boolean
 
   /**
     * Run the action on a supported state.

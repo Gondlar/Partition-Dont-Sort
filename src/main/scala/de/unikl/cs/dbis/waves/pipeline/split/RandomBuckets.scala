@@ -22,7 +22,7 @@ final case class RandomBuckets(numPartitions: Int) extends PipelineStep {
 
   require(numPartitions > 0)
 
-  override def isSupported(state: PipelineState): Boolean = true
+  override def supports(state: PipelineState): Boolean = true
 
   override def run(state: PipelineState): PipelineState = {
     val buckets = state.data.randomSplit(Array.fill(numPartitions)(1)).filter(!_.isEmpty)

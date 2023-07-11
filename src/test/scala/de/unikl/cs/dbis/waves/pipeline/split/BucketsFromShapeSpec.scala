@@ -16,12 +16,12 @@ class BucketsFromShapeSpec extends WavesSpec
   "The BucketsFromShape Step" when {
     "no shape is given" should {
       "not be supported" in {
-        BucketsFromShape.isSupported(PipelineState(null, null)) shouldBe (false)
+        (BucketsFromShape supports PipelineState(null, null)) shouldBe (false)
       }
     }
     "a shape is given" should {
       "be supported" in {
-        BucketsFromShape.isSupported(Shape(PipelineState(null, null)) = Bucket(())) shouldBe (true)
+        (BucketsFromShape supports (Shape(PipelineState(null, null)) = Bucket(()))) shouldBe (true)
       }
       "derive the correct buckets" when {
         "there are multiple buckets" in {

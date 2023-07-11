@@ -19,7 +19,7 @@ class EvenBucketsSpec extends WavesSpec
       }
     }
     "always be supported" in {
-      EvenBuckets(2).isSupported(PipelineState(null, null)) shouldBe (true)
+      (EvenBuckets(2) supports PipelineState(null, null)) shouldBe (true)
     }
     "split a DataFrame evenly" in {
       Given("a state")

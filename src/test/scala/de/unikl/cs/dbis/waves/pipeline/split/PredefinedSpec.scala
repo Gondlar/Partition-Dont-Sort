@@ -14,7 +14,7 @@ class PredefinedSpec extends WavesSpec
     "always be supported" in {
       val step = Predefined(null)
       val state = PipelineState(null, null)
-      step.isSupported(state) shouldBe (true)
+      (step supports state) shouldBe (true)
     }
     "set the shape to the predefined value" in {
       Given("A state and a desired shape")

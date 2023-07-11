@@ -19,7 +19,7 @@ class RandomBucketsSpec extends WavesSpec
       }
     }
     "always be supported" in {
-      RandomBuckets(2).isSupported(PipelineState(null, null)) shouldBe (true)
+      (RandomBuckets(2)  supports PipelineState(null, null)) shouldBe (true)
     }
     "split a DataFrame evenly" in {
       Given("a state")

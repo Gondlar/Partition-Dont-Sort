@@ -21,7 +21,7 @@ final case class EvenBuckets(numPartitions: Int) extends PipelineStep {
 
   require(numPartitions > 0)
 
-  override def isSupported(state: PipelineState): Boolean = true
+  override def supports(state: PipelineState): Boolean = true
 
   override def run(state: PipelineState): PipelineState = {
     val tmp = TempColumn.apply("part")

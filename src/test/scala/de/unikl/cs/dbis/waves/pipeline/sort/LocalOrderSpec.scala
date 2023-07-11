@@ -14,28 +14,28 @@ class LocalOrderSpec extends WavesSpec {
       "not be supported" in {
         val state = PipelineState(null,null)
         val sorter = DummyColumnOrderer(false)
-        LocalOrder(sorter).isSupported(state) shouldBe (false)
+        (LocalOrder(sorter) supports state) shouldBe (false)
       }
     }
     "the Column orderer is not supported and there are Buckets " should {
       "not be supported" in {
         val state = Buckets(PipelineState(null,null)) = Seq()
         val sorter = DummyColumnOrderer(false)
-        LocalOrder(sorter).isSupported(state) shouldBe (false)
+        (LocalOrder(sorter) supports state) shouldBe (false)
       }
     }
     "the Column orderer is supported and there are no Buckets " should {
       "not be supported" in {
         val state = PipelineState(null,null)
         val sorter = DummyColumnOrderer(true)
-        LocalOrder(sorter).isSupported(state) shouldBe (false)
+        (LocalOrder(sorter) supports state) shouldBe (false)
       }
     }
     "the Column orderer is supported" should {
       "be supported" in {
         val state = Buckets(PipelineState(null,null)) = Seq()
         val sorter = DummyColumnOrderer(true)
-        LocalOrder(sorter).isSupported(state) shouldBe (true)
+        (LocalOrder(sorter) supports state) shouldBe (true)
       }
       "set the local sorter to the correct value" in {
         Given("A sorter and a state")

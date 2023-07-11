@@ -12,7 +12,7 @@ final case class Predefined(
   shape: AnyNode[Unit]
 ) extends PipelineStep {
 
-  override def isSupported(state: PipelineState): Boolean = true
+  override def supports(state: PipelineState): Boolean = true
 
   override def run(state: PipelineState): PipelineState
     = Shape(state) = shape

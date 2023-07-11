@@ -19,8 +19,8 @@ import de.unikl.cs.dbis.waves.sort.NoSorter
 
 import de.unikl.cs.dbis.waves.WavesTable._
 import de.unikl.cs.dbis.waves.pipeline.split.Predefined
-import de.unikl.cs.dbis.waves.pipeline.split.BucketsFromShape
 import de.unikl.cs.dbis.waves.pipeline.sink.DataframeSink
+import de.unikl.cs.dbis.waves.pipeline.util.BucketsFromShape
 
 class PredefinedPipelineSpec extends WavesSpec
   with RelationFixture with PartitionTreeFixture with TempFolderFixture

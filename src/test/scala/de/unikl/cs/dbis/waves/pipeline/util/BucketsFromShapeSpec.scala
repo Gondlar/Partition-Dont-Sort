@@ -1,4 +1,4 @@
-package de.unikl.cs.dbis.waves.pipeline.split
+package de.unikl.cs.dbis.waves.pipeline.util
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.PartitionTreeFixture

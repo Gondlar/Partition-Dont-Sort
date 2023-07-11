@@ -65,5 +65,5 @@ trait PipelineSink extends PipelineAction[Seq[PartitionFolder]]
   * A mixin to mark actions which are always supported
   */
 trait NoPrerequisites extends PipelineAction[Any] {
-  final override def  supports(state: PipelineState) = true
+  final override def supports(state: PipelineState) = true
 }

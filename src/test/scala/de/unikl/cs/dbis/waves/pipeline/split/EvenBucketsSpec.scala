@@ -29,14 +29,14 @@ class EvenBucketsSpec extends WavesSpec
       val result = EvenBuckets(2)(state)
 
       Then("we see the correct buckets in the result")
-      Buckets.isDefined(result) shouldBe (true)
+      (Buckets isDefinedIn result) shouldBe (true)
       val buckets = Buckets(result)
       buckets should have length (2)
       buckets(0).count should equal (4)
       buckets(1).count should equal (4)
 
       And("no shape is set")
-      Shape.isDefined(result) shouldBe (false)
+      (Shape isDefinedIn result) shouldBe (false)
     }
   }
 }

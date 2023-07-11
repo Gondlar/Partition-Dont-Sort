@@ -34,7 +34,7 @@ class GlobalOrderSpec extends WavesSpec {
 
         Then("the correct order is stored")
         GlobalSortorder(result) should equal (Seq(col("a")))
-        BucketSortorders.isDefined(result) shouldBe (false)
+        (BucketSortorders isDefinedIn result) shouldBe (false)
       }
     }
   }

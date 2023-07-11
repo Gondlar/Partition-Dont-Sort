@@ -14,7 +14,7 @@ import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 object FlatShapeBuilder extends PipelineStep {
 
   override def supports(state: PipelineState): Boolean
-    = Buckets.isDefined(state)
+    = Buckets isDefinedIn state
 
   override def run(state: PipelineState): PipelineState =  {
     val buckets = Iterator.fill(Buckets(state).length-1)(Bucket(()))

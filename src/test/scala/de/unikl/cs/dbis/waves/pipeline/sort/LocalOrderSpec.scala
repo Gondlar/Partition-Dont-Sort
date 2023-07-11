@@ -47,8 +47,8 @@ class LocalOrderSpec extends WavesSpec {
         val result = step(state)
 
         Then("the correct order is stored")
-        GlobalSortorder.isDefined(result) shouldBe (false)
-        BucketSortorders.isDefined(result) shouldBe (true)
+        (GlobalSortorder isDefinedIn result) shouldBe (false)
+        (BucketSortorders isDefinedIn result) shouldBe (true)
         val buckets = BucketSortorders(result)
         buckets should equal (Seq(Seq(col("a"))))
       }

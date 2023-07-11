@@ -74,7 +74,7 @@ class Pipeline(
     val buckets = sink(currentState)
 
     // write metadata
-    require(Shape.isDefined(currentState))
+    require(Shape isDefinedIn currentState)
     val shape = treeByShape(buckets, Shape(currentState))
     val tree = new PartitionTree(Schema(currentState), NoSorter, shape)
     currentState.hdfs.write(tree)

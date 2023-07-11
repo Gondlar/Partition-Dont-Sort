@@ -32,7 +32,7 @@ class BucketsFromShapeSpec extends WavesSpec
           val result = BucketsFromShape(state)
 
           Then("the correct buckets are stored")
-          Buckets.isDefined(result) shouldBe (true)
+          (Buckets isDefinedIn result) shouldBe (true)
           val buckets = Buckets(result)
           buckets.length should equal (3)
           buckets(0).collect shouldBe empty
@@ -47,7 +47,7 @@ class BucketsFromShapeSpec extends WavesSpec
           val result = BucketsFromShape(state)
 
           Then("the correct buckets are stored")
-          Buckets.isDefined(result) shouldBe (true)
+          (Buckets isDefinedIn result) shouldBe (true)
           val buckets = Buckets(result)
           buckets.length should equal (1)
           buckets(0).collect should contain theSameElementsAs (df.collect)

@@ -82,7 +82,7 @@ abstract class StateValue[T](key: String) {
     * @param state the state
     * @return true iff the value is defined
     */
-  def isDefined(state: PipelineState) = state.getMetadata[T](key).isDefined
+  def isDefinedIn(state: PipelineState) = state.getMetadata[T](key).isDefined
 
   /**
     * Create a new state where this value is set to a given value

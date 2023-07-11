@@ -42,7 +42,7 @@ class DataframeSorterSpec extends WavesSpec
         val withBuckets = Buckets(state) = Seq(df, df)
         val result = DataframeSorter.run(withBuckets)
         
-        Buckets.isDefined(result) shouldBe (true)
+        (Buckets isDefinedIn result) shouldBe (true)
         val sorted = Buckets(result)
         sorted.length shouldEqual (2)
         sorted(0).collect should contain theSameElementsInOrderAs (df.sort(col("a").asc).collect())
@@ -60,7 +60,7 @@ class DataframeSorterSpec extends WavesSpec
         val withBuckets = Buckets(state) = Seq(df, df)
         val result = DataframeSorter.run(withBuckets)
         
-        Buckets.isDefined(result) shouldBe (true)
+        (Buckets isDefinedIn result) shouldBe (true)
         val sorted = Buckets(result)
         sorted.length shouldEqual (2)
         sorted(0).collect should contain theSameElementsInOrderAs (df.sort(col("a").asc).collect())
@@ -80,7 +80,7 @@ class DataframeSorterSpec extends WavesSpec
         val withBuckets = Buckets(withGlobal) = Seq(df, df)
         val result = DataframeSorter.run(withBuckets)
         
-        Buckets.isDefined(result) shouldBe (true)
+        (Buckets isDefinedIn result) shouldBe (true)
         val sorted = Buckets(result)
         sorted.length shouldEqual (2)
         sorted(0).collect should contain theSameElementsInOrderAs (df.sort(col("a").asc).collect())

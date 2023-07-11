@@ -10,7 +10,7 @@ import org.apache.spark.sql.DataFrame
 object DataframeSorter extends PipelineStep {
 
   override def supports(state: PipelineState): Boolean
-    = Buckets.isDefined(state) && (GlobalSortorder.isDefined(state) || BucketSortorders.isDefined(state))
+    = (Buckets isDefinedIn state) && ((GlobalSortorder isDefinedIn state) || (BucketSortorders isDefinedIn state))
 
   override def run(state: PipelineState): PipelineState = {
     val buckets = Buckets(state)

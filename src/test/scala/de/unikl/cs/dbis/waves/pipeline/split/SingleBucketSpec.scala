@@ -25,13 +25,13 @@ class SingleBucketSpec extends WavesSpec
       val result = SingleBucket(state)
 
       Then("the input data is the only bucket")
-      Buckets.isDefined(result) shouldBe (true)
+      (Buckets isDefinedIn result) shouldBe (true)
       val buckets = Buckets(result)
       buckets should have length (1)
       buckets(0) shouldBe theSameInstanceAs (df)
 
       And("the shape is a single bucket")
-      Shape.isDefined(result) shouldBe (true)
+      (Shape isDefinedIn result) shouldBe (true)
       Shape(result) should equal (Bucket(()))
     }
   }

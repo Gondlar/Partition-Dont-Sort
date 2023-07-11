@@ -29,7 +29,7 @@ class RandomBucketsSpec extends WavesSpec
       val result = RandomBuckets(2)(state)
 
       Then("we see the correct buckets in the result")
-      Buckets.isDefined(result) shouldBe (true)
+      (Buckets isDefinedIn result) shouldBe (true)
       val buckets = Buckets(result)
       buckets.length shouldBe <= (2)
       if (buckets.length < 2)
@@ -37,7 +37,7 @@ class RandomBucketsSpec extends WavesSpec
       buckets.map(_.count()).sum should equal (8)
 
       And("no shape is set")
-      Shape.isDefined(result) shouldBe (false)
+      (Shape isDefinedIn result) shouldBe (false)
     }
   }
 }

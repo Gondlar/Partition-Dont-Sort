@@ -12,7 +12,7 @@ final case class LocalOrder(
 ) extends PipelineStep {
 
   override def supports(state: PipelineState): Boolean
-    = Buckets.isDefined(state) && (sorter supports state)
+    = (Buckets isDefinedIn state) && (sorter supports state)
 
   override def run(state: PipelineState): PipelineState = {
     BucketSortorders(state) = Buckets(state).map({bucket => sorter.sort(state, bucket)})

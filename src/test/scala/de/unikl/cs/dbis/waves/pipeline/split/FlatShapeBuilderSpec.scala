@@ -30,7 +30,7 @@ class FlatShapeBuilderSpec extends WavesSpec {
           val result = FlatShapeBuilder(state)
 
           Then("the correct shape is stored")
-          Shape.isDefined(result) shouldBe (true)
+          (Shape isDefinedIn result) shouldBe (true)
           Shape(result) should equal (Spill(Bucket(()), Bucket(())))
         }
         "there is just one bucket" in {
@@ -41,7 +41,7 @@ class FlatShapeBuilderSpec extends WavesSpec {
           val result = FlatShapeBuilder(state)
 
           Then("the correct buckets are stored")
-          Shape.isDefined(result) shouldBe (true)
+          (Shape isDefinedIn result) shouldBe (true)
           Shape(result) should equal (Bucket(()))
         }
       }

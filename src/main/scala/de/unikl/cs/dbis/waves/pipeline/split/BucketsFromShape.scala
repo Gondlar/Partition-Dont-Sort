@@ -6,6 +6,11 @@ import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.Row
 
+/**
+  * This pipeline step derives Buckets from Shape. Given a state where Shape is
+  * set, it sets Buckets such that its contents reflect the splits done in the
+  * Shape tree.
+  */
 object BucketsFromShape extends PipelineStep {
 
   override def isSupported(state: PipelineState): Boolean

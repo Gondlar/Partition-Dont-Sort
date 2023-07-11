@@ -4,6 +4,10 @@ import de.unikl.cs.dbis.waves.pipeline._
 import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 
+/**
+  * Write partitions to disk by reading the Buckets array from the state and
+  * creating one PartitionFolder for each one.
+  */
 object DataframeSink extends PipelineSink {
 
   override def isSupported(state: PipelineState): Boolean
@@ -18,6 +22,7 @@ object DataframeSink extends PipelineSink {
   }
 
   protected def writeOne(bucket: DataFrame, path: String): PartitionFolder = {
+    //TODO handle empty df?
     val targetFolder = PartitionFolder.makeFolder(path, false)
     bucket.write.parquet(targetFolder.filename)
     targetFolder

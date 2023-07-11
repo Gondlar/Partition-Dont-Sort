@@ -3,6 +3,10 @@ package de.unikl.cs.dbis.waves.pipeline.sort
 import de.unikl.cs.dbis.waves.pipeline._
 import org.apache.spark.sql.DataFrame
 
+/**
+  * Sort the Buckets of a Pipeline lexicographically.
+  * To this end, the Buckets as well as a Global or Bucket Sortorder must be set.
+  */
 object DataframeSorter extends PipelineStep {
 
   override def isSupported(state: PipelineState): Boolean

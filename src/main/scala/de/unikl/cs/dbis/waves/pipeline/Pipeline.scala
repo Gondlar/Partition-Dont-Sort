@@ -8,6 +8,7 @@ import de.unikl.cs.dbis.waves.partitions.PartitionTree
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline.util.Finalizer
+import de.unikl.cs.dbis.waves.pipeline.util.SchemaModifier
 import de.unikl.cs.dbis.waves.sort.Sorter
 import de.unikl.cs.dbis.waves.sort.NoSorter
 import de.unikl.cs.dbis.waves.util.PartitionFolder
@@ -24,8 +25,9 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
   * 
   * The initial configuration of the splitter is written to a [[PipelineState]]
   * which is then iteratively passed to each pipeline step. Each step can then
-  * modify the state and store its results in it. If finalization is requested
-  * from the splitter, it additionally runs the Finalizer step at the end.
+  * modify the state and store its results in it. If schema modifications are
+  * enabled, the SchemaModifier step is applied before writing the result. If
+  * finalization is requested, it additionally runs the Finalizer step at the end.
   *
   * @param steps the steps to be taken in the pipeline
   * @param sink the method by which the buckets get written to disk
@@ -71,7 +73,8 @@ class Pipeline(
     for (step <- steps) {
       currentState = step(currentState)
     }
-    //TODO: modify schema
+    if (ModifySchema(currentState))
+      currentState = SchemaModifier(currentState)
     if (DoFinalize(currentState))
       currentState = Finalizer(currentState)
     val buckets = sink(currentState)

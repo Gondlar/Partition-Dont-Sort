@@ -159,6 +159,7 @@ object Transform {
   def clipSchema(metadata: PartitionMetadata)(df: DataFrame) = {
     import de.unikl.cs.dbis.waves.util.nested.schemas._
 
+    //BUG: drop does not actually drop nested columns. WONTFIX, use Pipeline instead
     val dropped = metadata.getAbsent.foldLeft(df)((df, path) => df.drop(path.toSpark))
     val schema = metadata.getPresent.foldLeft(dropped.schema)((schema, path) => schema.withPresent(path))
     dropped.sparkSession.createDataFrame(dropped.rdd, schema)

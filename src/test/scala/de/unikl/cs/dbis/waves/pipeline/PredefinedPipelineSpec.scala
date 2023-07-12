@@ -21,10 +21,12 @@ import de.unikl.cs.dbis.waves.WavesTable._
 import de.unikl.cs.dbis.waves.pipeline.split.Predefined
 import de.unikl.cs.dbis.waves.pipeline.sink.DataframeSink
 import de.unikl.cs.dbis.waves.pipeline.util.BucketsFromShape
+import de.unikl.cs.dbis.waves.pipeline.util.FinalizedMatcher
+import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class PredefinedPipelineSpec extends WavesSpec
   with RelationFixture with PartitionTreeFixture with TempFolderFixture
-  with SplitterBehavior with PartitionTreeMatchers {
+  with SplitterBehavior with PartitionTreeMatchers with FinalizedMatcher {
 
   def makePipeline(shape: AnyNode[String])
     = new Pipeline(Seq(Predefined(shape.shape), BucketsFromShape), DataframeSink)
@@ -40,7 +42,33 @@ class PredefinedPipelineSpec extends WavesSpec
       splitter.partition()
 
       Then("the written partition tree looks as defined")
-      val fs = getFS(spark)
+      implicit val fs = getFS(spark)
+      val result = PartitionTreeHDFSInterface(fs, tempDirectory).read()
+      result should not equal (None)
+      result.get should haveTheSameStructureAs(splitTree)
+      tempDirectory should beFinalized
+
+      And("We can read everything as a WavesTable")
+      val newDf = spark.read.waves(tempDirectory)
+      newDf.collect() should contain theSameElementsAs (df.collect())
+
+      And("we recieve the correct data when selecting one attribute")
+      compareFilteredDataframe(newDf, df, col("a").isNull)
+      compareFilteredDataframe(newDf, df, col("b").isNotNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNull)
+      compareFilteredDataframe(newDf, df, col("b.d").isNotNull)
+    }
+    "split correctly without finalize" in {
+      Given("a DataFrame and a PartitionTree")
+      val splitter = makePipeline(split)
+      splitter.prepare(df, tempDirectory)
+        .doFinalize(false)
+    
+      When("we partition the data frame")
+      splitter.partition()
+
+      Then("the written partition tree looks as defined")
+      implicit val fs = getFS(spark)
       val result = PartitionTreeHDFSInterface(fs, tempDirectory).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs(splitTree)
@@ -64,10 +92,11 @@ class PredefinedPipelineSpec extends WavesSpec
       splitter.partition()
 
       Then("the written partition tree looks as defined")
-      val fs = getFS(spark)
+      implicit val fs = getFS(spark)
       val result = PartitionTreeHDFSInterface(fs, tempDirectory).read()
       result should not equal (None)
       result.get should haveTheSameStructureAs(spillTree)
+      tempDirectory should beFinalized
 
       And("We can read everything as a WavesTable")
       val newDf = spark.read.waves(tempDirectory)

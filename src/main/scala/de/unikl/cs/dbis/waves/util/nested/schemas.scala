@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.util.nested
 
 import org.apache.spark.sql.types.{DataType, StructType, StructField, MapType, ArrayType}
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.PathKey._
 
 object schemas {
     /**
@@ -181,6 +182,32 @@ object schemas {
           }
           tpe.accept(visitor)
           result.asInstanceOf[StructType]
+        }
+
+        /**
+          * List all root-to-leaf paths of a schema in the order they appear in
+          * the schema tree from left to right.
+          *
+          * @return A sequence of all root-to-leaf paths
+          */
+        def leafPaths = {
+          var paths : Seq[Option[PathKey]] = Seq.empty
+          val visitor = new DataTypeVisitor {
+
+            override def visitLeaf(leaf: DataType): Unit = {
+              paths = Seq(None)
+            }
+
+            override def visitStruct(row: StructType): Unit = {
+              val pathsFromHere = for((field, i) <- row.fields.zipWithIndex) yield {
+                row.subAccept(i, this)
+                paths.map(field.name +: _)
+              }
+              paths = pathsFromHere.flatten.toSeq
+            }
+          }
+          tpe.accept(visitor)
+          paths.flatten
         }
     }
 }

@@ -62,6 +62,9 @@ class DataTypeSpec extends WavesSpec
           d shouldBe 'nullable
         }
       }
+      "lists its root-to-leaf paths in left-to-right order" in {
+        schema.leafPaths should contain theSameElementsInOrderAs (Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"), PathKey("e")))
+      }
     }
     it should {
       "fail to mark a path as present" when {

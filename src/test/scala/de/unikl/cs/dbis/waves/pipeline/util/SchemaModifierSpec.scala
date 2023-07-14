@@ -13,6 +13,9 @@ import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
+import de.unikl.cs.dbis.waves.partitions.Absent
+import de.unikl.cs.dbis.waves.util.PathKey
 
 
 class SchemaModifierSpec extends WavesSpec
@@ -142,6 +145,37 @@ class SchemaModifierSpec extends WavesSpec
         And("the contents are otherwise unmodified")
         modifiedBuckets(0).collect() should contain theSameElementsInOrderAs (buckets(0).select(col("foo").dropFields("b.d")).collect())
         modifiedBuckets(1).collect() should contain theSameElementsInOrderAs (buckets(1).collect())
+      }
+      "there is known metadata" in {
+        Given("Buckets and their shape")
+        val state = PipelineState(null, null)
+        val withShape = Shape(state) = SplitByPresence("b", (), ())
+        val buckets = Seq(df.filter(col("b").isNull && col("a").isNull), df.filter(col("b").isNotNull && col("a").isNull))
+        val withBoth = Buckets(withShape) = buckets
+        val withMetadata = KnownMetadata(withBoth) = PartitionMetadata(Seq.empty, Seq(PathKey("a")), Seq(Absent))
+
+        When("we apply the SchemaModifier")
+        val result = SchemaModifier.run(withMetadata)
+
+        Then("the schemas are correct")
+        (Buckets isDefinedIn result) shouldBe (true)
+        val modifiedBuckets = Buckets(result)
+        modifiedBuckets should have length (2)
+
+        val reqSchema = StructType(Seq( StructField("b", StructType(Seq( StructField("c", IntegerType, false)
+                                                                       , StructField("d", IntegerType, true)
+                                                                       )), false)
+                                      , StructField("e", IntegerType, false)
+                                      ))
+        val absSchema = StructType(Seq( StructField("e", IntegerType, false)
+                                      ))
+
+        modifiedBuckets(0).schema should equal (absSchema)
+        modifiedBuckets(1).schema should equal (reqSchema)
+
+        And("the contents are otherwise unmodified")
+        modifiedBuckets(0).collect() should contain theSameElementsInOrderAs (buckets(0).drop(col("b")).drop(col("a")).collect())
+        modifiedBuckets(1).collect() should contain theSameElementsInOrderAs (buckets(1).drop(col("a")).collect())
       }
     }
   }

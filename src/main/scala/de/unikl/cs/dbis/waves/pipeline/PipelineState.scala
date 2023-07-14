@@ -4,6 +4,7 @@ import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
 
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
+import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 import org.apache.spark.sql.types.StructType
 
@@ -162,6 +163,13 @@ object ModifySchema extends StateValueWithDefault[Boolean]("modifySchema", false
   * writing PartitionFolders. The default is true.
   */
 object DoFinalize extends StateValueWithDefault[Boolean]("doFinalize", true)
+
+/**
+  * Stores metadata known about all rows in the dataset. This may be useful for
+  * repartitioning an existing tree or working with data that results from a
+  * query whose filters imply information on the data. The default is empty.
+  */
+object KnownMetadata extends StateValueWithDefault[PartitionMetadata]("knownMetadata", PartitionMetadata())
 
 /**
   * Stores the schema of the input data. This is useful in cases where we know a

@@ -22,7 +22,8 @@ object SchemaModifier extends PipelineStep {
     = (Buckets isDefinedIn state) && (Shape isDefinedIn state)
 
   override def run(state: PipelineState): PipelineState = {
-    val allMetadata = Shape(state).metadata()
+    val known = KnownMetadata(state)
+    val allMetadata = Shape(state).metadata().map(known ++ _)
     val buckets = Buckets(state)
 
     val modified = for ((bucket, metadata) <- buckets.zip(allMetadata)) yield {

@@ -13,12 +13,13 @@ object DataframeSink extends PipelineSink {
   override def supports(state: PipelineState): Boolean
     = Buckets isDefinedIn state
 
-  override def run(state: PipelineState): Seq[PartitionFolder] = {
+  override def run(state: PipelineState): (PipelineState, Seq[PartitionFolder]) = {
     val buckets = Buckets(state)
-    buckets match {
+    val folders = buckets match {
       case head :: Nil => Seq(writeOne(head, state.path))
       case _ => writeMany(buckets, state.path)
     }
+    (state, folders)
   }
 
   protected def writeOne(bucket: DataFrame, path: String): PartitionFolder = {

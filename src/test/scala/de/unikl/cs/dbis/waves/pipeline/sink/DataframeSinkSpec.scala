@@ -33,12 +33,15 @@ class DataframeSinkSpec extends WavesSpec
           val withBuckets = Buckets(emptyState) = Seq(df.filter(col("a").isNull), df.filter(col("a").isNotNull))
 
           When("we run the DataframeSink")
-          val result = DataframeSink.run(withBuckets)
+          val (finalState, result) = DataframeSink.run(withBuckets)
 
           Then("the written partitions look as expected")
           result should have length (2)
           spark.read.parquet(result(0).filename).collect() should contain theSameElementsInOrderAs (df.filter(col("a").isNull).collect())
           spark.read.parquet(result(1).filename).collect() should contain theSameElementsInOrderAs (df.filter(col("a").isNotNull).collect())
+
+          And("the final state is unchanged")
+          finalState should equal (withBuckets)
         }
         "there is only one bucket" in {
           Given("A PipelineState with one Bucket")
@@ -46,11 +49,14 @@ class DataframeSinkSpec extends WavesSpec
           val withBuckets = Buckets(emptyState) = Seq(df)
 
           When("we run the DataframeSink")
-          val result = DataframeSink.run(withBuckets)
+          val (finalState, result) = DataframeSink.run(withBuckets)
 
           Then("the written partitions look as expected")
           result should have length (1)
           spark.read.parquet(result(0).filename).collect() should contain theSameElementsInOrderAs (df.collect())
+
+          And("the final state is unchanged")
+          finalState should equal (withBuckets)
         }
       }
     }

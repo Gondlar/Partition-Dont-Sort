@@ -77,13 +77,13 @@ class Pipeline(
       currentState = SchemaModifier(currentState)
     if (DoFinalize(currentState))
       currentState = Finalizer(currentState)
-    val buckets = sink(currentState)
+    val (finalState, buckets) = sink(currentState)
 
     // write metadata
-    require(Shape isDefinedIn currentState)
-    val shape = treeByShape(buckets, Shape(currentState))
-    val tree = new PartitionTree(Schema(currentState), NoSorter, shape)
-    currentState.hdfs.write(tree)
+    require(Shape isDefinedIn finalState)
+    val shape = treeByShape(buckets, Shape(finalState))
+    val tree = new PartitionTree(Schema(finalState), NoSorter, shape)
+    finalState.hdfs.write(tree)
   }
 
   private def treeByShape(buckets: Seq[PartitionFolder], shape: AnyNode[Unit])

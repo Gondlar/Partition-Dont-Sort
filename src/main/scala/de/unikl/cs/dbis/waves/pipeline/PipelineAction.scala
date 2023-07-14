@@ -59,7 +59,7 @@ trait PipelineStep extends PipelineAction[PipelineState]
   * It reads the state before its execution and returns the PartitionFolders
   * it has written based on it.
   */
-trait PipelineSink extends PipelineAction[Seq[PartitionFolder]]
+trait PipelineSink extends PipelineAction[(PipelineState, Seq[PartitionFolder])]
 
 /**
   * A mixin to mark actions which are always supported

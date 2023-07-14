@@ -14,7 +14,7 @@ trait QueryRunner {
     // Prepare the stuff we do not want to measure
     val basePath = jobConfig.wavesPath
     val tree = PartitionTreeHDFSInterface(spark, basePath).read().get
-    val folders = tree.buckets.map(_.folder(basePath).filename)
+    val folders = tree.folders(basePath).map(_.filename)
     val useWaves = jobConfig.useWaves
     val schemaModificationsEnabled = jobConfig.modifySchema
 

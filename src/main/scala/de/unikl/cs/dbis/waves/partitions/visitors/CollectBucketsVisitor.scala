@@ -44,4 +44,24 @@ trait CollectBucketOperations {
       */
     def buckets = tree.root(new CollectBucketsVisitor[Payload])
   }
+
+  implicit class CollectFoldersNode(node: AnyNode[String]) {
+    /**
+      * Find all Folders in the PartitionTree
+      *
+      * @param basePath the basePath of the folders
+      * @return a sequence of folders in the tree
+      */
+    def folders(basePath: String) = node.buckets.map(_.folder(basePath))
+  }
+
+  implicit class CollectFoldersTree(tree: PartitionTree[String]) {
+    /**
+      * Find all Folders in the PartitionTree
+      *
+      * @param basePath the basePath of the folders
+      * @return a sequence of folders in the tree
+      */
+    def folders(basePath: String) = tree.root.folders(basePath)
+  }
 }

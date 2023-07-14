@@ -23,7 +23,7 @@ class FlatTreeBuilderSpec extends WavesSpec
       val tree = builder.buildTree(folders)
 
       Then("the tree should contain these folders")
-      val result = tree.buckets.map(b => b.folder("foo")).toSeq
+      val result = tree.folders("foo").toSeq
       result should contain theSameElementsAs (folders)
 
       And("the tree should contain spill nodes and buckets")
@@ -42,7 +42,7 @@ class FlatTreeBuilderSpec extends WavesSpec
       val tree = builder.buildTree(folders)
 
       Then("the tree should contain these folders")
-      val result = tree.buckets.map(b => b.folder("foo")).toSeq
+      val result = tree.folders("foo").toSeq
       result should contain theSameElementsAs (folders)
 
       And("the tree should contain spill nodes and buckets")

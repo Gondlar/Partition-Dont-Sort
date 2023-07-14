@@ -132,6 +132,33 @@ class PartitionMetadataSpec extends WavesSpec
       "be root" in {
         emptyMetadata shouldBe 'root
       }
+      "be the neutral element for concatenation" when {
+        "it is added from the left" in {
+          val result = emptyMetadata ++ absentMetadata
+          result should equal (absentMetadata)
+          result shouldNot be theSameInstanceAs (emptyMetadata)
+          result shouldNot be theSameInstanceAs (absentMetadata)
+        }
+        "it is added from the right" in {
+          val result = absentMetadata ++ emptyMetadata
+          result should equal (absentMetadata)
+          result shouldNot be theSameInstanceAs (emptyMetadata)
+          result shouldNot be theSameInstanceAs (absentMetadata)
+        }
+        "we add in-place from the left" in {
+          val original = presentMetadata.clone()
+          emptyMetadata ++= presentMetadata
+          presentMetadata should equal (original)
+          emptyMetadata should equal (presentMetadata)
+        }
+        "we add in-place from the right" in {
+          val meta = presentMetadata.clone()
+          val original = emptyMetadata.clone()
+          meta ++= emptyMetadata
+          emptyMetadata should equal (original)
+          meta should equal (presentMetadata)
+        }
+      }
     }
     "it contains a known present path" should {
       behave like anyMetadata(() => emptyMetadata)

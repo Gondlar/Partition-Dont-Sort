@@ -68,8 +68,16 @@ class PartitionMetadata(
     require(canBeAbsent(key))
     addStep(Absent)
     if (isKnownAbsent(key)) return
-    absent = absent.filter(p => !(key isPrefixOf p)) + key
+    addAbsentKey(key)
   }
+
+  /**
+    * Incorporate a known absent key into the set
+    *
+    * @param key
+    */
+  private def addAbsentKey(key: PathKey)
+    = absent = absent.filter(p => !(key isPrefixOf p)) + key
 
   /**
     * Add a key as present. Adding a key is only possible if it still can be
@@ -83,8 +91,16 @@ class PartitionMetadata(
     require(canBePresent(key))
     addStep(Present)
     if (isKnownPresent(key)) return
-    present = present.filter(p => !(p isPrefixOf key)) + key
+    addPresentKey(key)
   }
+
+  /**
+    * Incoroprate a known present key into the set
+    *
+    * @param key
+    */
+  private def addPresentKey(key: PathKey)
+    = present = present.filter(p => !(p isPrefixOf key)) + key
 
   /**
     * Add the key as present or absent according to the given path
@@ -131,6 +147,38 @@ class PartitionMetadata(
     case other: PartitionMetadata
       => other.absent == absent && other.present == present && other.path == path
     case _ => false
+  }
+
+  /**
+    * Concatenate the metadata objects, i.e., the result reflects the metadata
+    * as if `rhs` was the metadata of the subtree rooted in the node this
+    * metadata object represents.
+    * 
+    * This, paths known to be present or absent in either metadata object will
+    * be known as such in the result and the paths are concatenated accordingly.
+    *
+    * @param rhs the metadata object to append
+    */
+  def ++=(rhs: PartitionMetadata) = {
+    require(!isSpillBucket)
+
+    for(absent <- rhs.getAbsent) addAbsentKey(absent)
+    for(present <- rhs.getPresent) addPresentKey(present)
+    path ++= rhs.path
+  }
+
+  /**
+    * Concatenate two metadata objects
+    * 
+    * Works identical to [[++=]], but both objects stay unchanged.
+    *
+    * @param rhs the other metadata object to append
+    * @see [[++=]]
+    */
+  def ++(rhs: PartitionMetadata) = {
+    val result = clone()
+    result ++= rhs
+    result
   }
 }
 

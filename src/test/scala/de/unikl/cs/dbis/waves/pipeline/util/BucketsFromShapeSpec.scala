@@ -8,6 +8,7 @@ import org.apache.spark.sql.functions.col
 
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.partitions.Bucket
+import de.unikl.cs.dbis.waves.partitions.Spill
 import de.unikl.cs.dbis.waves.pipeline._
 
 class BucketsFromShapeSpec extends WavesSpec
@@ -51,6 +52,20 @@ class BucketsFromShapeSpec extends WavesSpec
           val buckets = Buckets(result)
           buckets.length should equal (1)
           buckets(0).collect should contain theSameElementsAs (df.collect)
+        }
+        "the tree is degenerated" in {
+          Given("A state and a degenerated shape")
+          val state = Shape(PipelineState(df, null)) = Spill(Bucket(()), Bucket(()))
+
+          When("we apply the BucketsFromShape step")
+          val result = BucketsFromShape(state)
+
+          Then("the correct buckets are stored")
+          (Buckets isDefinedIn result) shouldBe (true)
+          val buckets = Buckets(result)
+          buckets.length should equal (2)
+          buckets(0).collect shouldBe empty
+          buckets(1).collect should contain theSameElementsAs (df.collect)
         }
       }
     }

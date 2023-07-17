@@ -3,6 +3,7 @@ package de.unikl.cs.dbis.waves.pipeline.util
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
+import de.unikl.cs.dbis.waves.partitions.Partitioned
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.Row
 
@@ -21,12 +22,11 @@ object BucketsFromShape extends PipelineStep {
     val spark = df.sparkSession
     val metadata = Shape(state).metadata()
     val emptdDf = spark.createDataFrame(spark.sparkContext.emptyRDD[Row], Schema(state))
-    Buckets(state) = if (metadata.length > 1) {
-      metadata.map({ metadata =>
-        if (metadata.isSpillBucket) emptdDf
-        else df.filter(makeFilter(df, metadata))
-      })
-    } else Seq(state.data)
+    Buckets(state) = metadata.map({ metadata =>
+      if (metadata.isSpillBucket) emptdDf
+      else if (metadata.getPath.filter(_ != Partitioned).isEmpty) df
+      else df.filter(makeFilter(df, metadata))
+    })
   }
 
   private def makeFilter(df: DataFrame, metadata: PartitionMetadata) = {

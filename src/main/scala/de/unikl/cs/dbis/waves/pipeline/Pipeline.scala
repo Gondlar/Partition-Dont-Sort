@@ -47,29 +47,30 @@ class Pipeline(
   override def getPath: String
     = { assertPrepared; initialState.get.path }
 
-  override def doFinalize(enabled: Boolean): Splitter[Nothing] = {
-      assertPrepared
-      initialState = Some(DoFinalize(initialState.get) = enabled)
-      this
-    }
+  private var finalizeBuckets = true
 
-  override def finalizeEnabled: Boolean
-    = { assertPrepared; DoFinalize(initialState.get) }
+  override def doFinalize(enabled: Boolean): Splitter[Nothing]
+    = { finalizeBuckets = enabled; this }
 
-  override def modifySchema(enabled: Boolean): Splitter[Nothing] = {
-    assertPrepared
-    initialState = Some(ModifySchema(initialState.get) = enabled)
-    this
-  }
+  override def finalizeEnabled: Boolean = finalizeBuckets
+
+  private var schemaModifications = false
+
+  override def modifySchema(enabled: Boolean): Splitter[Nothing]
+    = { schemaModifications = enabled; this }
 
   override def schemaModificationsEnabled: Boolean
-    = { assertPrepared; ModifySchema(initialState.get) }
+    = schemaModifications
 
   override def partition(): Unit = {
     assertPrepared
 
-    // Run all steps sequentially followed by the sink
+    // Prepare initial state
     var currentState = initialState.get
+    currentState = DoFinalize(currentState) = finalizeBuckets
+    currentState = ModifySchema(currentState) = schemaModifications
+
+    // Run all steps sequentially followed by the sink
     for (step <- steps) {
       currentState = step(currentState)
     }

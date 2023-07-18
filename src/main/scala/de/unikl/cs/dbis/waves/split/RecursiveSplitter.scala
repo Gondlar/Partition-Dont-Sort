@@ -139,6 +139,6 @@ final case class RecursiveSplitter(
     private def getFolder(table: WavesTable, path: Seq[PartitionTreePath]) : PartitionFolder
         = table.partitionTree.find(path).get.asInstanceOf[Bucket[String]].folder(table.basePath)
 
-    private def finalize(path: Seq[PartitionTreePath]) = table.repartition(path, Bucket("foo"), modifySchema = doModifySchema)
+    private def finalize(path: Seq[PartitionTreePath]) = table.repartition(path, Bucket(()), modifySchema = doModifySchema)
 
 }

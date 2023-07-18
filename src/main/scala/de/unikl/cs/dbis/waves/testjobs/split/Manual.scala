@@ -3,8 +3,9 @@ package de.unikl.cs.dbis.waves.testjobs.split
 import de.unikl.cs.dbis.waves.testjobs.JobConfig
 import de.unikl.cs.dbis.waves.partitions.{Bucket, SplitByPresence}
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
-import de.unikl.cs.dbis.waves.split.PredefinedSplitter
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.pipeline._
 
 object Manual extends SplitRunner {
   def main(args: Array[String]) : Unit = {
@@ -25,7 +26,12 @@ object Manual extends SplitRunner {
       val loadedTree = PartitionTreeHDFSInterface(spark, path).read().get
       (loadedTree.root, loadedTree.sorter)
     }.getOrElse((defaultShape, NoSorter))
-    val splitter = new PredefinedSplitter(manualShape).sortWith(manualSorter)
+    val splitter = new Pipeline(Seq(
+      split.Predefined(manualShape.shape),
+      util.BucketsFromShape) ++
+      Pipeline.mapLegacySorter(manualSorter),
+      sink.DataframeSink
+    )
 
     runSplitter(spark, jobConfig, splitter)
   }

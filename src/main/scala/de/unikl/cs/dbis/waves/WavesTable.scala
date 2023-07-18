@@ -31,6 +31,12 @@ import org.apache.spark.sql.DataFrameReader
 
 import TreeNode.AnyNode
 import PartitionTree._
+import de.unikl.cs.dbis.waves.pipeline.Pipeline
+import de.unikl.cs.dbis.waves.pipeline.split.Predefined
+import de.unikl.cs.dbis.waves.pipeline.util.BucketsFromShape
+import de.unikl.cs.dbis.waves.pipeline.util.PrependMetadata
+import de.unikl.cs.dbis.waves.pipeline.sink.DataframeSink
+import de.unikl.cs.dbis.waves.pipeline.sink.SubtreeSink
 
 class WavesTable private (
     override val name : String,
@@ -97,7 +103,7 @@ class WavesTable private (
       * @param finalize whether the resulting buckets should be finalized
       */
     def split(key: String, path : Seq[PartitionTreePath] = Seq.empty, finalize: Boolean = true) : Unit = {
-        val newSplit = SplitByPresence(key, s"$key-absent", s"$key-present")
+        val newSplit = SplitByPresence(key, (), ())
         repartition(path, newSplit, finalize)
     }
 
@@ -120,11 +126,20 @@ class WavesTable private (
       if (hasNonEmptySpillBuckets) {
         // repartition all data into the desired partitioning scheme
         val data = spark.read.parquet(findRequiredPartitions(Seq.empty).map(_.filename):_*)
-        new PredefinedSplitter(partitionTree.root)
-          .sortWith(partitionTree.sorter)
-          .prepare(data, basePath)
+        new Pipeline(Seq(
+          Predefined(partitionTree.root.shape),
+          BucketsFromShape) ++
+          Pipeline.mapLegacySorter(partitionTree.sorter),
+          DataframeSink
+        ).prepare(data, basePath)
           .partition()
-        partitionTree = hdfsInterface.read().get
+        partitionTree = new PartitionTree(
+          partitionTree.globalSchema,
+          //TODO this is a workaround to keep the legacy sorter, in the future
+          //     we should use a proper solution
+          partitionTree.sorter,
+          hdfsInterface.read().get.root
+        )
       }
 
       // remove the now empty spill buckets
@@ -145,15 +160,19 @@ class WavesTable private (
       *              of nodes, but the names of the Buckets may differ
       * @param finalize whether the resulting bucket(s) should be finalized
       */
-    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[String], finalize: Boolean = true, modifySchema: Boolean = false) = {
+    def repartition(path: Seq[PartitionTreePath], shape: TreeNode.AnyNode[Unit], finalize: Boolean = true, modifySchema: Boolean = false) = {
         val files = partitionTree.find(path)
           .get
           .buckets
           .map{ _.folder(basePath).filename }
         val df = spark.createDataFrame(spark.read.schema(schema()).parquet(files:_*).rdd, schema())
-        new PredefinedSplitter(shape, partitionTree.metadataFor(path))
-          .sortWith(partitionTree.sorter)
-          .doFinalize(finalize)
+        new Pipeline(Seq(
+          Predefined(shape),
+          BucketsFromShape,
+          PrependMetadata(partitionTree.metadataFor(path))) ++
+          Pipeline.mapLegacySorter(partitionTree.sorter),
+          SubtreeSink(DataframeSink, partitionTree.root, path)
+        ).doFinalize(finalize)
           .modifySchema(modifySchema)
           .prepare(df, basePath)
           .partition()

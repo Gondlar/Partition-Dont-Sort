@@ -9,8 +9,8 @@ import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline.util.Finalizer
 import de.unikl.cs.dbis.waves.pipeline.util.SchemaModifier
-import de.unikl.cs.dbis.waves.sort.Sorter
-import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter,LexicographicSorter}
+import de.unikl.cs.dbis.waves.pipeline.sort._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 /**
@@ -93,4 +93,11 @@ class Pipeline(
   override def sortWith(sorter: Sorter): Splitter[Nothing]
     = throw new UnsupportedOperationException("use an appropriate step in the pipeline")
   override protected def load(context: Nothing): DataFrame = ???
+}
+
+object Pipeline {
+  def mapLegacySorter(sorter: Sorter) = sorter match {
+    case NoSorter => Seq.empty
+    case LexicographicSorter => Seq(LocalOrder(ExactCardinalities), DataframeSorter)
+  }
 }

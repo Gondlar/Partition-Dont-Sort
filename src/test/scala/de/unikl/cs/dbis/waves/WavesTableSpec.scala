@@ -107,7 +107,7 @@ with PartitionTreeMatchers {
         val tree = new PartitionTree(schema, NoSorter, shape)
 
         When("we repartition it")
-        table.repartition(Seq.empty, shape)
+        table.repartition(Seq.empty, shape.shape)
 
         Then("it has the desired shape")
         table.partitionTree should haveTheSameStructureAs (tree)
@@ -119,12 +119,12 @@ with PartitionTreeMatchers {
       "it has been repartitioned" in {
         Given("a waves table that has been repartitioned and a desired shape")
         val table = getTable
-        table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
+        table.repartition(Seq.empty, SplitByPresence("a", (), ()))
         val shape = SplitByPresence("b.d", "foo", "bar")
         val tree = new PartitionTree(schema, NoSorter, shape)
 
         When("we repartition it")
-        table.repartition(Seq.empty, shape)
+        table.repartition(Seq.empty, shape.shape)
 
         Then("it has the desired shape")
         table.partitionTree should haveTheSameStructureAs (tree)
@@ -136,12 +136,12 @@ with PartitionTreeMatchers {
       "we repartition only a subtree" in {
         Given("a waves table that has been repartitioned and a desired shape")
         val table = getTable
-        table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
+        table.repartition(Seq.empty, SplitByPresence("a", (), ()))
         val shape = SplitByPresence("b.d", "foo", "bar")
         val tree = new PartitionTree(schema, NoSorter, SplitByPresence("a", shape, Bucket("baz")))
 
         When("we repartition it")
-        table.repartition(Seq(Present), shape)
+        table.repartition(Seq(Present), shape.shape)
 
         Then("it has the desired shape")
         table.partitionTree should haveTheSameStructureAs (tree)
@@ -172,7 +172,7 @@ with PartitionTreeMatchers {
       "we split a subtree" in {
         Given("a waves table that has been repartitioned and a new split")
         val table = getTable
-        table.repartition(Seq.empty, SplitByPresence("a", "foo", "bar"))
+        table.repartition(Seq.empty, SplitByPresence("a", (), ()))
         val split = "b.d"
         val path = Seq(Present)
         

@@ -10,12 +10,12 @@ class ToptweeterSpec extends WavesSpec
 
   "The Toptweeter Query job" when {
     "using waves" should {
-      behave like queryWithResult("63", true, {
+      behave like queryWithResult("14", true, {
         Toptweeter.main(args)
       }, Seq("'build-scan'", "'chose-buckets'", "'scan-built'"))
     }
     "using parquet" should {
-      behave like queryWithResult("63", false, {
+      behave like queryWithResult("14", false, {
         Toptweeter.main(args :+ "useWaves=false")
       })
     }

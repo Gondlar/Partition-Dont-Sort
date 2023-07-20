@@ -10,12 +10,12 @@ class DeletedTweetsPerUserSpec extends WavesSpec
 
   "The DeletedTweetsPerUser Query job" when {
     "using waves" should {
-      behave like queryWithResult("4082", true, {
+      behave like queryWithResult("305", true, {
         DeletedTweetsPerUser.main(args)
       })
     }
     "using parquet" should {
-      behave like queryWithResult("4082", false, {
+      behave like queryWithResult("305", false, {
         DeletedTweetsPerUser.main(args :+ "useWaves=false")
       })
     }

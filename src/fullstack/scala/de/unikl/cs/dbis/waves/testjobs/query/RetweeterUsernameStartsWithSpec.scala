@@ -8,14 +8,14 @@ import scala.collection.JavaConverters._
 class RetweeterUsernameStartsWithSpec extends WavesSpec
   with QueryFixture {
 
-  "The UsernameStartsWith Query job" when {
+  "The RetweeterUsernameStartsWith Query job" when {
     "using waves" should {
-      behave like queryWithResult("1", true, {
+      behave like queryWithResult("0", true, {
         RetweeterUsernameStartsWith.main(args)
       })
     }
     "using parquet" should {
-      behave like queryWithResult("1", false, {
+      behave like queryWithResult("0", false, {
         RetweeterUsernameStartsWith.main(args :+ "useWaves=false")
       })
     }

@@ -22,7 +22,7 @@ import de.unikl.cs.dbis.waves.partitions.{
 }
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter}
-import de.unikl.cs.dbis.waves.split.{Splitter,PredefinedSplitter}
+import de.unikl.cs.dbis.waves.split.Splitter
 import de.unikl.cs.dbis.waves.util.{PathKey,Logger, PartitionFolder}
 
 import java.{util => ju}

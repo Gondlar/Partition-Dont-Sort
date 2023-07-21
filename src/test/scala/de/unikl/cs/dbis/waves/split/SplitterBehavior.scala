@@ -55,20 +55,4 @@ trait SplitterBehavior extends PrivateMethodTester { this: WavesSpec with DataFr
       step2.schemaModificationsEnabled shouldBe (false)
     }
   }
-
-  def deterministicSplitter(splitter: GroupedSplitter) = {
-    "produce repeatable results" in {
-      val split = PrivateMethod[(Seq[DataFrame],Seq[PartitionMetadata])]('split)
-
-      splitter.prepare(df, tempDirectory)
-      val (dfs1,metadata1) = splitter invokePrivate split(df)
-      val (dfs2,metadata2) = splitter invokePrivate split(df)
-
-      metadata1 should contain theSameElementsInOrderAs (metadata2)
-      forAll (dfs1.zip(dfs2)) { case (df1, df2) =>
-        df1.collect() should contain theSameElementsAs (df1.collect)
-        df2.collect() should contain theSameElementsAs (df1.collect)
-      }
-    }
-  }
 }

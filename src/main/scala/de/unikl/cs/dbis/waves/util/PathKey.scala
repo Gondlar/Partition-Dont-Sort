@@ -193,6 +193,11 @@ object PathKey {
         def maxDefinitionLevel = key.map(_.maxDefinitionLevel).getOrElse(0)
         def head = key.get.head
         def tail = key.get.tail
+        def parent = key match {
+          case None => throw new NoSuchElementException
+          case Some(key) if !key.isNested => None
+          case Some(key) => Some(key.parent)
+        }
         def isNested = key.map(_.isNested).getOrElse(false)
         def +:(step : String) = key.map(step +: _).orElse(Some(PathKey(step)))
         def :+(step : String) = key.map(_ :+ step).orElse(Some(PathKey(step)))

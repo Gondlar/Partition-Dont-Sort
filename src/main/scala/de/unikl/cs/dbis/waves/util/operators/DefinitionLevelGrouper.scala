@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.util.operators
 
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.functions.{concat,typedLit,when,col}
+import org.apache.spark.sql.functions.{concat,typedLit,when}
 import org.apache.spark.sql.types.{StructType, DataType, StructField}
 
 import de.unikl.cs.dbis.waves.util.PathKey
@@ -30,7 +30,7 @@ object DefinitionLevelGrouper extends AbstractGrouper(TempColumn("definition_lev
       val deeper = pathContext :+ field.name // We know deeper is Some(_)
       val child = definitionLevels(field.dataType, absentContext || field.nullable, deeper)
       if (!field.nullable) return child
-      when(col(deeper.toSpark).isNull, Array.fill(field.dataType.leafCount)(0))
+      when(deeper.toCol.isNull, Array.fill(field.dataType.leafCount)(0))
           .otherwise(addX(child, 1))
   }
 }

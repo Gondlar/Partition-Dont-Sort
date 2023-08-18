@@ -51,6 +51,6 @@ object SchemaModifier extends PipelineStep {
         else col(name)
       })
       df.select(cols:_*)
-    } else df.drop(key.toSpark)
+    } else df.drop(key.toCol)
   }
 }

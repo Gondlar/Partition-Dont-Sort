@@ -1,6 +1,8 @@
 package de.unikl.cs.dbis.waves.util
 
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{StructType, DataType}
 import org.apache.spark.sql.catalyst.InternalRow
 
@@ -25,6 +27,16 @@ final case class PathKey(identifiers: Seq[String]) {
       */
     def toSpark = identifiers.mkString(".")
     override def toString = toSpark
+
+    /**
+      * represent this PathKey as a Spark Column
+      */
+    def toCol = col(toSpark)
+
+    /**
+      * represent this PathKey as a Spark Column bound to the given DataFrame
+      */
+    def toCol(df: DataFrame) = df.col(toSpark)
 
     /**
       * Compute the maximum value of the definition level of the value represented by this path.
@@ -190,6 +202,8 @@ object PathKey {
       */
     implicit class RootPathKey(key : Option[PathKey]) {
         def toSpark: String = key.map(_.toSpark).getOrElse("*")
+        def toCol = key.get.toCol
+        def toCol(df: DataFrame) = key.get.toCol(df)
         def maxDefinitionLevel = key.map(_.maxDefinitionLevel).getOrElse(0)
         def head = key.get.head
         def tail = key.get.tail

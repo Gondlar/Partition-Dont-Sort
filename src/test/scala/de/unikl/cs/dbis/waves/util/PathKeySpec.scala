@@ -2,6 +2,8 @@ package de.unikl.cs.dbis.waves.util
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.SchemaFixture
+
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.catalyst.CatalystTypeConverters
 import org.apache.spark.sql.catalyst.InternalRow
@@ -109,8 +111,11 @@ class PathKeySpec extends WavesSpec
             }
 
             "have a valid string representation" in {
-                PathKey("foo.bar").toString should equal ("foo.bar")
-                PathKey("foo.bar").toSpark should equal ("foo.bar")
+                val name = "foo.bar"
+                val key = PathKey(name)
+                key.toString should equal (name)
+                key.toSpark should equal (name)
+                key.toCol should equal (col(name))
             }
 
             "have the correct maximum definition level" in {

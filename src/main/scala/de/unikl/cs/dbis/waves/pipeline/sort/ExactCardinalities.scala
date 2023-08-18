@@ -6,7 +6,7 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
 
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, count_distinct}
+import org.apache.spark.sql.functions.count_distinct
 import org.apache.spark.sql.types.IntegerType
 
 object ExactCardinalities extends ColumnOrderer {
@@ -16,7 +16,7 @@ object ExactCardinalities extends ColumnOrderer {
   override def sort(state: PipelineState, df: DataFrame): Seq[Column] = {
     // generate columns for all value and definition level columns
     val paths = df.schema.leafPaths
-    val cols = (paths.map(p => col(p.toSpark)) ++ paths.map(definitionLevel(_)))
+    val cols = (paths.map(p => p.toCol) ++ paths.map(definitionLevel(_)))
 
     // get all cardinalities
     val withCount = cols.map(count_distinct(_))
@@ -37,6 +37,6 @@ object ExactCardinalities extends ColumnOrderer {
       current = current.parent
       builder += current
     }
-    builder.result().map(step => col(step.toSpark).isNotNull.cast(IntegerType)).reduce(_+_)
+    builder.result().map(step => step.toCol.isNotNull.cast(IntegerType)).reduce(_+_)
   }
 }

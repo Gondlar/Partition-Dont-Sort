@@ -63,8 +63,8 @@ object ExactGini {
   }
 
   def calculateDefinitionLevelSplit(df: DataFrame, info: BucketInfo, path: Seq[PartitionTreePath], key: PathKey) = {
-    val present = df.filter(col(key.toSpark).isNotNull)
-    val absent = df.filter(col(key.toSpark).isNull)
+    val present = df.filter(key.toCol.isNotNull)
+    val absent = df.filter(key.toCol.isNull)
     try {
       val presentInfo = calculateGini(present)
       val absentInfo = calculateGini(absent)
@@ -98,8 +98,8 @@ final case class PossiblePresenceSplit[Info](
 
   override def splitShape(df: DataFrame): TreeNode.AnyNode[DataFrame] = SplitByPresence(
     key,
-    Bucket(df.filter(col(key.toSpark).isNotNull)),
-    Bucket(df.filter(col(key.toSpark).isNull))
+    Bucket(df.filter(key.toCol.isNotNull)),
+    Bucket(df.filter(key.toCol.isNull))
   )
 
   override def info(df: DataFrame): Seq[(DataFrame, Info, Seq[PartitionTreePath])] = {

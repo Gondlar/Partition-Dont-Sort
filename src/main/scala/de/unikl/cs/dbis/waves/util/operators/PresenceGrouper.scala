@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.util.operators
 
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.functions.{concat,typedLit,when,col}
+import org.apache.spark.sql.functions.{concat,typedLit,when}
 import org.apache.spark.sql.types.{StructType, DataType, StructField}
 
 import de.unikl.cs.dbis.waves.util.PathKey
@@ -27,7 +27,7 @@ object PresenceGrouper extends AbstractGrouper(TempColumn("presence")) {
     val newPathContext = pathContext :+ field.name
     val rec = presence(field.dataType, newPathContext)
     if (field.nullable) {
-      when(col(newPathContext.toSpark).isNull, typedLit(Array.fill(field.dataType.optionalNodeCount+1)(false)))
+      when(newPathContext.toCol.isNull, typedLit(Array.fill(field.dataType.optionalNodeCount+1)(false)))
         .otherwise(concat(typedLit((Array(true))), rec))
     } else rec
   }

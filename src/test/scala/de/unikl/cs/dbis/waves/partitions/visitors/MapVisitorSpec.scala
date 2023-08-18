@@ -28,7 +28,7 @@ class MapVisitorSpec extends WavesSpec
       })
       split.accept(visitor)
       visitor.getBucketCount should equal (2)
-      visitor.result should equal (SplitByPresence(split.key, Bucket(4), Bucket(4)))
+      visitor.result should equal (SplitByPresence(split.key, 4, 4))
     }
     "transform spills correctly" in {
       var expectedIndex = 0
@@ -39,7 +39,7 @@ class MapVisitorSpec extends WavesSpec
       })
       spill.accept(visitor)
       visitor.getBucketCount should equal (3)
-      visitor.result should equal (Spill(SplitByPresence(split.key, Bucket(4), Bucket(4)), Bucket(4)))
+      visitor.result should equal (Spill(SplitByPresence(split.key, 4, 4), Bucket(4)))
     }
     "visit buckets in the same order as CollectBucketsVisitor" in {
       Given("a map visitor that puts indexes as the payoad and a collect visitor")

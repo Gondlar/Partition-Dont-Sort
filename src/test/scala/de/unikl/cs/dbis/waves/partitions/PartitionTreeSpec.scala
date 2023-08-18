@@ -109,7 +109,7 @@ class PartitionTreeSpec extends WavesSpec
             }
             "modify correctly" in {
                 splitTree.modify({(payload, index) => payload + "SUFFIX"})
-                splitTree.root should equal (SplitByPresence(split.key, Bucket("bar2SUFFIX"), Bucket("baz2SUFFIX")))
+                splitTree.root should equal (SplitByPresence(split.key, "bar2SUFFIX", "baz2SUFFIX"))
             }
             "know that path" in {
                 val metadata = splitTree.metadataFor(Seq(Present))
@@ -167,7 +167,7 @@ class PartitionTreeSpec extends WavesSpec
             }
             "modify correctly" in {
                 spillTree.modify({(payload, index) => payload + "SUFFIX"})
-                spillTree.root should equal (Spill(SplitByPresence(split.key, Bucket("bar2SUFFIX"), Bucket("baz2SUFFIX")), Bucket("foo3SUFFIX")))
+                spillTree.root should equal (Spill(SplitByPresence(split.key, "bar2SUFFIX", "baz2SUFFIX"), Bucket("foo3SUFFIX")))
             }
             "find no paths in the root" in {
                 val metadata = spillTree.metadataFor(Seq(Partitioned))
@@ -181,7 +181,7 @@ class PartitionTreeSpec extends WavesSpec
               metadata should contain theSameElementsInOrderAs Seq(restMetadata, absentMetadata, presentMetadata)
             }
             "find the node's shape" in {
-              spillTree.shape should equal (Spill(SplitByPresence("b.d", Bucket(()), Bucket(())), Bucket(())))
+              spillTree.shape should equal (Spill(SplitByPresence("b.d", (), ()), Bucket(())))
             }
         }
     }

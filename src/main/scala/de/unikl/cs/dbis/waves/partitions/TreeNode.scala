@@ -127,6 +127,8 @@ object SplitByPresence {
     def apply[Payload](key: String, presentKey: AnyNode[Payload], absentKey: AnyNode[Payload]) : SplitByPresence[Payload]
         = SplitByPresence(PathKey(key), presentKey, absentKey)
 
+    def apply[Payload](key: PathKey, present: Payload, absent: Payload) : SplitByPresence[Payload]
+        = SplitByPresence(key, Bucket(present), Bucket(absent))
     def apply[Payload](key: String, present: Payload, absent: Payload) : SplitByPresence[Payload]
         = apply(key, Bucket(present), Bucket(absent))
 }

@@ -12,6 +12,7 @@ import de.unikl.cs.dbis.waves.partitions.{PartitionTree,Bucket,SplitByPresence,P
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 
 import collection.JavaConverters._
+import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 import de.unikl.cs.dbis.waves.partitions.Spill
 import de.unikl.cs.dbis.waves.sort.NoSorter
@@ -159,7 +160,7 @@ with PartitionTreeMatchers {
         val path = Seq.empty
 
         When("we split it")
-        table.split(split, path)
+        table.split(PathKey(split), path)
 
         Then("it has the expected shape")
         val shape = new PartitionTree(schema, NoSorter, SplitByPresence("b.d", "foo", "bar"))
@@ -177,7 +178,7 @@ with PartitionTreeMatchers {
         val path = Seq(Present)
         
         When("we split it")
-        table.split(split, path)
+        table.split(PathKey(split), path)
         
         Then("it has the expected shape")
         val shape = new PartitionTree(schema, NoSorter, SplitByPresence("a", SplitByPresence("b.d", "foo", "bar"), Bucket("baz")))
@@ -240,7 +241,7 @@ with PartitionTreeMatchers {
       "it needs to combine the leaf and the spill bucket" in {
         Given("a waves table with a spill bucket and a leaf bucket")
         val table = getTable
-        table.split("b.d")
+        table.split(PathKey("b.d"))
         val split = table.partitionTree.root.asInstanceOf[SplitByPresence[String]]
         val leaf = split.absentKey
         val spill = split.presentKey.asInstanceOf[Bucket[String]]

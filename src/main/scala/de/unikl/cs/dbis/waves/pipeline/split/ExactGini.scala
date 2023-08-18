@@ -98,8 +98,8 @@ final case class PossiblePresenceSplit[Info](
 
   override def splitShape(df: DataFrame): TreeNode.AnyNode[DataFrame] = SplitByPresence(
     key,
-    Bucket(df.filter(key.toCol.isNotNull)),
-    Bucket(df.filter(key.toCol.isNull))
+    df.filter(key.toCol.isNotNull),
+    df.filter(key.toCol.isNull)
   )
 
   override def info(df: DataFrame): Seq[(DataFrame, Info, Seq[PartitionTreePath])] = {

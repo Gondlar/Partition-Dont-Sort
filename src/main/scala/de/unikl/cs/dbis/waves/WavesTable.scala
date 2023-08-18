@@ -102,7 +102,7 @@ class WavesTable private (
       * @param path the path where the split should be inserted
       * @param finalize whether the resulting buckets should be finalized
       */
-    def split(key: String, path : Seq[PartitionTreePath] = Seq.empty, finalize: Boolean = true) : Unit = {
+    def split(key: PathKey, path : Seq[PartitionTreePath] = Seq.empty, finalize: Boolean = true) : Unit = {
         val newSplit = SplitByPresence(key, (), ())
         repartition(path, newSplit, finalize)
     }

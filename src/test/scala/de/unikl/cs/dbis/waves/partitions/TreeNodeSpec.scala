@@ -39,6 +39,9 @@ class TreeNodeSpec extends WavesSpec
       "be created from leaf node names" in {
         SplitByPresence("foo.bar", "abc", "cde") should equal (SplitByPresence(PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
       }
+      "be created from leaf node names and a PathKey" in {
+        SplitByPresence(PathKey("foo.bar"), "abc", "cde") should equal (SplitByPresence(PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
+      }
       "accept a visitor" in {
         val visitor = MockVisitor(5)
         split.accept(visitor)

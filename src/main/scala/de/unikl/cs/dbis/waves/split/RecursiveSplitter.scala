@@ -105,7 +105,7 @@ final case class RecursiveSplitter(
             }
             case Some(best) => {
                 Logger.log("partition-by", best.toString)
-                table.split(best.toString, path, false)
+                table.split(best, path, false)
                 recurse(path, Present, metadata, best)
                 recurse(path, Absent, metadata, best)
             }

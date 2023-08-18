@@ -43,6 +43,22 @@ class ModelGiniSpec extends WavesSpec
       }
     }
   }
+  it can {
+    "merge two options" when {
+      "both are none" in {
+        ModelGini.mergeOptions[Int](_+_)(None, None) should equal (None)
+      }
+      "the left side is none" in {
+        ModelGini.mergeOptions[Int](_+_)(None, Some(5)) should equal (Some(5))
+      }
+      "the right side is none" in {
+        ModelGini.mergeOptions[Int](_+_)(Some(5), None) should equal (Some(5))
+      }
+      "neither side is none" in {
+        ModelGini.mergeOptions[Int](_+_)(Some(7), Some(5)) should equal (Some(12))
+      }
+    }
+  }
   it should {
     "not be constructable for non-positive splits" in {
       an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0))

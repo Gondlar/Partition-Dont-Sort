@@ -16,20 +16,35 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         an [AssertionError] shouldBe thrownBy (RSIGraph(("foo", -1d, RSIGraph.empty)))
       }
     }
-    "be constructed from an ObjectCounter" in {
-      val total = 12
-      val counter = new ObjectCounter(Array(9, 6, 3))
+    "be constructed from an ObjectCounter" when {
+      "all subtrees are present at least once" in {
+        val total = 12
+        val counter = new ObjectCounter(Array(9, 6, 3))
 
-      val graph = RSIGraph.fromObjectCounter(counter, schema, total)
-      graph should equal (RSIGraph(
-        ("a", .75, RSIGraph.empty),
-        ("b", .5, RSIGraph(
-          ("c", 1d, RSIGraph.empty),
-          ("d", .5, RSIGraph.empty)
-        )),
-        ("e", 1d, RSIGraph.empty)
-      ))
-      
+        val graph = RSIGraph.fromObjectCounter(counter, schema, total)
+        graph should equal (RSIGraph(
+          ("a", .75, RSIGraph.empty),
+          ("b", .5, RSIGraph(
+            ("c", 1d, RSIGraph.empty),
+            ("d", .5, RSIGraph.empty)
+          )),
+          ("e", 1d, RSIGraph.empty)
+        ))
+      }
+      "there is a subtree that is never present" in {
+        val total = 12
+        val counter = new ObjectCounter(Array(9, 0, 0))
+
+        val graph = RSIGraph.fromObjectCounter(counter, schema, total)
+        graph should equal (RSIGraph(
+          ("a", .75, RSIGraph.empty),
+          ("b", 0, RSIGraph(
+            ("c", 1, RSIGraph.empty),
+            ("d", 0, RSIGraph.empty)
+          )),
+          ("e", 1d, RSIGraph.empty)
+        ))
+      }
     }
     "determine whether a path is certain" when {
       "it is required" in {

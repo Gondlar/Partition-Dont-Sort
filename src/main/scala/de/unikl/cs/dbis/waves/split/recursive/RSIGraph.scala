@@ -145,15 +145,18 @@ object RSIGraph {
     val count = lookup(map, path)
     val children = for(field <- schema.fields) yield {
       val subpath = path :+ field.name
-      val subcount = lookup(map, subpath)
       val subtree = field.dataType match {
         case struct : StructType => fromObjectCounterHelper(map, struct, subpath)
         case _ => RSIGraph.empty
       }
-      (field.name, (subcount/count.toDouble, subtree))
+      val conditional = if (field.nullable) relative(count, lookup(map, subpath)) else 1
+      (field.name, (conditional, subtree))
     }
     RSIGraph(children.toMap)
   }
+
+  private def relative(total: Double, partial: Double)
+    = if (total == 0) 0 else partial/total
 
   private def lookup(map: Map[Option[PathKey],Int], key: Option[PathKey]): Int
     = map.get(key).getOrElse(lookup(map, key.parent))

@@ -49,20 +49,27 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
     "determine whether a path is certain" when {
       "it is required" in {
         val path = PathKey("foo")
-        RSIGraph(("foo", 1d, RSIGraph.empty)).isCertain(path) shouldBe (true)
+        val graph = RSIGraph(("foo", 1d, RSIGraph.empty))
+        graph.isCertain(path) shouldBe (true)
+        graph.isValidSplitLocation(path) shouldBe (false)
       }
       "it is always missing" in {
         val path = PathKey("foo")
-        RSIGraph(("foo", 0d, RSIGraph.empty)).isCertain(path) shouldBe (true)
+        val graph = RSIGraph(("foo", 0d, RSIGraph.empty))
+        graph.isCertain(path) shouldBe (true)
+        graph.isValidSplitLocation(path) shouldBe (false)
       }
       "it is nested" in {
         val path = PathKey("foo.bar")
         val graph = RSIGraph(("foo", 1d, RSIGraph(("bar", 0.5, RSIGraph.empty))))
         graph.isCertain(path) shouldBe (false)
+        graph.isValidSplitLocation(path) shouldBe (true)
       }
       "it is not in the graph" in {
         val path = PathKey("foo")
-        RSIGraph.empty.isCertain(path) shouldBe (true)
+        val graph = RSIGraph.empty
+        graph.isCertain(path) shouldBe (true)
+        graph.isValidSplitLocation(path) shouldBe (false)
       }
     }
     "give absolute probabilities for paths" when {
@@ -95,7 +102,11 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       Then("the splits should be correct")
       val absentGraph = RSIGraph(
         ("a", 0.25, RSIGraph(
-          ("b", 1d, RSIGraph.empty)
+          ("b", 1, RSIGraph.empty),
+          ("c", 0, RSIGraph(
+            ("d", 1, RSIGraph.empty),
+            ("e", 1, RSIGraph.empty)
+          ))
         )),
         ("f", 0.75, RSIGraph.empty)
       )

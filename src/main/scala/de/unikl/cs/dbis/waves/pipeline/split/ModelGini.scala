@@ -47,7 +47,7 @@ case class ModelGini(
 
   private def findBestSplit(tree: RSIGraph, path: Seq[PartitionTreePath]): Option[PossibleExactSplit[RSIGraph]] = {
     splitLocations.mapPartitions({ partition =>
-      val splits = for (path <- partition.filter(!tree.isCertain(_))) yield {
+      val splits = for (path <- partition.filter(tree.isValidSplitLocation(_))) yield {
         val probability = tree.absoluteProbability(path)
         val (absent, present) = tree.splitBy(path)
         val gini = probability * present.gini + (1-probability) * absent.gini

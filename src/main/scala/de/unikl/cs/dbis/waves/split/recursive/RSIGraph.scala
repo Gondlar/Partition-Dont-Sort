@@ -49,8 +49,15 @@ final case class RSIGraph(
       case Some((prob, _)) => prob
     }
 
-  // def countLeaves: Int
-  //   = if (children.isEmpty) 1 else children.values.map(_._2.countLeaves).sum
+  /**
+    * Check whether the path is a valid split location, i.e., it is not certain
+    * and its absolute probability is greater than zero
+    *
+    * @param path the path to check
+    * @return true iff the path is a valid split location
+    */
+  def isValidSplitLocation(path: PathKey): Boolean
+    = !isCertain(path) && absoluteProbability(path) != 0
 
   /**
     * Given a non-certain path, determine the RSIGraphs resulting from splitting
@@ -64,7 +71,7 @@ final case class RSIGraph(
     val step = path.head
     if (!path.isNested) {
       require(!isCertain(path))
-      val absentSplit = RSIGraph(children - step)
+      val absentSplit = RSIGraph(children.updated(step, children(step).copy(_1 = 0d)))
       val presentSplit = RSIGraph(children + ((step, (1d, children(step)._2))))
       (absentSplit, presentSplit)
     } else {

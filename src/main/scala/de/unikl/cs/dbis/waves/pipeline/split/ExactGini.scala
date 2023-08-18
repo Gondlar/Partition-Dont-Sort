@@ -13,23 +13,23 @@ import org.apache.spark.sql.types.DoubleType
 
 case class ExactGini(
   maxBuckets: Int
-) extends Recursive[PossibleExactSplit] with NoPrerequisites {
+) extends Recursive[PossibleExactSplit[BucketInfo]] with NoPrerequisites {
   import ExactGini._
 
   require(maxBuckets > 0)
 
   private var currentBuckets = 1
 
-  override protected def initialRecursionState(state: PipelineState): PossibleExactSplit = {
+  override protected def initialRecursionState(state: PipelineState): PossibleExactSplit[BucketInfo] = {
     currentBuckets = 1
     val info = calculateGini(state.data)
     findBestSplit(state.data, info, Seq.empty).get
   }
 
-  override protected def checkRecursion(recState: PossibleExactSplit): Boolean
+  override protected def checkRecursion(recState: PossibleExactSplit[BucketInfo]): Boolean
     = currentBuckets < maxBuckets
 
-  override protected def doRecursionStep(recState: PossibleExactSplit, df: DataFrame): Seq[PossibleExactSplit] = {
+  override protected def doRecursionStep(recState: PossibleExactSplit[BucketInfo], df: DataFrame): Seq[PossibleExactSplit[BucketInfo]] = {
     currentBuckets += 1
     recState.info(df).flatMap({ case (df, info, path) =>
       findBestSplit(df, info, path)
@@ -38,11 +38,11 @@ case class ExactGini(
 }
 
 object ExactGini {
-  implicit val ord = Ordering.by[PossibleExactSplit, Double](_.priority)
+  implicit val ord = Ordering.by[PossibleExactSplit[BucketInfo], Double](_.priority)
 
   def findBestSplit(df: DataFrame, info: BucketInfo, path: Seq[PartitionTreePath]) = {
     val splits = ObjectCounter.paths(df.schema).flatMap{
-      calculateDefinitionLevelSplit(df, info, path, _): Option[PossibleExactSplit]
+      calculateDefinitionLevelSplit(df, info, path, _): Option[PossibleExactSplit[BucketInfo]]
     }
     if (splits.isEmpty) None else Some(splits.max)
   }
@@ -84,17 +84,17 @@ final case class BucketInfo(
     = gini - children.map({ info => (info.size/size)*info.gini }).sum
 }
 
-trait PossibleExactSplit extends RecursionState {
-  def info(df: DataFrame): Seq[(DataFrame, BucketInfo, Seq[PartitionTreePath])]
+trait PossibleExactSplit[Info] extends RecursionState {
+  def info(df: DataFrame): Seq[(DataFrame, Info, Seq[PartitionTreePath])]
 }
 
-final case class PossiblePresenceSplit(
+final case class PossiblePresenceSplit[Info](
   priority: Double,
-  absentInfo: BucketInfo,
-  presentInfo: BucketInfo,
+  absentInfo: Info,
+  presentInfo: Info,
   path: Seq[PartitionTreePath],
   key: PathKey
-) extends PossibleExactSplit {
+) extends PossibleExactSplit[Info] {
 
   override def splitShape(df: DataFrame): TreeNode.AnyNode[DataFrame] = SplitByPresence(
     key,
@@ -102,7 +102,7 @@ final case class PossiblePresenceSplit(
     Bucket(df.filter(col(key.toSpark).isNull))
   )
 
-  override def info(df: DataFrame): Seq[(DataFrame, BucketInfo, Seq[PartitionTreePath])] = {
+  override def info(df: DataFrame): Seq[(DataFrame, Info, Seq[PartitionTreePath])] = {
     val SplitByPresence(_, Bucket(presentDf), Bucket(absentDf)) = splitShape(df)
     Seq((absentDf, absentInfo, path :+ Absent), (presentDf, presentInfo, path :+ Present))
   }

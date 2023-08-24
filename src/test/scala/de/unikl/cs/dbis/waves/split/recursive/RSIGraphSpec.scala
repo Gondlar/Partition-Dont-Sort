@@ -72,28 +72,28 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         graph.isValidSplitLocation(path) shouldBe (false)
       }
     }
+    "determine whether a path leads to a leaf" when {
+      "it leads to a leaf" in {
+        lineGraph.isLeaf(PathKey("foo.bar.baz")) shouldBe (true)
+      }
+      "it leads to an inner node" in {
+        lineGraph.isLeaf(PathKey("foo.bar")) shouldBe (false)
+      }
+      "it leads to a non-existing node" in {
+        lineGraph.isLeaf(PathKey("bar")) shouldBe (false)
+      }
+    }
     "give absolute probabilities for paths" when {
       "the path exists" in {
-        val graph = RSIGraph(("foo", 0.25, RSIGraph(("bar", .5, RSIGraph(("baz", 0.75, RSIGraph.empty))))))
-        graph.absoluteProbability(PathKey("foo.bar")) should equal (0.125)
+        lineGraph.absoluteProbability(PathKey("foo.bar")) should equal (0.25)
       }
       "the path does not exist" in {
-        val graph = RSIGraph(("foo", 0.25, RSIGraph(("bar", .5, RSIGraph(("baz", 0.75, RSIGraph.empty))))))
-        graph.absoluteProbability(PathKey("bar")) should equal (0)
+        lineGraph.absoluteProbability(PathKey("bar")) should equal (0)
       }
     }
     "create RSIGraphs resulting from a split by presence" in {
       Given("An RSIGraph and a split path")
-      val graph = RSIGraph(
-        ("a", 0.25, RSIGraph(
-          ("b", 1d, RSIGraph.empty),
-          ("c", 0.75, RSIGraph(
-            ("d", 1d, RSIGraph.empty),
-            ("e", 1d, RSIGraph.empty)
-          ))
-        )),
-        ("f", 0.75, RSIGraph.empty)
-      )
+      val graph = bushyGraph
       val path = PathKey("a.c")
 
       When("we split it")
@@ -123,18 +123,36 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       present should equal (presentGraph)
       absent should equal (absentGraph)
     }
-    "calculate its gini index" when {
-      "it is just the root" in {
-        val graph = RSIGraph.empty
-        graph.gini should equal (0)
+    "create RSIGraphs resulting from a split by percentile" when {
+      "the quantile is not a percentage" in {
+        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("foo.bar.baz"), 0)) should have (
+          'message ("requirement failed: 0 < quantile < 1")
+        )
+        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("foo.bar.baz"), 1)) should have (
+          'message ("requirement failed: 0 < quantile < 1")
+        )
       }
-      "it has one leaf" in {
-        val graph = RSIGraph(("foo", 0.25, RSIGraph(("bar", 1d, RSIGraph(("baz", 0.75, RSIGraph.empty))))))
-        graph.gini should equal (0.3984375)
+      "the leaf is never present" in {
+        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("bar"), .5)) should have (
+          'message ("requirement failed: bar is always absent")
+        )
       }
-      "it has multiple leaves" in {
-        val graph = RSIGraph(
-          ("a", 0.25, RSIGraph(
+      "the path does not lead to a leaf" in {
+        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("foo"), .5)) should have (
+          'message ("requirement failed: foo is not a leaf")
+        )
+      }
+      "it is a valid split" in {
+        Given("a graph and a root-to-leaf path")
+        val graph = bushyGraph
+        val path = PathKey("a.b")
+
+        When("we split it")
+        val (trueSplit, falseSplit) = graph.splitBy(path, 0.75)
+
+        Then("they look as expected")
+        val trueGraph = RSIGraph(
+          ("a", 1d, RSIGraph(
             ("b", 1d, RSIGraph.empty),
             ("c", 0.5, RSIGraph(
               ("d", 1d, RSIGraph.empty),
@@ -143,8 +161,34 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
           )),
           ("f", 0.75, RSIGraph.empty)
         )
-
-        graph.gini should equal (1.5625)
+        trueSplit should equal (trueGraph)
+        
+        val falseGraph = RSIGraph(
+          ("a", 0d, RSIGraph(
+            ("b", 1d, RSIGraph.empty),
+            ("c", 0.5, RSIGraph(
+              ("d", 1d, RSIGraph.empty),
+              ("e", 1d, RSIGraph.empty)
+            ))
+          )),
+          ("f", 0.75, RSIGraph.empty)
+        )
+        // Test probability of a
+        falseSplit.absoluteProbability(PathKey("a")) shouldBe (.076923077 +- 0.00000001)
+        // Test the structure of the remaining graph
+        RSIGraph(falseSplit.children.updated("a", (0d, falseSplit.children("a")._2))) should equal (falseGraph)
+      }
+    }
+    "calculate its gini index" when {
+      "it is just the root" in {
+        val graph = RSIGraph.empty
+        graph.gini should equal (0)
+      }
+      "it has one leaf" in {
+        lineGraph.gini should equal (0.3984375)
+      }
+      "it has multiple leaves" in {
+        bushyGraph.gini should equal (1.5625)
       }
     }
   }
@@ -153,4 +197,16 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       RSIGraph.empty should equal (RSIGraph())
     }
   }
+
+  val lineGraph = RSIGraph(("foo", 0.25, RSIGraph(("bar", 1d, RSIGraph(("baz", 0.75, RSIGraph.empty))))))
+  val bushyGraph = RSIGraph(
+      ("a", 0.25, RSIGraph(
+        ("b", 1d, RSIGraph.empty),
+        ("c", 0.5, RSIGraph(
+          ("d", 1d, RSIGraph.empty),
+          ("e", 1d, RSIGraph.empty)
+        ))
+      )),
+      ("f", 0.75, RSIGraph.empty)
+    )
 }

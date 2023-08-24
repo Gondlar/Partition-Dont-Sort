@@ -33,6 +33,22 @@ final case class RSIGraph(
   }
 
   /**
+    * Check whether the given path refers to a leaf in this RSIGaph. 
+    * Non-existant nodes are not considered leafs!
+    *
+    * @param path the path to check
+    * @return true iff the path is a leaf
+    */
+  def isLeaf(path: PathKey): Boolean = children.get(path.head) match {
+    case None => false
+    case Some((_, child)) => {
+      if (path.isNested) {
+        child.isLeaf(path.tail)
+      } else child.children.isEmpty
+    }
+  }
+
+  /**
     * Calculate the probability that the object referenced by the given path is
     * present. As opposed to the conditional probabilities stored in the tree,
     * this retuns the absolute probability.
@@ -80,6 +96,43 @@ final case class RSIGraph(
       val presentSplit = RSIGraph(children + ((step, (1d, present))))
       (absentSplit, presentSplit)
     }
+  }
+
+  /**
+    * Given a root-to-leaf path with higher-than-zero probability of existing, 
+    * determine the RSIGraphs resulting from splitting a percentage of values
+    * into their own bucket. All Null-values go to the remaining bucket. We
+    * assume that the presence of all objects that are not a prefix of each
+    * other is independant.
+    *
+    * @param leaf the path to the leaf whose values are to be split in their own
+    *             bucket
+    * @param quantile the precentage of existing values that is split off. As
+    *                 such, 0 < quantile < 1 must hold.
+    * @return (trueSplit, falseSplit)
+    * @throws IllegalArgumentException if the quantile is outside the specified
+    *                                  range or leaf is not an existing leaf of
+    *                                  this RSIGraph
+    */
+  def splitBy(leaf: PathKey, quantile: Double) = {
+    require(quantile > 0 && quantile < 1, "0 < quantile < 1")
+    require(absoluteProbability(leaf) > 0, s"$leaf is always absent")
+    require(isLeaf(leaf), s"$leaf is not a leaf")
+    splitByHelper(Some(leaf), quantile)
+  }
+
+  private def splitByHelper(leaf: Option[PathKey], quantile: Double): (RSIGraph, RSIGraph) = {
+    if (leaf.isDefined) {
+      val step = leaf.head
+      val (probability, subtree) = children(step)
+      val removedFraction = absoluteProbability(leaf.get) * quantile
+      val newProbability = (probability-removedFraction)/(1-removedFraction)
+      
+      val (trueSide, falseSide) = subtree.splitByHelper(leaf.tail, quantile)
+      val trueSplit = RSIGraph(children.updated(step, (1d, trueSide)))
+      val falseSplit = RSIGraph(children.updated(step, (newProbability, falseSide)))
+      (trueSplit, falseSplit)
+    } else (this, this)
   }
 
   /**

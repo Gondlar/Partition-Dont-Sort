@@ -81,8 +81,8 @@ class OptionalPathKeySpec extends WavesSpec
             }
 
             "have the correct tail" in {
-                an [NoSuchElementException] should be thrownBy (Some(PathKey("foo")).tail)
-                Some(PathKey("foo.bar")).tail should equal (PathKey("bar"))
+                Some(PathKey("foo")).tail should equal (None)
+                Some(PathKey("foo.bar")).tail should equal (Some(PathKey("bar")))
             }
 
             "be nested in the correct cases" in {

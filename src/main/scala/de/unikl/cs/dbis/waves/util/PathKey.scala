@@ -206,7 +206,11 @@ object PathKey {
         def toCol(df: DataFrame) = key.get.toCol(df)
         def maxDefinitionLevel = key.map(_.maxDefinitionLevel).getOrElse(0)
         def head = key.get.head
-        def tail = key.get.tail
+        def tail = key match {
+          case None => throw new NoSuchElementException
+          case Some(value) if !key.isNested => None
+          case Some(key) => Some(key.tail)
+        }
         def parent = key match {
           case None => throw new NoSuchElementException
           case Some(key) if !key.isNested => None

@@ -22,7 +22,7 @@ class ModelGiniSpec extends WavesSpec
           RSIGraph(
             ("a", .5, RSIGraph.empty),
             ("b", .5, RSIGraph(
-              ("c", 1, RSIGraph.empty),
+              ("c", 1d, RSIGraph.empty),
               ("d", .5, RSIGraph.empty)
             )),
             ("e", 1, RSIGraph.empty)
@@ -34,8 +34,8 @@ class ModelGiniSpec extends WavesSpec
           RSIGraph(
             ("a", 0, RSIGraph.empty),
             ("b", 0, RSIGraph(
-              ("c", 1, RSIGraph.empty),
-              ("d", 0, RSIGraph.empty)
+              ("c", 1d, RSIGraph.empty),
+              ("d", 0d, RSIGraph.empty)
             )),
             ("e", 1, RSIGraph.empty)
           )

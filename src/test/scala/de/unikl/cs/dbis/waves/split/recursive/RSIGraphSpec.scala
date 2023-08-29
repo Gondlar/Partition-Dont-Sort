@@ -39,8 +39,8 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         graph should equal (RSIGraph(
           ("a", .75, RSIGraph.empty),
           ("b", 0, RSIGraph(
-            ("c", 1, RSIGraph.empty),
-            ("d", 0, RSIGraph.empty)
+            ("c", 1d, RSIGraph.empty),
+            ("d", 0d, RSIGraph.empty)
           )),
           ("e", 1d, RSIGraph.empty)
         ))
@@ -75,12 +75,38 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
     "determine whether a path leads to a leaf" when {
       "it leads to a leaf" in {
         lineGraph.isLeaf(PathKey("foo.bar.baz")) shouldBe (true)
+        lineGraph.isLeaf(PathKey("foo.bar.baz"), true) shouldBe (false)
       }
       "it leads to an inner node" in {
         lineGraph.isLeaf(PathKey("foo.bar")) shouldBe (false)
+        lineGraph.isLeaf(PathKey("foo.bar"), true) shouldBe (false)
       }
       "it leads to a non-existing node" in {
         lineGraph.isLeaf(PathKey("bar")) shouldBe (false)
+        lineGraph.isLeaf(PathKey("bar"), true) shouldBe (false)
+      }
+      "it leads to a leaf with metadata" in {
+        bushyGraphWithMetadata.isLeaf(PathKey("a.b")) shouldBe (true)
+        bushyGraphWithMetadata.isLeaf(PathKey("a.b"), true) shouldBe (true)
+      }
+    }
+    "set metadata" when {
+      "the path is valid" in {
+        val path = Some(PathKey("foo.bar.baz"))
+        val metadata = IntColumnMetadata(0, 10, 4)
+        lineGraph.setMetadata(path, metadata).value should equal (
+          RSIGraph(("foo", 0.25, RSIGraph(("bar", 1d, RSIGraph(("baz", 0.75, RSIGraph(Map.empty[String, (Double, RSIGraph)], Some(metadata))))))))
+        )
+      }
+      "the path does not exist" in {
+        val path = Some(PathKey("bar"))
+        val metadata = IntColumnMetadata(0, 10, 4)
+        lineGraph.setMetadata(path, metadata).left.value should equal ("bar is not a valid path")
+      }
+      "the path is not a leaf" in {
+        val path = Some(PathKey("foo.bar"))
+        val metadata = IntColumnMetadata(0, 10, 4)
+        lineGraph.setMetadata(path, metadata).left.value should equal ("path is not a leaf")
       }
     }
     "give absolute probabilities for paths" when {
@@ -102,10 +128,10 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       Then("the splits should be correct")
       val absentGraph = RSIGraph(
         ("a", 0.25, RSIGraph(
-          ("b", 1, RSIGraph.empty),
-          ("c", 0, RSIGraph(
-            ("d", 1, RSIGraph.empty),
-            ("e", 1, RSIGraph.empty)
+          ("b", 1d, RSIGraph.empty),
+          ("c", 0d, RSIGraph(
+            ("d", 1d, RSIGraph.empty),
+            ("e", 1d, RSIGraph.empty)
           ))
         )),
         ("f", 0.75, RSIGraph.empty)
@@ -125,35 +151,26 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
     }
     "create RSIGraphs resulting from a split by percentile" when {
       "the quantile is not a percentage" in {
-        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("foo.bar.baz"), 0)) should have (
-          'message ("requirement failed: 0 < quantile < 1")
-        )
-        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("foo.bar.baz"), 1)) should have (
-          'message ("requirement failed: 0 < quantile < 1")
-        )
+        lineGraph.splitBy(PathKey("foo.bar.baz"), 0).left.value should equal ("0 < quantile < 1 must hold")
+        lineGraph.splitBy(PathKey("foo.bar.baz"), 1).left.value should equal ("0 < quantile < 1 must hold")
       }
       "the leaf is never present" in {
-        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("bar"), .5)) should have (
-          'message ("requirement failed: bar is always absent")
-        )
+        lineGraph.splitBy(PathKey("bar"), .5).left.value should equal ("bar is always absent")
       }
       "the path does not lead to a leaf" in {
-        the [IllegalArgumentException] thrownBy (lineGraph.splitBy(PathKey("foo"), .5)) should have (
-          'message ("requirement failed: foo is not a leaf")
-        )
+        lineGraph.splitBy(PathKey("foo"), .5).left.value should equal ("foo is not a leaf with metadata")
       }
       "it is a valid split" in {
         Given("a graph and a root-to-leaf path")
-        val graph = bushyGraph
         val path = PathKey("a.b")
 
         When("we split it")
-        val (trueSplit, falseSplit) = graph.splitBy(path, 0.75)
+        val (trueSplit, falseSplit) = bushyGraphWithMetadata.splitBy(path, 0.75).value
 
         Then("they look as expected")
         val trueGraph = RSIGraph(
           ("a", 1d, RSIGraph(
-            ("b", 1d, RSIGraph.empty),
+            ("b", 1d, RSIGraph(Map.empty[String,(Double,RSIGraph)], Some(IntColumnMetadata(3, 11, 3)))),
             ("c", 0.5, RSIGraph(
               ("d", 1d, RSIGraph.empty),
               ("e", 1d, RSIGraph.empty)
@@ -165,7 +182,7 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         
         val falseGraph = RSIGraph(
           ("a", 0d, RSIGraph(
-            ("b", 1d, RSIGraph.empty),
+            ("b", 1d, RSIGraph(Map.empty[String,(Double,RSIGraph)], Some(IntColumnMetadata(12, 14, 1)))),
             ("c", 0.5, RSIGraph(
               ("d", 1d, RSIGraph.empty),
               ("e", 1d, RSIGraph.empty)
@@ -190,6 +207,9 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       "it has multiple leaves" in {
         bushyGraph.gini should equal (1.5625)
       }
+      "it has metadata" in {
+        bushyGraphWithMetadata.gini should equal (2.3125)
+      }
     }
   }
   it should {
@@ -209,4 +229,5 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       )),
       ("f", 0.75, RSIGraph.empty)
     )
+  val bushyGraphWithMetadata = bushyGraph.setMetadata(Some(PathKey("a.b")), IntColumnMetadata(3, 14, 4)).right.get
 }

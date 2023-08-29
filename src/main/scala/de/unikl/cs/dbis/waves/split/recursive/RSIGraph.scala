@@ -3,6 +3,31 @@ package de.unikl.cs.dbis.waves.split.recursive
 import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.types.StructType
 
+abstract class ColumnMetadata[+Type](
+  min: Type,
+  max: Type,
+  distinct: Int
+) {
+  assert(distinct >= 0)
+
+  def gini = (distinct-1)/distinct.toDouble
+  def split(quantile: Double = .5): (ColumnMetadata[Type], ColumnMetadata[Type])
+}
+
+final case class IntColumnMetadata(
+  min: Int,
+  max: Int,
+  distinct: Int
+) extends ColumnMetadata[Int](min, max, distinct) {
+  assert(min <= max)
+
+  override def split(quantile: Double): (IntColumnMetadata, IntColumnMetadata) = {
+    val partialRange = ((max - min + 1)*quantile).toInt
+    val partialValues = (distinct*quantile).toInt
+    (IntColumnMetadata(min, min + partialRange - 1, partialValues), IntColumnMetadata(min+partialRange, max, distinct-partialValues))
+  }
+}
+
 /**
   * Inspired by Klettke et al.'s Reduced Structure Identification Graph, the
   * Relative Structure Identification Graph (RSIGraph) stores the conditional
@@ -11,9 +36,11 @@ import org.apache.spark.sql.types.StructType
   * @param children
   */
 final case class RSIGraph(
-  children: Map[String, (Double, RSIGraph)] = Map.empty
+  children: Map[String, (Double, RSIGraph)] = Map.empty,
+  leafMetadata: Option[ColumnMetadata[_]] = None
 ) {
   assert(children.values.map(_._1).forall(p => p >= 0 && p <= 1))
+  assert(!leafMetadata.isDefined || children.isEmpty)
 
   /**
     * Check whether the presence of the object at a given path is certain, i.e.,
@@ -37,16 +64,38 @@ final case class RSIGraph(
     * Non-existant nodes are not considered leafs!
     *
     * @param path the path to check
+    * @param withMetadata if this parameter is true, this method only returns
+    *                     true iff the leaf has assciated metadata. By default,
+    *                     it is false.
     * @return true iff the path is a leaf
     */
-  def isLeaf(path: PathKey): Boolean = children.get(path.head) match {
+  def isLeaf(path: PathKey, withMetadata: Boolean = false): Boolean = children.get(path.head) match {
     case None => false
     case Some((_, child)) => {
       if (path.isNested) {
-        child.isLeaf(path.tail)
-      } else child.children.isEmpty
+        child.isLeaf(path.tail, withMetadata)
+      } else child.children.isEmpty && (!withMetadata || child.leafMetadata.isDefined)
     }
   }
+
+  /**
+    * Set the metadata of the leaf at the given path to the given value. 
+    *
+    * @param path the path to set
+    * @param metadata the metadata to set
+    * @return the updated RSIGraph or a String describing the error
+    */
+  def setMetadata(path: Option[PathKey], metadata: ColumnMetadata[_]): Either[String,RSIGraph]
+    = path.map{ p => 
+        val step = p.head
+        for { childTuple <- children.get(step).toRight(s"$p is not a valid path")
+              (probability, child) = childTuple
+              updated <- child.setMetadata(path.tail, metadata)
+        } yield copy(children = children.updated(step, (probability, updated)))
+      }.getOrElse(
+        if (children.isEmpty) Right(copy(leafMetadata = Some(metadata)))
+        else Left("path is not a leaf")
+      )
 
   /**
     * Calculate the probability that the object referenced by the given path is
@@ -87,13 +136,13 @@ final case class RSIGraph(
     val step = path.head
     if (!path.isNested) {
       require(!isCertain(path))
-      val absentSplit = RSIGraph(children.updated(step, children(step).copy(_1 = 0d)))
-      val presentSplit = RSIGraph(children + ((step, (1d, children(step)._2))))
+      val absentSplit = copy(children = children.updated(step, children(step).copy(_1 = 0d)))
+      val presentSplit = copy(children = children + ((step, (1d, children(step)._2))))
       (absentSplit, presentSplit)
     } else {
       val (absent, present) = children(step)._2.splitBy(path.tail)
-      val absentSplit = RSIGraph(children + ((step, (children(step)._1, absent))))
-      val presentSplit = RSIGraph(children + ((step, (1d, present))))
+      val absentSplit = copy(children = children + ((step, (children(step)._1, absent))))
+      val presentSplit = copy(children = children + ((step, (1d, present))))
       (absentSplit, presentSplit)
     }
   }
@@ -109,17 +158,14 @@ final case class RSIGraph(
     *             bucket
     * @param quantile the precentage of existing values that is split off. As
     *                 such, 0 < quantile < 1 must hold.
-    * @return (trueSplit, falseSplit)
-    * @throws IllegalArgumentException if the quantile is outside the specified
-    *                                  range or leaf is not an existing leaf of
-    *                                  this RSIGraph
+    * @return (trueSplit, falseSplit) or an error if the quantile is outside the
+    *         specified range or leaf is not an existing leaf of this RSIGraph
     */
-  def splitBy(leaf: PathKey, quantile: Double) = {
-    require(quantile > 0 && quantile < 1, "0 < quantile < 1")
-    require(absoluteProbability(leaf) > 0, s"$leaf is always absent")
-    require(isLeaf(leaf), s"$leaf is not a leaf")
-    splitByHelper(Some(leaf), quantile)
-  }
+  def splitBy(leaf: PathKey, quantile: Double)
+    = if (quantile <= 0 || quantile >= 1) Left("0 < quantile < 1 must hold")
+      else if (absoluteProbability(leaf) == 0) Left(s"$leaf is always absent")
+      else if (!isLeaf(leaf, true)) Left(s"$leaf is not a leaf with metadata") 
+      else Right(splitByHelper(Some(leaf), quantile))
 
   private def splitByHelper(leaf: Option[PathKey], quantile: Double): (RSIGraph, RSIGraph) = {
     if (leaf.isDefined) {
@@ -129,10 +175,13 @@ final case class RSIGraph(
       val newProbability = (probability-removedFraction)/(1-removedFraction)
       
       val (trueSide, falseSide) = subtree.splitByHelper(leaf.tail, quantile)
-      val trueSplit = RSIGraph(children.updated(step, (1d, trueSide)))
-      val falseSplit = RSIGraph(children.updated(step, (newProbability, falseSide)))
+      val trueSplit = copy(children = children.updated(step, (1d, trueSide)))
+      val falseSplit = copy(children = children.updated(step, (newProbability, falseSide)))
       (trueSplit, falseSplit)
-    } else (this, this)
+    } else {
+      val (trueMetadata, falseMetadata) = leafMetadata.get.split(quantile)
+      (copy(leafMetadata = Some(trueMetadata)), copy(leafMetadata = Some(falseMetadata)))
+    }
   }
 
   /**
@@ -141,28 +190,34 @@ final case class RSIGraph(
     * @return the gini index
     */
   def gini: Double = {
-    val (count, g) = gini(1)
-    count - g
+    val (count, g, dataColumnGini) = gini(1)
+    count - g + dataColumnGini
   }
 
-  private def gini(baseProbability: Double): (Int, Double) = {
+  private def gini(baseProbability: Double): (Int, Double, Double) = {
     // if this is a leaf, the base probability is the event probability
-    if (children.isEmpty) return (1, baseProbability*baseProbability)
+    if (children.isEmpty) {
+      val prob = baseProbability*baseProbability
+      val dataColumGini = leafMetadata.map(_.gini).getOrElse(0d)
+      return (1, prob, dataColumGini)
+    }
 
     var count = 0
     var sum = 0d
+    var dataColumnGini = 0d
     for((conditionalProbability, child) <- children.values) {
       // sum all squared probabilities if this node is present
       val presentProbability = conditionalProbability * baseProbability
-      val (childCount, childGini) = child.gini(presentProbability)
+      val (childCount, childGini, childDataGini) = child.gini(presentProbability)
       sum += childGini
+      dataColumnGini += childDataGini
       
       // for each leaf under this child, add the absent probability once
       val absentProbability = (1-conditionalProbability) * baseProbability
       sum += childCount * (absentProbability) * (absentProbability)
       count += childCount
     }
-    (count, sum)
+    (count, sum, dataColumnGini)
   }
 }
 

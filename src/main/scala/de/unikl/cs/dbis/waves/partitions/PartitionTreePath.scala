@@ -20,6 +20,11 @@ sealed trait BucketPath extends PartitionTreePath
 sealed trait SplitByPresencePath extends PartitionTreePath
 
 /**
+  * Subtype for all steps that can be taken from a [[SplitByValue]]
+  */
+sealed trait ValuePath extends PartitionTreePath
+
+/**
   * Subtype for all steps that can be taken from a [[Spill]]
   */
 sealed trait SpillPath extends PartitionTreePath
@@ -33,6 +38,16 @@ object Present extends SplitByPresencePath
   * Navigate to the "absent" side of a SplitByPresence
   */
 object Absent extends SplitByPresencePath
+
+/**
+  * Navigate to the "less" side of a SplitByValue
+  */
+object Less extends ValuePath
+
+/**
+  * Navigate to the "more" side of a SplitByValue
+  */
+object MoreOrNull extends ValuePath
 
 /**
   * Navigate to the "partitioned" side of a Spill

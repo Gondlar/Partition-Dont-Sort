@@ -38,6 +38,23 @@ class FindByPathVisitorSpec extends WavesSpec
                 visitor.result should equal (None)
             }
         }
+        "visiting a split by value" should {
+            "find its less child for a Less path" in {
+                val visitor = new FindByPathVisitor[String](Seq(Less))
+                medianOnly.accept(visitor)
+                visitor.result should equal (Some(medianOnly.less))
+            }
+            "find its more child for an MoreOrAbsent path" in {
+                val visitor = new FindByPathVisitor[String](Seq(MoreOrNull))
+                medianOnly.accept(visitor)
+                visitor.result should equal (Some(medianOnly.more))
+            }
+            "find nothing for other paths" in {
+                val visitor = new FindByPathVisitor[String](Seq(Rest))
+                medianOnly.accept(visitor)
+                visitor.result should equal (None)
+            }
+        }
         "visiting a spill" should {
             "find the spill's partitioned subtree for a Partitioned path" in {
                 val visitor = new FindByPathVisitor[String](Seq(Partitioned))

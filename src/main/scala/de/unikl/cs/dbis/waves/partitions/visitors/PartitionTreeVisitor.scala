@@ -5,5 +5,6 @@ import de.unikl.cs.dbis.waves.partitions._
 trait PartitionTreeVisitor[-Payload] {
   def visit(bucket: Bucket[Payload]) : Unit
   def visit(node: SplitByPresence[Payload]) : Unit
+  def visit[DataType](node: SplitByValue[Payload,DataType]): Unit
   def visit(root: Spill[Payload]) : Unit
 }

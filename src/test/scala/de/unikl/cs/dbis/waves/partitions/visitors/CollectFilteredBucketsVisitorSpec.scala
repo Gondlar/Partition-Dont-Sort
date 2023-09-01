@@ -54,6 +54,28 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                 visitor.result should contain theSameElementsAs (Seq(split.absentKey, split.presentKey))
             }
         }
+        "visiting a split by value" should {
+            "find the split's children without filters" in {
+                val visitor = new CollectFilteredBucketsVisitor[String](Seq.empty)
+                medianOnly.accept(visitor)
+                visitor.result should contain theSameElementsAs (Seq(medianOnly.less, medianOnly.more))
+
+                And("find the same buckets as a CollectBucketsVisitor")
+                val visitor2 = new CollectBucketsVisitor[String]()
+                medianOnly.accept(visitor2)
+                visitor.result should contain theSameElementsAs (visitor2.result)
+            }
+            "find the split's child with filters" in {
+                val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull(medianOnly.key.toString())))
+                medianOnly.accept(visitor)
+                visitor.result should contain theSameElementsAs (Seq(medianOnly.more))
+            }
+            "find the split's children with unrelated filters" in {
+                val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("bar.foo")))
+                medianOnly.accept(visitor)
+                visitor.result should contain theSameElementsAs (Seq(medianOnly.less, medianOnly.more))
+            }
+        }
         "visiting a spill" should {
             "find the spill's children without filters" in {
                 val leafs = Seq( spill.rest

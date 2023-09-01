@@ -43,6 +43,26 @@ class ReplaceSubtreeVisitorSpec extends WavesSpec
                 an [ImpossibleReplacementException] should be thrownBy visitor.result
             }
         }
+        "visiting a split by value" should {
+            "be able to replace that split" in {
+                val replacement = Bucket("replaced")
+                val visitor = new ReplaceSubtreeVisitor(medianOnly, replacement)
+                medianOnly.accept(visitor)
+                visitor.result should equal (replacement)
+            }
+            "be able to replace that splits child" in {
+                val replacement = Bucket("replaced")
+                val visitor = new ReplaceSubtreeVisitor(medianOnly.less, replacement)
+                medianOnly.accept(visitor)
+                visitor.result should equal (medianOnly.copy(less = replacement))
+            }
+            "produce an error if no replacement happened" in {
+                val replacement = Bucket("replaced")
+                val visitor = new ReplaceSubtreeVisitor(Bucket("1234556"), replacement)
+                medianOnly.accept(visitor)
+                an [ImpossibleReplacementException] should be thrownBy visitor.result
+            }
+        }
         "visiting a spill" should {
             "be able to replace that spill" in {
                 val replacement = Bucket("replaced")

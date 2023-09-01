@@ -4,7 +4,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
 
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
-import de.unikl.cs.dbis.waves.partitions.{Rest,Partitioned,Absent,Present}
+import de.unikl.cs.dbis.waves.partitions.{Rest,Partitioned,Absent,Present,Less,MoreOrNull}
 import de.unikl.cs.dbis.waves.util.PathKey
 
 class CollectBucketMetadataVisitorSpec extends WavesSpec
@@ -39,6 +39,23 @@ class CollectBucketMetadataVisitorSpec extends WavesSpec
         val presentMetadata = metadata.clone()
         presentMetadata.addPresent(split.key)
         visitor.result should contain theSameElementsInOrderAs (Seq(absentMetadata, presentMetadata))
+      }
+    }
+    "visiting a split by value" should {
+      "return the metadata for the split's children" in {
+        Given("A visitor with its initial metadata")
+        val metadata = PartitionMetadata(Seq.empty, Seq(PathKey("d")), Seq.empty)
+        val visitor = new CollectBucketMetadataVisitor[String](metadata)
+
+        When("it visits a split")
+        medianOnly.accept(visitor)
+
+        Then("it finds the childrens metadata")
+        val lessMetadata = metadata.clone()
+        lessMetadata.addFiltered(PathKey("foobar"), Less)
+        val moreMetadata = metadata.clone()
+        moreMetadata.addStep(MoreOrNull)
+        visitor.result should contain theSameElementsInOrderAs (Seq(lessMetadata, moreMetadata))
       }
     }
     "visiting a spill" should {

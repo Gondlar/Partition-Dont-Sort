@@ -100,6 +100,40 @@ class NavigatePathVisitorSpec extends WavesSpec
         visitor.last should contain (split)
       }
     }
+    "visiting a Split by value" should {
+      "be able to navigate to the less side" in {
+        val visitor = TestNavigatePathVisitor(Seq(Less))
+        medianOnly.accept(visitor)
+        visitor.last should contain (medianOnly.less)
+      }
+      "be able to navigate to the more side" in {
+        val visitor = TestNavigatePathVisitor(Seq(MoreOrNull))
+        medianOnly.accept(visitor)
+        visitor.last should contain (medianOnly.more)
+      }
+      "produce an error for other paths" in {
+        Given("a path and a visitor")
+        val testpath = Seq(Rest)
+        val visitor = TestNavigatePathVisitor(testpath)
+
+        Then("visiting throws an exception")
+        val ex = the [InvalidPathException] thrownBy (medianOnly.accept(visitor))
+
+        And("The correct callbacks were called")
+        visitor.last should contain (medianOnly)
+        visitor.error shouldBe (true)
+        visitor.lastStep should contain (Rest)
+
+        And("the exception contains the correct data")
+        ex.path should equal (testpath)
+        ex.step should equal (Rest)
+      }
+      "return the root for empty paths" in {
+        val visitor = TestNavigatePathVisitor(Seq.empty)
+        medianOnly.accept(visitor)
+        visitor.last should contain (medianOnly)
+      }
+    }
     "visiting a Spill" should {
       "be able to navigate to the partitioned side" in {
         val visitor = TestNavigatePathVisitor(Seq(Partitioned))

@@ -19,6 +19,11 @@ final class CollectBucketsVisitor[Payload]() extends SingleResultVisitor[Payload
         node.presentKey.accept(this)
     }
 
+    override def visit[DataType](node: SplitByValue[Payload,DataType]) : Unit = {
+        node.less.accept(this)
+        node.more.accept(this)
+    }
+
     override def visit(spill: Spill[Payload]) : Unit = {
         buckets += spill.rest
         spill.partitioned.accept(this)

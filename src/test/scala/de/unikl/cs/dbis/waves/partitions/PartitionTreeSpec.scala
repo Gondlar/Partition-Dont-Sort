@@ -122,6 +122,62 @@ class PartitionTreeSpec extends WavesSpec
               metadata should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
             }
         }
+        "it starts with a split by value" should {
+            "be unchanged by JSON conversion" in {
+                When("we turn it into JSON and back again")
+                val json = medianTree.toJson
+                val tree2 = PartitionTree.fromJson(json)
+                Then("the deserialized version is equal")
+                tree2 should equal (medianTree)
+            }
+            "insert into an new spill partition" in {
+                medianTree.getFastInsertLocation should equal (None)
+                medianTree.findOrCreateFastInsertLocation(() => "foo3") should equal (spill.rest)
+
+                And("the tree has changed")
+                medianTree.root should equal (Spill(median, spill.rest))
+            }
+            "contain the child buckets" in {
+                val buckets = Seq(median.less, split.absentKey, split.presentKey)
+                medianTree.buckets.toStream should contain theSameElementsAs (buckets)
+                medianTree.bucketsWith(Seq.empty).toStream should contain theSameElementsAs (buckets)
+            }
+            "find all valid paths" in {
+                medianTree.find(Seq.empty) should equal (Some(median))
+                medianTree.find(Seq(Less)) should equal (Some(median.less))
+                medianTree.find(Seq(MoreOrNull)) should equal (Some(median.more))
+            }
+            "not find non-existing paths" in {
+                medianTree.find(Seq(Rest)) should equal (None)
+                medianTree.find(Seq(Absent, Present)) should equal (None)
+            }
+            "be extendable by replacing" in {
+                medianTree.replace(median.more, bucket)
+                medianTree.root should equal (SplitByValue(10, "foobar", median.less, bucket))
+            }
+            "be extendable by replacing by path" in {
+                medianTree.replace(Seq(MoreOrNull), bucket)
+                medianTree.root should equal (SplitByValue(10, "foobar", median.less, bucket))
+            }
+            "map correctly" in {
+                medianTree.map({(payload, index) => index}) should equal (new PartitionTree(splitTree.globalSchema, NoSorter, SplitByValue(10, "foobar", Bucket(0), SplitByPresence("b.d", 2, 1))))
+            }
+            "modify correctly" in {
+                medianTree.modify({(payload, index) => payload + "SUFFIX"})
+                medianTree.root should equal (SplitByValue(10, "foobar", Bucket("fooSUFFIX"), SplitByPresence("b.d", "bar2SUFFIX", "baz2SUFFIX")))
+            }
+            "know that path" in {
+                val metadata = medianTree.metadataFor(Seq(Less))
+                metadata should equal (PartitionMetadata(Seq(median.key), Seq.empty, Seq(Less)))
+            }
+            "contain that split in its childrens metadata" in {
+              val metadata = medianTree.metadata()
+              val lessMetadata = PartitionMetadata(Seq(median.key), Seq.empty, Seq(Less))
+              val moreMetadata1 = PartitionMetadata(Seq.empty, Seq(PathKey("b.d")), Seq(MoreOrNull, Absent))
+              val moreMetadata2 = PartitionMetadata(Seq(PathKey("b.d")), Seq.empty, Seq(MoreOrNull, Present))
+              metadata should contain theSameElementsInOrderAs Seq(lessMetadata, moreMetadata1, moreMetadata2)
+            }
+        }
         "it starts with a spill" should {
             "be unchanged by JSON conversion" in {
                 When("we turn it into JSON and back again")
@@ -191,9 +247,11 @@ case class MockVisitor(override val result: Int) extends SingleResultVisitor[Str
   var visitBucketCalled = false;
   var visitSplitCalled = false;
   var visitSpillCalled = false;
+  var visitValueCalled = false
   def anyCalled = visitBucketCalled || visitSpillCalled || visitSplitCalled
 
   override def visit(bucket: Bucket[String]): Unit = visitBucketCalled = true
   override def visit(node: SplitByPresence[String]): Unit = visitSplitCalled = true
+  override def visit[DataType](node: SplitByValue[String, DataType]): Unit = visitValueCalled = true
   override def visit(root: Spill[String]): Unit = visitSpillCalled = true
 }

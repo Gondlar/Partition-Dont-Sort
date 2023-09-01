@@ -79,6 +79,21 @@ class PartitionMetadata(
   private def addAbsentKey(key: PathKey)
     = absent = absent.filter(p => !(key isPrefixOf p)) + key
 
+    /**
+      * Add a key as filtered. Doing so is only possible if ir can still be
+      * present. Since NULL evaluates to false, the key is added as absent.
+      *
+      * @param key the it was filtered by
+      * @param step the step the filter produced
+      * @throws IllegalArgumentException if the key cannot be present
+      */
+  def addFiltered(key: PathKey, step: PartitionTreePath): Unit = {
+    require(canBePresent(key))
+    addStep(step)
+    if (isKnownPresent(key)) return
+    addPresentKey(key)
+  }
+
   /**
     * Add a key as present. Adding a key is only possible if it still can be
     * present. Any keys subsumed by the newly added key will be removed
@@ -87,12 +102,7 @@ class PartitionMetadata(
     * @throws IllegalArgumentException if the key cannot be present
     * @see [[canBePresent]]
     */
-  def addPresent(key: PathKey): Unit = {
-    require(canBePresent(key))
-    addStep(Present)
-    if (isKnownPresent(key)) return
-    addPresentKey(key)
-  }
+  def addPresent(key: PathKey): Unit = addFiltered(key, Present)
 
   /**
     * Incoroprate a known present key into the set

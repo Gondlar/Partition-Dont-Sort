@@ -88,6 +88,8 @@ object PartitionTree {
         .registerTypeAdapter(classOf[Spill[String]], SpillSerializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeDeserializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeSerializer)
+        .registerTypeAdapter(classOf[SplitByValue[String,_]], PartitionByValueDeserializer)
+        .registerTypeAdapter(classOf[SplitByValue[String,_]], PartitionByValueSerializer)
         .registerTypeAdapter(classOf[AnyNode[String]], TreeNodeDeserializer)
         .registerTypeAdapter(classOf[Sorter], SorterDeserializer)
         .registerTypeAdapter(NoSorter.getClass(), NoSorterSerializer)

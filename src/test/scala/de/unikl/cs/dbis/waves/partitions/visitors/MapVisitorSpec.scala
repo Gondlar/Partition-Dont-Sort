@@ -30,6 +30,17 @@ class MapVisitorSpec extends WavesSpec
       visitor.getBucketCount should equal (2)
       visitor.result should equal (SplitByPresence(split.key, 4, 4))
     }
+    "transform splits by value correctly" in {
+      var expectedIndex = 0
+      val visitor = new MapVisitor[String, Int]({(payload, index) =>
+        index should equal (expectedIndex)
+        expectedIndex += 1
+        payload.length
+      })
+      medianOnly.accept(visitor)
+      visitor.getBucketCount should equal (2)
+      visitor.result should equal (SplitByValue(10, "foobar", 3, 3))
+    }
     "transform spills correctly" in {
       var expectedIndex = 0
       val visitor = new MapVisitor[String, Int]({(payload, index) =>

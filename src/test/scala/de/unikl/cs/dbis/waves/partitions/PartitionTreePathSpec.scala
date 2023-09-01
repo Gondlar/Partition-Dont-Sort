@@ -11,6 +11,8 @@ class PartitionTreePathSpec extends WavesSpec {
       Absent.toString() should equal ("Absent")
       Partitioned.toString() should equal ("Partitioned")
       Rest.toString() should equal ("Rest")
+      Less.toString() should equal ("Less")
+      MoreOrNull.toString() should equal ("MoreOrNull")
     }
   }
 }

@@ -9,6 +9,7 @@ import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.Spill
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.PartitionTree
+import de.unikl.cs.dbis.waves.partitions.SplitByValue
 
 trait PartitionTreeMatchers {
   class StructureMatcher[Payload](right: AnyNode[Payload]) extends Matcher[AnyNode[Payload]] {
@@ -28,6 +29,11 @@ trait PartitionTreeMatchers {
         case SplitByPresence(rhsKey, rhsPresent, rhsAbsent)
           => lhsKey == rhsKey && matches(lhsPresent, rhsPresent) && matches(lhsAbsent, rhsAbsent)
         case _ => false 
+      }
+      case SplitByValue(lhsPivot, lhsKey, lhsLess, lhsMore) => rhs match {
+        case SplitByValue(rhsPivot, rhsKey, rhsLess, rhsMore)
+          => lhsPivot == rhsPivot && lhsKey == rhsKey && matches(lhsLess, rhsLess) && matches(lhsMore, rhsMore)
+        case _ => false
       }
     }
   }

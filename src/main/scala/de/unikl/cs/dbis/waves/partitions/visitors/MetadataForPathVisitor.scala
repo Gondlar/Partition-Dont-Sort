@@ -26,6 +26,10 @@ final class MetadataForPathVisitor[Payload](
         case Absent => metadata.addAbsent(f.key)
         case Present => metadata.addPresent(f.key)
       }
+      case f: SplitByValue[Payload,_] => step match {
+        case Less => metadata.addFiltered(f.key, Less)
+        case MoreOrNull => metadata.addStep(MoreOrNull)
+      }
       case _ => metadata.addStep(step)
     }
   }

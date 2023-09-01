@@ -30,6 +30,13 @@ extends SingleResultVisitor[From,AnyNode[To]] {
       theResult = SplitByPresence(node.key, result, absent)  
     }
 
+    override def visit[DataType](node: SplitByValue[From,DataType]) : Unit = {
+      node.less.accept(this)
+      val less = result
+      node.more.accept(this)
+      theResult = node.copy(less = less, more = result)
+    }
+
     override def visit(spill: Spill[From]) : Unit = {
       spill.rest.accept(this)
       val rest = result.asInstanceOf[Bucket[To]]

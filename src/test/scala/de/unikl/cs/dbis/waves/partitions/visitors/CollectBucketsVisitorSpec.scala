@@ -23,6 +23,13 @@ class CollectBucketsVisitorSpec extends WavesSpec
                 visitor.result should contain theSameElementsInOrderAs (Seq(split.absentKey, split.presentKey))
             }
         }
+        "visiting a splitby value" should {
+           "find the split's children" in {
+                val visitor = new CollectBucketsVisitor[String]()
+                medianOnly.accept(visitor)
+                visitor.result should contain theSameElementsInOrderAs (Seq(medianOnly.less, medianOnly.more))
+            }
+        }
         "visiting a spill" should {
             "find the spill's children" in {
                 val leafs = Seq( spill.rest

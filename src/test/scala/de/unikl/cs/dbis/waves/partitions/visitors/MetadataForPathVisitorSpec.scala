@@ -19,6 +19,16 @@ class MetadataForPathVisitorSpec extends WavesSpec
       split.accept(visitor)
       visitor.result should equal (PartitionMetadata(Seq.empty, Seq(split.key), Seq(Absent)))
     }
+    "find less keys" in {
+      val visitor = new MetadataForPathVisitor[String](Seq(Less))
+      medianOnly.accept(visitor)
+      visitor.result should equal (PartitionMetadata(Seq(medianOnly.key), Seq.empty, Seq(Less)))
+    }
+    "find more keys" in {
+      val visitor = new MetadataForPathVisitor[String](Seq(MoreOrNull))
+      medianOnly.accept(visitor)
+      visitor.result should equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(MoreOrNull)))
+    }
     "find nothing in empty paths" in {
       val visitor = new MetadataForPathVisitor[String](Seq.empty)
       split.accept(visitor)

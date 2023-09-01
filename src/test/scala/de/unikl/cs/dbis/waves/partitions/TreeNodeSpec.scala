@@ -27,6 +27,7 @@ class TreeNodeSpec extends WavesSpec
         visitor.visitBucketCalled shouldBe (true)
         visitor.visitSpillCalled shouldBe (false)
         visitor.visitSplitCalled shouldBe (false)
+        visitor.visitValueCalled shouldBe (false)
       }
       "accept a SingleResultVisitor" in {
         bucket(MockVisitor(4)) should equal (4)
@@ -48,9 +49,32 @@ class TreeNodeSpec extends WavesSpec
         visitor.visitBucketCalled shouldBe (false)
         visitor.visitSpillCalled shouldBe (false)
         visitor.visitSplitCalled shouldBe (true)
+        visitor.visitValueCalled shouldBe (false)
       }
       "accept a SingleResultVisitor" in {
         split(MockVisitor(4)) should equal (4)
+      }
+    }
+    "split by value" can {
+      "be created from a node's string representation" in {
+        SplitByValue(10, "foo.bar", Bucket("abc"), Bucket("cde")) should equal (SplitByValue(10, PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
+      }
+      "be created from Bucket values" in {
+        SplitByValue(10, PathKey("foo.bar"), "abc", "cde") should equal (SplitByValue(10, PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
+      }
+      "be created from a node's string representation and Bucket values" in {
+        SplitByValue(10, "foo.bar", "abc", "cde") should equal (SplitByValue(10, PathKey("foo.bar"), Bucket("abc"), Bucket("cde")))
+      }
+      "accept a visitor" in {
+        val visitor = MockVisitor(5)
+        median.accept(visitor)
+        visitor.visitBucketCalled shouldBe (false)
+        visitor.visitSpillCalled shouldBe (false)
+        visitor.visitSplitCalled shouldBe (false)
+        visitor.visitValueCalled shouldBe (true)
+      }
+      "accept a SingleResultVisitor" in {
+        median(MockVisitor(4)) should equal (4)
       }
     }
     "spill" can {
@@ -60,6 +84,7 @@ class TreeNodeSpec extends WavesSpec
         visitor.visitBucketCalled shouldBe (false)
         visitor.visitSpillCalled shouldBe (true)
         visitor.visitSplitCalled shouldBe (false)
+        visitor.visitValueCalled shouldBe (false)
       }
       "accept a SingleResultVisitor" in {
         spill(MockVisitor(4)) should equal (4)
@@ -75,6 +100,27 @@ class TreeNodeSpec extends WavesSpec
       "split" in {
         PartitionTree.treeFromJson(split.toJson) should equal (split)
       }
+      "split by value" when {
+        "the value is a String" in {
+          val valueSplit = SplitByValue("abc", "foobar", "foo", "bar")
+          PartitionTree.treeFromJson(valueSplit.toJson) should equal (valueSplit)
+        }
+        "the value is a Boolean" in {
+          val valueSplit = SplitByValue(false, "foobar", "foo", "bar")
+          PartitionTree.treeFromJson(valueSplit.toJson) should equal (valueSplit)
+        }
+        "the value is an Integer" in {
+          PartitionTree.treeFromJson(median.toJson) should equal (median)
+        }
+        "the value is a Long" in {
+          val valueSplit = SplitByValue(10000000L, "foobar", "foo", "bar")
+          PartitionTree.treeFromJson(valueSplit.toJson) should equal (valueSplit)
+        }
+        "the value is a Double" in {
+          val valueSplit = SplitByValue(3.141, "foobar", "foo", "bar")
+          PartitionTree.treeFromJson(valueSplit.toJson) should equal (valueSplit)
+        }
+      }
       "spill" in {
         PartitionTree.treeFromJson(spill.toJson) should equal (spill)
       }
@@ -88,6 +134,11 @@ class TreeNodeSpec extends WavesSpec
         val buckets = Seq(split.absentKey, split.presentKey)
         split.buckets should contain theSameElementsAs (buckets)
         split.bucketsWith(Seq.empty) should contain theSameElementsAs (buckets)
+      }
+      "split by value" in {
+        val buckets = Seq(bucket, split.absentKey, split.presentKey)
+        median.buckets should contain theSameElementsAs (buckets)
+        median.bucketsWith(Seq.empty) should contain theSameElementsAs (buckets)
       }
       "spill" in {
         val buckets = Seq(spill.rest, spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey, spill.partitioned.asInstanceOf[SplitByPresence[String]].presentKey)
@@ -104,6 +155,11 @@ class TreeNodeSpec extends WavesSpec
         split.find(Seq(Present)) should equal (Some(split.presentKey))
         split.find(Seq(Absent)) should equal (Some(split.absentKey))
       }
+      "split by value" in {
+        median.find(Seq.empty) should equal (Some(median))
+        median.find(Seq(Less)) should equal (Some(median.less))
+        median.find(Seq(MoreOrNull)) should equal (Some(median.more))
+      }
       "spill" in {
         spill.find(Seq.empty) should equal (Some(spill))
         spill.find(Seq(Rest)) should equal (Some(spill.rest))
@@ -119,6 +175,10 @@ class TreeNodeSpec extends WavesSpec
         split.find(Seq(Rest)) should equal (None)
         split.find(Seq(Absent, Present)) should equal (None)
       }
+      "split by value" in {
+        median.find(Seq(Rest)) should equal (None)
+        median.find(Seq(Absent, Present)) should equal (None)
+      }
       "spill" in {
         spill.find(Seq(Absent)) should equal (None)
         spill.find(Seq(Partitioned, Rest)) should equal (None)
@@ -130,6 +190,9 @@ class TreeNodeSpec extends WavesSpec
       }
       "split" in {
         split.replace(split.absentKey, bucket) should equal (SplitByPresence("b.d", "bar2", "foo"))
+      }
+      "split by value" in {
+        median.replace(median.more, bucket) should equal (SplitByValue(10, "foobar", bucket, bucket))
       }
       "spill" in {
         spill.replace(spill.partitioned, bucket) should equal (Spill(Bucket("foo"), Bucket("foo3")))
@@ -145,6 +208,9 @@ class TreeNodeSpec extends WavesSpec
       "split" in {
         split.replace(Seq(Absent), bucket) should equal (SplitByPresence("b.d", "bar2", "foo"))
       }
+      "split by value" in {
+        median.replace(Seq(MoreOrNull), bucket) should equal (SplitByValue(10, "foobar", bucket, bucket))
+      }
       "spill" in {
         spill.replace(Seq(Partitioned), bucket) should equal (Spill(Bucket("foo"), Bucket("foo3")))
       }
@@ -155,6 +221,9 @@ class TreeNodeSpec extends WavesSpec
       }
       "split" in {
         split.map({(payload, index) => index}) should equal (SplitByPresence(split.key, Bucket(1), Bucket(0)))
+      }
+      "split by value" in {
+        median.map({(payload, index) => index}) should equal (SplitByValue(10, "foobar", Bucket(0), SplitByPresence(split.key, 2, 1)))
       }
       "spill" in {
         spill.map({(payload, index) => index}) should equal (Spill(SplitByPresence(split.key, Bucket(2), Bucket(1)), Bucket(0)))
@@ -169,6 +238,12 @@ class TreeNodeSpec extends WavesSpec
         val presentMetadata = PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present))
         split.metadata() should contain theSameElementsInOrderAs Seq(absentMetadata, presentMetadata)
       }
+      "split by value" in {
+        val lessMetadata = PartitionMetadata(Seq(median.key), Seq.empty, Seq(Less))
+        val moreMetadata1 = PartitionMetadata(Seq.empty, Seq(split.key), Seq(MoreOrNull, Absent))
+        val moreMetadata2 = PartitionMetadata(Seq(split.key), Seq.empty, Seq(MoreOrNull, Present))
+        median.metadata() should contain theSameElementsInOrderAs Seq(lessMetadata, moreMetadata1, moreMetadata2)
+      }
       "spill" in {
         val restMetadata = PartitionMetadata(Seq.empty, Seq.empty, Seq(Rest))
         val absentMetadata = PartitionMetadata(Seq.empty, Seq(split.key), Seq(Partitioned, Absent))
@@ -182,6 +257,9 @@ class TreeNodeSpec extends WavesSpec
       }
       "split" in {
         split.metadataFor(Seq(Present)) should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Present)))
+      }
+      "split by value" in {
+        median.metadataFor(Seq(Less)) should equal (PartitionMetadata(Seq(median.key), Seq.empty, Seq(Less)))
       }
       "spill" in {
         spill.metadataFor(Seq(Partitioned)) should equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(Partitioned)))

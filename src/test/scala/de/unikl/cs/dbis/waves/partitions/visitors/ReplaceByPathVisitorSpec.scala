@@ -50,6 +50,31 @@ class ReplaceByPathVisitorSpec extends WavesSpec
           an [InvalidPathException] should be thrownBy split.accept(visitor)
         }
       }
+      "visiting a split by value" can replace {
+        "it entirely given an empty path" in {
+          val visitor = new ReplaceByPathVisitor(Seq.empty, bucket)
+          medianOnly.accept(visitor)
+          visitor.result should equal (bucket)
+        }
+        "the less child" in {
+          val replacement = Bucket("replaced")
+          val visitor = new ReplaceByPathVisitor(Seq(Less), replacement)
+          medianOnly.accept(visitor)
+          visitor.result should equal (medianOnly.copy(less = replacement))
+        }
+        "the more child" in {
+          val replacement = Bucket("replaced")
+          val visitor = new ReplaceByPathVisitor(Seq(MoreOrNull), replacement)
+          medianOnly.accept(visitor)
+          visitor.result should equal (medianOnly.copy(more = replacement))
+        }
+      }
+      "visiting a split by value" should fail {
+        "for invalid paths" in {
+          val visitor = new ReplaceByPathVisitor(Seq(Rest), bucket)
+          an [InvalidPathException] should be thrownBy medianOnly.accept(visitor)
+        }
+      }
       "visiting a spill" can replace {
         "it entirely given an empty path" in {
           val visitor = new ReplaceByPathVisitor(Seq.empty, bucket)

@@ -29,6 +29,16 @@ final class CollectBucketMetadataVisitor[Payload](
     node.presentKey.accept(this)
   }
 
+  override def visit[DataType](node: SplitByValue[Payload,DataType]) : Unit = {
+    val secondMetadata = metadata.clone
+    metadata.addFiltered(node.key, Less)
+    node.less.accept(this)
+
+    metadata = secondMetadata
+    metadata.addStep(MoreOrNull)
+    node.more.accept(this)
+  }
+
   override def visit(spill: Spill[Payload]) : Unit = {
     val rest = metadata.clone
     rest.addStep(Rest)

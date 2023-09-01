@@ -33,6 +33,10 @@ final class ReplaceByPathVisitor[Payload](
           case Absent => SplitByPresence(key, presentKey, res)
           case Present => SplitByPresence(key, res, absentKey)
         }
+        case split@SplitByValue(_, _, _, _) => step match {
+          case Less => split.copy(less = res)
+          case MoreOrNull => split.copy(more = res)
+        }
         // to can never be a bucket because it has no children
       }
     }

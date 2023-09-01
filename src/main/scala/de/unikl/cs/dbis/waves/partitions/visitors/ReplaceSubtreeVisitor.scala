@@ -43,6 +43,18 @@ extends SingleResultVisitor[Payload,AnyNode[Payload]] {
         }
     }
 
+    override def visit[DataType](node: SplitByValue[Payload,DataType]) : Unit = {
+        if (node eq needle) found() else {
+            node.less.accept(this)
+            if (replaced) {
+                theResult = node.copy(less = theResult)
+            } else {
+                node.more.accept(this)
+                if (replaced) theResult = node.copy(more = theResult)
+            }
+        }
+    }
+
     override def visit(spill: Spill[Payload]) : Unit = {
         if (spill eq needle) found() else {
             spill.rest.accept(this)

@@ -30,9 +30,9 @@ trait PartitionTreeMatchers {
           => lhsKey == rhsKey && matches(lhsPresent, rhsPresent) && matches(lhsAbsent, rhsAbsent)
         case _ => false 
       }
-      case SplitByValue(lhsPivot, lhsKey, lhsLess, lhsMore) => rhs match {
-        case SplitByValue(rhsPivot, rhsKey, rhsLess, rhsMore)
-          => lhsPivot == rhsPivot && lhsKey == rhsKey && matches(lhsLess, rhsLess) && matches(lhsMore, rhsMore)
+      case SplitByValue(lhsSeparator, lhsKey, lhsLess, lhsMore) => rhs match {
+        case SplitByValue(rhsSeparator, rhsKey, rhsLess, rhsMore)
+          => lhsSeparator == rhsSeparator && lhsKey == rhsKey && matches(lhsLess, rhsLess) && matches(lhsMore, rhsMore)
         case _ => false
       }
     }

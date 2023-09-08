@@ -29,6 +29,12 @@ final case class PathKey(identifiers: Seq[String]) {
     override def toString = toSpark
 
     /**
+      * @return A string representation of this path which does not use dot as
+      *         the separator
+      */
+    def toDotfreeString = identifiers.mkString("/")
+
+    /**
       * represent this PathKey as a Spark Column
       */
     def toCol = col(toSpark)

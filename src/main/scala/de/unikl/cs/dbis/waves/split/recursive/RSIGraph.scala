@@ -3,31 +3,6 @@ package de.unikl.cs.dbis.waves.split.recursive
 import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.types.StructType
 
-abstract class ColumnMetadata[+Type](
-  min: Type,
-  max: Type,
-  distinct: Int
-) {
-  assert(distinct >= 0)
-
-  def gini = (distinct-1)/distinct.toDouble
-  def split(quantile: Double = .5): (ColumnMetadata[Type], ColumnMetadata[Type])
-}
-
-final case class IntColumnMetadata(
-  min: Int,
-  max: Int,
-  distinct: Int
-) extends ColumnMetadata[Int](min, max, distinct) {
-  assert(min <= max)
-
-  override def split(quantile: Double): (IntColumnMetadata, IntColumnMetadata) = {
-    val partialRange = ((max - min + 1)*quantile).toInt
-    val partialValues = (distinct*quantile).toInt
-    (IntColumnMetadata(min, min + partialRange - 1, partialValues), IntColumnMetadata(min+partialRange, max, distinct-partialValues))
-  }
-}
-
 /**
   * Inspired by Klettke et al.'s Reduced Structure Identification Graph, the
   * Relative Structure Identification Graph (RSIGraph) stores the conditional
@@ -115,6 +90,23 @@ final case class RSIGraph(
     }
 
   /**
+    * Calculate given quantile of the colum at the given root-to-leaf path.
+    *
+    * @param path the path to check
+    * @param quantile the quantile of values from the column, defaults to the median
+    * @return The value or an error if the path does not lead to a leaf with metadata
+    */
+  def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,Any]
+    = path match {
+      case None => leafMetadata
+        .toRight("no metadata available")
+        .map(_.separator(quantile))
+      case Some(value) => children.get(path.head)
+        .toRight("Leaf not found")
+        .flatMap({ case (_, child) => child.separatorForLeaf(path.tail, quantile)})
+    }
+
+  /**
     * Check whether the path is a valid split location, i.e., it is not certain
     * and its absolute probability is greater than zero
     *
@@ -132,18 +124,20 @@ final case class RSIGraph(
     * @param path a non-certain path to split by
     * @return a tuple of two RSIGraphs: (absent, present)
     */
-  def splitBy(path: PathKey) : (RSIGraph, RSIGraph) = {
+  def splitBy(path: PathKey) : Either[String,(RSIGraph, RSIGraph)] = {
     val step = path.head
     if (!path.isNested) {
-      require(!isCertain(path))
-      val absentSplit = copy(children = children.updated(step, children(step).copy(_1 = 0d)))
-      val presentSplit = copy(children = children + ((step, (1d, children(step)._2))))
-      (absentSplit, presentSplit)
+      if (isCertain(path)) Left("cannot split on certian paths") else {
+        val absentSplit = copy(children = children.updated(step, children(step).copy(_1 = 0d)))
+        val presentSplit = copy(children = children + ((step, (1d, children(step)._2))))
+        Right(absentSplit, presentSplit)
+      }
     } else {
-      val (absent, present) = children(step)._2.splitBy(path.tail)
-      val absentSplit = copy(children = children + ((step, (children(step)._1, absent))))
-      val presentSplit = copy(children = children + ((step, (1d, present))))
-      (absentSplit, presentSplit)
+      children(step)._2.splitBy(path.tail).map{ case (absent, present) =>
+        val absentSplit = copy(children = children + ((step, (children(step)._1, absent))))
+        val presentSplit = copy(children = children + ((step, (1d, present))))
+        (absentSplit, presentSplit)
+      }
     }
   }
 
@@ -165,22 +159,24 @@ final case class RSIGraph(
     = if (quantile <= 0 || quantile >= 1) Left("0 < quantile < 1 must hold")
       else if (absoluteProbability(leaf) == 0) Left(s"$leaf is always absent")
       else if (!isLeaf(leaf, true)) Left(s"$leaf is not a leaf with metadata") 
-      else Right(splitByHelper(Some(leaf), quantile))
+      else splitByHelper(Some(leaf), quantile)
 
-  private def splitByHelper(leaf: Option[PathKey], quantile: Double): (RSIGraph, RSIGraph) = {
+  private def splitByHelper(leaf: Option[PathKey], quantile: Double): Either[String,(RSIGraph, RSIGraph)] = {
     if (leaf.isDefined) {
       val step = leaf.head
       val (probability, subtree) = children(step)
       val removedFraction = absoluteProbability(leaf.get) * quantile
       val newProbability = (probability-removedFraction)/(1-removedFraction)
       
-      val (trueSide, falseSide) = subtree.splitByHelper(leaf.tail, quantile)
-      val trueSplit = copy(children = children.updated(step, (1d, trueSide)))
-      val falseSplit = copy(children = children.updated(step, (newProbability, falseSide)))
-      (trueSplit, falseSplit)
+      subtree.splitByHelper(leaf.tail, quantile).map{ case (trueSide, falseSide) =>
+        val trueSplit = copy(children = children.updated(step, (1d, trueSide)))
+        val falseSplit = copy(children = children.updated(step, (newProbability, falseSide)))
+        (trueSplit, falseSplit)
+      }
     } else {
-      val (trueMetadata, falseMetadata) = leafMetadata.get.split(quantile)
-      (copy(leafMetadata = Some(trueMetadata)), copy(leafMetadata = Some(falseMetadata)))
+      leafMetadata.get.split(quantile).map{ case (trueMetadata, falseMetadata) =>
+        (copy(leafMetadata = Some(trueMetadata)), copy(leafMetadata = Some(falseMetadata)))
+      }
     }
   }
 
@@ -198,7 +194,10 @@ final case class RSIGraph(
     // if this is a leaf, the base probability is the event probability
     if (children.isEmpty) {
       val prob = baseProbability*baseProbability
-      val dataColumGini = leafMetadata.map(_.gini).getOrElse(0d)
+      val dataColumGini = leafMetadata
+        .filter(_ => baseProbability > 0)
+        .map(_.gini)
+        .getOrElse(0d)
       return (1, prob, dataColumGini)
     }
 

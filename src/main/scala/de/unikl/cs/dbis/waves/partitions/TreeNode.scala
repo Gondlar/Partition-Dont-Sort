@@ -134,7 +134,7 @@ object SplitByPresence {
 }
 
 final case class SplitByValue[+Payload, +DataType](
-  pivot: DataType, key: PathKey, less: AnyNode[Payload],more: AnyNode[Payload]
+  separator: DataType, key: PathKey, less: AnyNode[Payload],more: AnyNode[Payload]
 ) extends TreeNode[Payload, ValuePath] {
 
   override def accept(visitor: PartitionTreeVisitor[Payload]): Unit = visitor.visit(this)
@@ -153,16 +153,16 @@ object SplitByValue {
   val KIND = "value"
   val KEY_KEY = "key"
   val TYPE_KEY = "type"
-  val PIVOT_KEY = "pivot"
+  val SEPARATOR_KEY = "separator"
   val LESS_KEY = "less"
   val MORE_KEY = "moreOrNull"
 
-  def apply[Payload, DataType](pivot: DataType, key: String, less: AnyNode[Payload], more: AnyNode[Payload]): SplitByValue[Payload,DataType]
-    = SplitByValue(pivot, PathKey(key), less, more)
-  def apply[Payload, DataType](pivot: DataType, key: PathKey, less: Payload, more: Payload): SplitByValue[Payload,DataType]
-    = SplitByValue(pivot, key, Bucket(less), Bucket(more))
-  def apply[Payload, DataType](pivot: DataType, key: String, less: Payload, more: Payload): SplitByValue[Payload,DataType]
-    = SplitByValue(pivot, PathKey(key), less, more)
+  def apply[Payload, DataType](separator: DataType, key: String, less: AnyNode[Payload], more: AnyNode[Payload]): SplitByValue[Payload,DataType]
+    = SplitByValue(separator, PathKey(key), less, more)
+  def apply[Payload, DataType](separator: DataType, key: PathKey, less: Payload, more: Payload): SplitByValue[Payload,DataType]
+    = SplitByValue(separator, key, Bucket(less), Bucket(more))
+  def apply[Payload, DataType](separator: DataType, key: String, less: Payload, more: Payload): SplitByValue[Payload,DataType]
+    = SplitByValue(separator, PathKey(key), less, more)
 }
 
 //
@@ -206,26 +206,26 @@ object PartitionByValueSerializer extends JsonSerializer[SplitByValue[String,_]]
         obj.addProperty(SplitByValue.KEY_KEY, node.key.toString())
         obj.add(SplitByValue.LESS_KEY, ctx.serialize(node.less))
         obj.add(SplitByValue.MORE_KEY, ctx.serialize(node.more))
-        node.pivot match {
+        node.separator match {
           case str: String => {
             obj.addProperty(SplitByValue.TYPE_KEY, "String")
-            obj.addProperty(SplitByValue.PIVOT_KEY, str)
+            obj.addProperty(SplitByValue.SEPARATOR_KEY, str)
           }
           case bool: Boolean => {
             obj.addProperty(SplitByValue.TYPE_KEY, "Boolean")
-            obj.addProperty(SplitByValue.PIVOT_KEY, bool)
+            obj.addProperty(SplitByValue.SEPARATOR_KEY, bool)
           }
           case int: Int => {
             obj.addProperty(SplitByValue.TYPE_KEY, "Int")
-            obj.addProperty(SplitByValue.PIVOT_KEY, int)
+            obj.addProperty(SplitByValue.SEPARATOR_KEY, int)
           }
           case long: Long => {
             obj.addProperty(SplitByValue.TYPE_KEY, "Long")
-            obj.addProperty(SplitByValue.PIVOT_KEY, long)
+            obj.addProperty(SplitByValue.SEPARATOR_KEY, long)
           }
           case double: Double => {
             obj.addProperty(SplitByValue.TYPE_KEY, "Double")
-            obj.addProperty(SplitByValue.PIVOT_KEY, double)
+            obj.addProperty(SplitByValue.SEPARATOR_KEY, double)
           }
         }
         obj
@@ -305,11 +305,11 @@ object PartitionByValueDeserializer extends JsonDeserializer[SplitByValue[String
               val lessKey = ctx.deserialize[AnyNode[String]](obj.get(SplitByValue.LESS_KEY), classOf[AnyNode[String]])
               val moreKey = ctx.deserialize[AnyNode[String]](obj.get(SplitByValue.MORE_KEY), classOf[AnyNode[String]])
               obj.get(SplitByValue.TYPE_KEY).getAsString() match {
-                case "String" => SplitByValue(obj.get(SplitByValue.PIVOT_KEY).getAsString(), key, lessKey, moreKey)
-                case "Boolean" => SplitByValue(obj.get(SplitByValue.PIVOT_KEY).getAsBoolean(), key, lessKey, moreKey)
-                case "Int" => SplitByValue(obj.get(SplitByValue.PIVOT_KEY).getAsInt(), key, lessKey, moreKey)
-                case "Long" => SplitByValue(obj.get(SplitByValue.PIVOT_KEY).getAsLong(), key, lessKey, moreKey)
-                case "Double" => SplitByValue(obj.get(SplitByValue.PIVOT_KEY).getAsDouble(), key, lessKey, moreKey)
+                case "String" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsString(), key, lessKey, moreKey)
+                case "Boolean" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsBoolean(), key, lessKey, moreKey)
+                case "Int" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsInt(), key, lessKey, moreKey)
+                case "Long" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsLong(), key, lessKey, moreKey)
+                case "Double" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsDouble(), key, lessKey, moreKey)
               }
           }
           case _ => throw new JsonParseException(s"$json is not an object")

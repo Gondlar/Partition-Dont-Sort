@@ -31,8 +31,12 @@ class PathKeySpec extends WavesSpec
             }
 
             "have a valid string representation" in {
-                PathKey("foo").toString should equal ("foo")
-                PathKey("foo").toSpark should equal ("foo")
+                val name = "foo"
+                val key = PathKey(name)
+                key.toString should equal (name)
+                key.toSpark should equal (name)
+                key.toDotfreeString should equal (name)
+                key.toCol should equal (col(name))
             }
 
             "have a maximum definition level of 1" in {
@@ -115,6 +119,7 @@ class PathKeySpec extends WavesSpec
                 val key = PathKey(name)
                 key.toString should equal (name)
                 key.toSpark should equal (name)
+                key.toDotfreeString should equal ("foo/bar")
                 key.toCol should equal (col(name))
             }
 

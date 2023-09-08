@@ -117,37 +117,53 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         lineGraph.absoluteProbability(PathKey("bar")) should equal (0)
       }
     }
-    "create RSIGraphs resulting from a split by presence" in {
-      Given("An RSIGraph and a split path")
-      val graph = bushyGraph
-      val path = PathKey("a.c")
+    "determine the separator for a leaf" when {
+      "the path has metadata" in {
+        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("a.b")), .75).value should equal (11)
+      }
+      "the path has no metadata" in {
+        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("f")), .75) shouldBe 'left
+      }
+      "the path is invalid" in {
+        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("foobar")), .75) shouldBe 'left
+      }
+    }
+    "create RSIGraphs resulting from a split by presence" when {
+      "it is a valid path" in {
+        Given("An RSIGraph and a split path")
+        val graph = bushyGraph
+        val path = PathKey("a.c")
 
-      When("we split it")
-      val (absent, present) = graph.splitBy(path)
+        When("we split it")
+        val (absent, present) = graph.splitBy(path).value
 
-      Then("the splits should be correct")
-      val absentGraph = RSIGraph(
-        ("a", 0.25, RSIGraph(
-          ("b", 1d, RSIGraph.empty),
-          ("c", 0d, RSIGraph(
-            ("d", 1d, RSIGraph.empty),
-            ("e", 1d, RSIGraph.empty)
-          ))
-        )),
-        ("f", 0.75, RSIGraph.empty)
-      )
-      val presentGraph = RSIGraph(
-        ("a", 1d, RSIGraph(
-          ("b", 1d, RSIGraph.empty),
-          ("c", 1d, RSIGraph(
-            ("d", 1d, RSIGraph.empty),
-            ("e", 1d, RSIGraph.empty)
-          ))
-        )),
-        ("f", 0.75, RSIGraph.empty)
-      )
-      present should equal (presentGraph)
-      absent should equal (absentGraph)
+        Then("the splits should be correct")
+        val absentGraph = RSIGraph(
+          ("a", 0.25, RSIGraph(
+            ("b", 1d, RSIGraph.empty),
+            ("c", 0d, RSIGraph(
+              ("d", 1d, RSIGraph.empty),
+              ("e", 1d, RSIGraph.empty)
+            ))
+          )),
+          ("f", 0.75, RSIGraph.empty)
+        )
+        val presentGraph = RSIGraph(
+          ("a", 1d, RSIGraph(
+            ("b", 1d, RSIGraph.empty),
+            ("c", 1d, RSIGraph(
+              ("d", 1d, RSIGraph.empty),
+              ("e", 1d, RSIGraph.empty)
+            ))
+          )),
+          ("f", 0.75, RSIGraph.empty)
+        )
+        present should equal (presentGraph)
+        absent should equal (absentGraph)
+      }
+      "when the path is certain" in {
+        bushyGraph.splitBy(PathKey("a.b")) shouldBe 'left
+      }
     }
     "create RSIGraphs resulting from a split by percentile" when {
       "the quantile is not a percentage" in {
@@ -209,6 +225,10 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       }
       "it has metadata" in {
         bushyGraphWithMetadata.gini should equal (2.3125)
+      }
+      "it has metadata for always absent columns" in {
+        val graph = RSIGraph(("foo", 0d, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 10, 4)))))
+        graph.gini should equal (0)
       }
     }
   }

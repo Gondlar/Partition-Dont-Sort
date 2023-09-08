@@ -165,9 +165,17 @@ class ColumnMetadataSpec extends WavesSpec {
       an [AssertionError] shouldBe thrownBy (StringColumnMetadata("def", "abc", 1))
       an [AssertionError] shouldBe thrownBy (StringColumnMetadata("abc", "def", 0))
     }
-    "calculate the correct separator" in {
-      StringColumnMetadata("#abc", "#def", 10).separator(.75) should equal ("#cde")
-      StringColumnMetadata("#abc", "#cba", 10).separator() should equal ("#bbb")
+    "calculate the correct separator" when {
+      "the strings do not contain unicode" in {
+        StringColumnMetadata("#abc", "#def", 10).separator(.75) should equal ("#cde")
+        StringColumnMetadata("#abc", "#cba", 10).separator() should equal ("#bbb")
+      }
+      "the strings contain unicode" in {
+        val separator = StringColumnMetadata("A", "🐬", 10).separator()
+        separator shouldBe (<=("🐬"))
+        separator shouldBe (>=("A"))
+        separator should equal ("氿")
+      }
     }
     "not be splittable" when {
       "there is just one value" in {

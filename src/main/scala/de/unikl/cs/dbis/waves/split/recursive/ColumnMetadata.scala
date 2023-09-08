@@ -140,14 +140,20 @@ final case class StringColumnMetadata(
   assert(min <= max, s"min: $min <= max: $max")
 
   override def separator(quantile: Double): String = {
-    val minBytes = min.codePoints().iterator().asScala
-    val maxBytes = max.codePoints().iterator().asScala
-    val middle = for {
-      (minCodePoint, maxCodePoint) <- minBytes.zip(maxBytes)
-      middle = ((maxCodePoint - minCodePoint)*quantile).toInt + minCodePoint // this will not work
-      ch <- Character.toChars(middle)
-    } yield ch
-    new String(middle.toArray)
+    // Yeah... so if we handle unicode correctly the native ordering on strings disagrees with the result
+    // val minBytes = min.codePoints().iterator().asScala
+    // val maxBytes = max.codePoints().iterator().asScala
+    // val middle = for {
+    //   (minCodePoint, maxCodePoint) <- minBytes.zip(maxBytes)
+    //   middle = ((maxCodePoint - minCodePoint)*quantile).toInt + minCodePoint // this will not work
+    //   ch <- Character.toChars(middle)
+    // } yield ch
+
+    // lets do it the wrong way instead
+    val mid = for {
+      (minChar, maxChar) <- min.zip(max)
+    } yield ((maxChar - minChar)*quantile + minChar).toChar
+    new String(mid.toArray)
   }
 
   override def split(quantile: Double): Either[String,(StringColumnMetadata, StringColumnMetadata)] = {

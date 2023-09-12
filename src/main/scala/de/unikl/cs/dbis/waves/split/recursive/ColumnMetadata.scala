@@ -151,20 +151,29 @@ final case class StringColumnMetadata(
 
     // lets do it the wrong way instead
     val (paddedMin, paddedMax) = zeroPaddedStrings
+    var carry: Char = 0
     val mid = for {
-      (minChar, maxChar) <- paddedMin.zip(paddedMax)
-    } yield ((maxChar - minChar)*quantile + minChar).toChar
-    new String(mid.toArray)
+      (minChar, maxChar) <- paddedMin.zip(paddedMax).reverse
+    } yield {
+      val adjustedMinChar = minChar + carry
+      val toNextRollover = Char.MaxValue - adjustedMinChar
+      val distance = if (maxChar >= adjustedMinChar) maxChar-adjustedMinChar else maxChar+toNextRollover
+      val partialDistance = (distance*quantile).toChar
+      carry = if (partialDistance > toNextRollover) 1 else 0
+      (adjustedMinChar+partialDistance).toChar
+    }
+    new String(mid.reverse.toArray)
   }
 
   /**
     * @return (min, max) such that the shorter of them (if any) is padded with
-    *         one \0 character at the end. This ensures that all strings are at
-    *         least of length 1.
+    *         one \0 character at the end and the longer string is truncated at
+    *         that length. This ensures that all strings are at least of length
+    *         1.
     */
   private def zeroPaddedStrings = {
-    if (min.length() < max.length()) (s"$min\0", max)
-    else if (max.length() < min.length()) (min, s"$max\0")
+    if (min.length() < max.length()) (s"$min\0", max.substring(0, min.length()+1))
+    else if (max.length() < min.length()) (min.substring(0, max.length()+1), s"$max\0")
     else (min, max)
   }
 

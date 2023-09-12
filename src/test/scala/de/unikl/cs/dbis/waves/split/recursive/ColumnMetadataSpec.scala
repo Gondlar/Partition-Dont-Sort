@@ -168,7 +168,7 @@ class ColumnMetadataSpec extends WavesSpec {
     "calculate the correct separator" when {
       "the strings do not contain unicode" in {
         StringColumnMetadata("#abc", "#def", 10).separator(.75) should equal ("#cde")
-        StringColumnMetadata("#abc", "#cba", 10).separator() should equal ("#bbb")
+        StringColumnMetadata("#abc", "#cba", 10).separator() should equal ("#bb聡")
       }
       "the strings contain unicode" in {
         val separator = StringColumnMetadata("A", "🐬", 10).separator()
@@ -181,6 +181,9 @@ class ColumnMetadataSpec extends WavesSpec {
         // if min and max are both empty, the column is not splittable
         StringColumnMetadata("", "Z", 2).separator() should equal ("-")
       }
+      "there is a carry in the calculation" in {
+        StringColumnMetadata(s"A${(Char.MaxValue-10).toChar}", "BZ", 2).separator() should equal ("B'")
+      }
     }
     "not be splittable" when {
       "there is just one value" in {
@@ -190,10 +193,17 @@ class ColumnMetadataSpec extends WavesSpec {
         StringColumnMetadata("abc", "abc", 2).split() should be ('left)
       }
     }
-    "split correctly" in {
-      StringColumnMetadata("#abc", "#def", 8).split(.75).value should equal (
-        StringColumnMetadata("#abc", "#cde", 6), StringColumnMetadata("#cdf", "#def", 2)
-      )
+    "split correctly" when {
+      "the max string is larger at every char" in {
+        StringColumnMetadata("#abc", "#def", 8).split(.75).value should equal (
+          StringColumnMetadata("#abc", "#cde", 6), StringColumnMetadata("#cdf", "#def", 2)
+        )
+      }
+      "the max string has a character that is the successor of the corresponding min character" in {
+        StringColumnMetadata("#abccc", "#bac", 2).split().value should equal (
+          StringColumnMetadata("#abccc", "#a聡c耱", 1), StringColumnMetadata("#a聡c耲", "#bac", 1)
+        )
+      }
     }
   }
 

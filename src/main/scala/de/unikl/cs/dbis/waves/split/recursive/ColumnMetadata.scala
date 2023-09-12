@@ -150,10 +150,22 @@ final case class StringColumnMetadata(
     // } yield ch
 
     // lets do it the wrong way instead
+    val (paddedMin, paddedMax) = zeroPaddedStrings
     val mid = for {
-      (minChar, maxChar) <- min.zip(max)
+      (minChar, maxChar) <- paddedMin.zip(paddedMax)
     } yield ((maxChar - minChar)*quantile + minChar).toChar
     new String(mid.toArray)
+  }
+
+  /**
+    * @return (min, max) such that the shorter of them (if any) is padded with
+    *         one \0 character at the end. This ensures that all strings are at
+    *         least of length 1.
+    */
+  private def zeroPaddedStrings = {
+    if (min.length() < max.length()) (s"$min\0", max)
+    else if (max.length() < min.length()) (min, s"$max\0")
+    else (min, max)
   }
 
   override def split(quantile: Double): Either[String,(StringColumnMetadata, StringColumnMetadata)] = {
@@ -164,6 +176,4 @@ final case class StringColumnMetadata(
       Right(StringColumnMetadata(min, boundary, partialValues), StringColumnMetadata(next, max, distinct-partialValues))
     }
   }
-
-
 }

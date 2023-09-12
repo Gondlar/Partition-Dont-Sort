@@ -174,7 +174,12 @@ class ColumnMetadataSpec extends WavesSpec {
         val separator = StringColumnMetadata("A", "🐬", 10).separator()
         separator shouldBe (<=("🐬"))
         separator shouldBe (>=("A"))
-        separator should equal ("氿")
+        separator should equal ("氿渖")
+      }
+      "the min boundary is empty" in {
+        // since the emtpy string is the smallest one, ist must be min
+        // if min and max are both empty, the column is not splittable
+        StringColumnMetadata("", "Z", 2).separator() should equal ("-")
       }
     }
     "not be splittable" when {

@@ -21,7 +21,7 @@ final class FindBucketVisitor[Payload](
     override def visit(node: SplitByPresence[Payload]): Unit
         = (if (node.key.present(row, schema)) node.presentKey else node.absentKey).accept(this)
 
-    override def visit[DataType](node: SplitByValue[Payload,DataType]): Unit
+    override def visit(node: SplitByValue[Payload]): Unit
         = ??? //TODO
 
     override def visit(root: Spill[Payload]): Unit = root.partitioned.accept(this)

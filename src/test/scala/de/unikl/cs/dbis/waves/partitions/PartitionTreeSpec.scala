@@ -252,6 +252,6 @@ case class MockVisitor(override val result: Int) extends SingleResultVisitor[Str
 
   override def visit(bucket: Bucket[String]): Unit = visitBucketCalled = true
   override def visit(node: SplitByPresence[String]): Unit = visitSplitCalled = true
-  override def visit[DataType](node: SplitByValue[String, DataType]): Unit = visitValueCalled = true
+  override def visit(node: SplitByValue[String]): Unit = visitValueCalled = true
   override def visit(root: Spill[String]): Unit = visitSpillCalled = true
 }

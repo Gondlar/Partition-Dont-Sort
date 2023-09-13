@@ -2,17 +2,18 @@ package de.unikl.cs.dbis.waves.split.recursive
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.ArrayType
 
-import collection.JavaConverters._
-import org.apache.spark.sql.types.StringType
+import de.unikl.cs.dbis.waves.util.ColumnValue
 
-sealed trait ColumnMetadata[+Type] {
-  protected def min: Type
-  protected def max: Type
-  def distinct: Long
-
+final case class ColumnMetadata(
+  val min: ColumnValue,
+  val max: ColumnValue,
+  val distinct: Long
+) {
   assert(distinct >= 1)
+  assert(min isOfSameTypeAs max)
+  assert(min <= max)
 
   /**
     * @return The GiniCoefficient of the data in this column
@@ -26,163 +27,36 @@ sealed trait ColumnMetadata[+Type] {
     * @param quantile the percantage of values to go in the left bucket
     * @return the separator
     */
-  def separator(quantile: Double = .5): Type
-  def split(quantile: Double = .5): Either[String,(ColumnMetadata[Type], ColumnMetadata[Type])]
+  def separator(quantile: Double = .5): ColumnValue
+    = min.interpolate(max, quantile)
+
+  def split(quantile: Double = .5): Either[String,(ColumnMetadata, ColumnMetadata)] = {
+    if (distinct == 1 || min >= max) Left("range cannot be split") else {
+      val lowBoundary = separator(quantile)
+      val highBoundary = lowBoundary.successor
+      val lessValues = (distinct*quantile).toLong
+      val greaterValues = distinct - lessValues
+      Right((
+        ColumnMetadata(min, lowBoundary, lessValues),
+        ColumnMetadata(highBoundary, max, greaterValues)
+      ))
+    }
+  }
 }
 
 object ColumnMetadata extends Logging {
-  def fromRows(data: Row, minIndex: Int, maxIndex: Int, distinctIndex: Int): Option[ColumnMetadata[_]] = {
+  def fromRows(data: Row, minIndex: Int, maxIndex: Int, distinctIndex: Int): Option[ColumnMetadata] = {
     val distinct = data.getLong(distinctIndex)
     if (distinct == 0) None else try {
-      val tpe = data.schema.fields(minIndex).dataType
-      assert(data.schema.fields(maxIndex).dataType == tpe)
-      tpe match {
-        case BooleanType => Some(BooleanColumnMetadata(distinct))
-        case IntegerType => Some(IntColumnMetadata(data.getInt(minIndex), data.getInt(maxIndex), distinct))
-        case LongType => Some(LongColumnMetadata(data.getLong(minIndex), data.getLong(maxIndex), distinct))
-        case DoubleType => Some(DoubleColumnMetadata(data.getDouble(minIndex), data.getDouble(maxIndex), distinct))
-        case StringType => Some(StringColumnMetadata(data.getString(minIndex), data.getString(maxIndex), distinct))
-        case ArrayType(_, _) => None // silently ignore array
-        case _ => {
-          logWarning(s"Ignoring Colum $minIndex with unimplemented type $tpe")
-          None
-        }
-      }
+      val col = for {
+        min <- ColumnValue.fromRow(data, minIndex)
+        max <- ColumnValue.fromRow(data, maxIndex)
+      } yield ColumnMetadata(min, max, data.getLong(distinctIndex))
+      if (col.isEmpty && !data.schema.fields(minIndex).dataType.isInstanceOf[ArrayType])
+        logWarning(s"Ignoring Colum $minIndex with unimplemented type ${data.schema.fields(minIndex).dataType}")
+      col
     } catch {
       case e: IllegalArgumentException => None
-    }
-  }
-}
-
-final case class BooleanColumnMetadata(
-  distinct: Long
-) extends ColumnMetadata[Boolean] {
-  assert(distinct == 1 || distinct == 2)
-
-  override def min: Boolean = false
-  override def max: Boolean = true
-
-  override def separator(quantile: Double): Boolean = false
-
-  override def split(quantile: Double): Either[String,(BooleanColumnMetadata, BooleanColumnMetadata)] = {
-    if (distinct == 1) Left("range cannot be split") else {
-      Right((BooleanColumnMetadata(1), BooleanColumnMetadata(1)))
-    }
-  }
-}
-
-final case class IntColumnMetadata(
-  min: Int,
-  max: Int,
-  distinct: Long
-) extends ColumnMetadata[Int] {
-  assert(min <= max, s"min: $min <= max: $max")
-
-  override def separator(quantile: Double): Int = {
-    val partialRange = ((max - min + 1)*quantile).toInt
-    min + partialRange - 1
-  }
-  override def split(quantile: Double): Either[String,(IntColumnMetadata, IntColumnMetadata)] = {
-    if (distinct == 1 || min == max) Left("range cannot be split") else {
-      val partialValues = (distinct*quantile).toLong
-      val boundary = separator(quantile)
-      Right((IntColumnMetadata(min, boundary, partialValues), IntColumnMetadata(boundary + 1, max, distinct-partialValues)))
-    }
-  }
-}
-
-final case class LongColumnMetadata(
-  min: Long,
-  max: Long,
-  distinct: Long
-) extends ColumnMetadata[Long] {
-  assert(min <= max, s"min: $min <= max: $max")
-
-  override def separator(quantile: Double): Long = {
-    val partialRange = ((max - min + 1)*quantile).toLong
-    min + partialRange - 1
-  }
-
-  override def split(quantile: Double): Either[String,(LongColumnMetadata, LongColumnMetadata)] = {
-    if (distinct == 1 || min == max) Left("range cannot be split") else {
-      val partialValues = (distinct*quantile).toLong
-      val boundary = separator(quantile)
-      Right(LongColumnMetadata(min, boundary, partialValues), LongColumnMetadata(boundary + 1, max, distinct-partialValues))
-    }
-  }
-}
-
-final case class DoubleColumnMetadata(
-  min: Double,
-  max: Double,
-  distinct: Long
-) extends ColumnMetadata[Double] {
-  assert(min <= max, s"min: $min <= max: $max")
-
-  override def separator(quantile: Double): Double = {
-    val partialRange = (max - min)*quantile
-    min + partialRange
-  }
-  override def split(quantile: Double): Either[String,(DoubleColumnMetadata, DoubleColumnMetadata)] = {
-    if (distinct == 1 || min == max) Left("range cannot be split") else {
-      val partialValues = (distinct*quantile).toLong
-      val boundary = separator(quantile)
-      Right(DoubleColumnMetadata(min, boundary, partialValues), DoubleColumnMetadata(boundary, max, distinct-partialValues))
-    }
-  }
-}
-
-final case class StringColumnMetadata(
-  min: String,
-  max: String,
-  distinct: Long
-) extends ColumnMetadata[String] {
-  assert(min <= max, s"min: $min <= max: $max")
-
-  override def separator(quantile: Double): String = {
-    // Yeah... so if we handle unicode correctly the native ordering on strings disagrees with the result
-    // val minBytes = min.codePoints().iterator().asScala
-    // val maxBytes = max.codePoints().iterator().asScala
-    // val middle = for {
-    //   (minCodePoint, maxCodePoint) <- minBytes.zip(maxBytes)
-    //   middle = ((maxCodePoint - minCodePoint)*quantile).toInt + minCodePoint // this will not work
-    //   ch <- Character.toChars(middle)
-    // } yield ch
-
-    // lets do it the wrong way instead
-    val (paddedMin, paddedMax) = zeroPaddedStrings
-    var carry: Char = 0
-    val mid = for {
-      (minChar, maxChar) <- paddedMin.zip(paddedMax).reverse
-    } yield {
-      val adjustedMinChar = minChar + carry
-      val toNextRollover = Char.MaxValue - adjustedMinChar
-      val distance = if (maxChar >= adjustedMinChar) maxChar-adjustedMinChar else maxChar+toNextRollover
-      val partialDistance = (distance*quantile).toChar
-      carry = if (partialDistance > toNextRollover) 1 else 0
-      (adjustedMinChar+partialDistance).toChar
-    }
-    new String(mid.reverse.toArray)
-  }
-
-  /**
-    * @return (min, max) such that the shorter of them (if any) is padded with
-    *         one \0 character at the end and the longer string is truncated at
-    *         that length. This ensures that all strings are at least of length
-    *         1.
-    */
-  private def zeroPaddedStrings = {
-    if (min.length() < max.length()) (s"$min\0", max.substring(0, min.length()+1))
-    else if (max.length() < min.length()) (min.substring(0, max.length()+1), s"$max\0")
-    else (min, max)
-  }
-
-  override def split(quantile: Double): Either[String,(StringColumnMetadata, StringColumnMetadata)] = {
-    if (distinct == 1 || min == max) Left("range cannot be split") else {
-      val partialValues = (distinct*quantile).toLong
-      val boundary = separator(quantile)
-      val next = s"${boundary.substring(0, boundary.size-1)}${(boundary.last+1).toChar}"
-      Right(StringColumnMetadata(min, boundary, partialValues), StringColumnMetadata(next, max, distinct-partialValues))
     }
   }
 }

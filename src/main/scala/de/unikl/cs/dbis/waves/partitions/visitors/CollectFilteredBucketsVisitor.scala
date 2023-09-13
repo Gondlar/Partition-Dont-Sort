@@ -48,7 +48,7 @@ final class CollectFilteredBucketsVisitor[Payload](
             node.absentKey.accept(this)
     }
 
-    override def visit[DataType](node: SplitByValue[Payload,DataType]) : Unit = {
+    override def visit(node: SplitByValue[Payload]) : Unit = {
         //TODO check if predicates are filfillable given the value split
         if (CollectFilteredBucketsVisitor.eval(node.key, true, filters).isFulfillable)
             node.less.accept(this)

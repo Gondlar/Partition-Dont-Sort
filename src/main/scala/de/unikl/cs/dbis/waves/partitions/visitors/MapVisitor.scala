@@ -30,7 +30,7 @@ extends SingleResultVisitor[From,AnyNode[To]] {
       theResult = SplitByPresence(node.key, result, absent)  
     }
 
-    override def visit[DataType](node: SplitByValue[From,DataType]) : Unit = {
+    override def visit(node: SplitByValue[From]) : Unit = {
       node.less.accept(this)
       val less = result
       node.more.accept(this)

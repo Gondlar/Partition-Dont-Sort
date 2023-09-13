@@ -4,6 +4,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.SchemaFixture
 
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.IntegerColumn
 
 class RSIGraphSpec extends WavesSpec with SchemaFixture {
 
@@ -93,19 +94,19 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
     "set metadata" when {
       "the path is valid" in {
         val path = Some(PathKey("foo.bar.baz"))
-        val metadata = IntColumnMetadata(0, 10, 4)
+        val metadata = ColumnMetadata(0, 10, 4)
         lineGraph.setMetadata(path, metadata).value should equal (
           RSIGraph(("foo", 0.25, RSIGraph(("bar", 1d, RSIGraph(("baz", 0.75, RSIGraph(Map.empty[String, (Double, RSIGraph)], Some(metadata))))))))
         )
       }
       "the path does not exist" in {
         val path = Some(PathKey("bar"))
-        val metadata = IntColumnMetadata(0, 10, 4)
+        val metadata = ColumnMetadata(0, 10, 4)
         lineGraph.setMetadata(path, metadata).left.value should equal ("bar is not a valid path")
       }
       "the path is not a leaf" in {
         val path = Some(PathKey("foo.bar"))
-        val metadata = IntColumnMetadata(0, 10, 4)
+        val metadata = ColumnMetadata(0, 10, 4)
         lineGraph.setMetadata(path, metadata).left.value should equal ("path is not a leaf")
       }
     }
@@ -119,7 +120,7 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
     }
     "determine the separator for a leaf" when {
       "the path has metadata" in {
-        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("a.b")), .75).value should equal (11)
+        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("a.b")), .75).value should equal (IntegerColumn(11))
       }
       "the path has no metadata" in {
         bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("f")), .75) shouldBe 'left
@@ -186,7 +187,7 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         Then("they look as expected")
         val trueGraph = RSIGraph(
           ("a", 1d, RSIGraph(
-            ("b", 1d, RSIGraph(Map.empty[String,(Double,RSIGraph)], Some(IntColumnMetadata(3, 11, 3)))),
+            ("b", 1d, RSIGraph(Map.empty[String,(Double,RSIGraph)], Some(ColumnMetadata(3, 11, 3)))),
             ("c", 0.5, RSIGraph(
               ("d", 1d, RSIGraph.empty),
               ("e", 1d, RSIGraph.empty)
@@ -198,7 +199,7 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         
         val falseGraph = RSIGraph(
           ("a", 0d, RSIGraph(
-            ("b", 1d, RSIGraph(Map.empty[String,(Double,RSIGraph)], Some(IntColumnMetadata(12, 14, 1)))),
+            ("b", 1d, RSIGraph(Map.empty[String,(Double,RSIGraph)], Some(ColumnMetadata(12, 14, 1)))),
             ("c", 0.5, RSIGraph(
               ("d", 1d, RSIGraph.empty),
               ("e", 1d, RSIGraph.empty)
@@ -227,7 +228,7 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
         bushyGraphWithMetadata.gini should equal (2.3125)
       }
       "it has metadata for always absent columns" in {
-        val graph = RSIGraph(("foo", 0d, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 10, 4)))))
+        val graph = RSIGraph(("foo", 0d, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 10, 4)))))
         graph.gini should equal (0)
       }
     }
@@ -249,5 +250,5 @@ class RSIGraphSpec extends WavesSpec with SchemaFixture {
       )),
       ("f", 0.75, RSIGraph.empty)
     )
-  val bushyGraphWithMetadata = bushyGraph.setMetadata(Some(PathKey("a.b")), IntColumnMetadata(3, 14, 4)).right.get
+  val bushyGraphWithMetadata = bushyGraph.setMetadata(Some(PathKey("a.b")), ColumnMetadata(3, 14, 4)).right.get
 }

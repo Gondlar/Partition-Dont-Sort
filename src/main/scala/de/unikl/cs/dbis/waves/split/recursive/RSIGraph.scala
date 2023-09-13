@@ -1,5 +1,6 @@
 package de.unikl.cs.dbis.waves.split.recursive
 
+import de.unikl.cs.dbis.waves.util.ColumnValue
 import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.types.StructType
 
@@ -12,7 +13,7 @@ import org.apache.spark.sql.types.StructType
   */
 final case class RSIGraph(
   children: Map[String, (Double, RSIGraph)] = Map.empty,
-  leafMetadata: Option[ColumnMetadata[_]] = None
+  leafMetadata: Option[ColumnMetadata] = None
 ) {
   assert(children.values.map(_._1).forall(p => p >= 0 && p <= 1))
   assert(!leafMetadata.isDefined || children.isEmpty)
@@ -60,7 +61,7 @@ final case class RSIGraph(
     * @param metadata the metadata to set
     * @return the updated RSIGraph or a String describing the error
     */
-  def setMetadata(path: Option[PathKey], metadata: ColumnMetadata[_]): Either[String,RSIGraph]
+  def setMetadata(path: Option[PathKey], metadata: ColumnMetadata): Either[String,RSIGraph]
     = path.map{ p => 
         val step = p.head
         for { childTuple <- children.get(step).toRight(s"$p is not a valid path")
@@ -96,7 +97,7 @@ final case class RSIGraph(
     * @param quantile the quantile of values from the column, defaults to the median
     * @return The value or an error if the path does not lead to a leaf with metadata
     */
-  def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,Any]
+  def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,ColumnValue]
     = path match {
       case None => leafMetadata
         .toRight("no metadata available")

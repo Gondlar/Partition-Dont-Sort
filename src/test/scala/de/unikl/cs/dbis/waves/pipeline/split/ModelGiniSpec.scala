@@ -3,14 +3,14 @@ package de.unikl.cs.dbis.waves.pipeline.split
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 
+import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
+import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.PathKey
 
 import org.apache.spark.sql.functions.col
-import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
-import de.unikl.cs.dbis.waves.split.recursive.IntColumnMetadata
 
 class ModelGiniSpec extends WavesSpec
   with DataFrameFixture {
@@ -21,12 +21,12 @@ class ModelGiniSpec extends WavesSpec
       "the DataFrame is non-empty" in {
         ModelGini.dfToRSIGraph(df, schema) should equal (
           RSIGraph(
-            ("a", .5, RSIGraph(leafMetadata = Some(IntColumnMetadata(5,5,1)))),
+            ("a", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(5,5,1)))),
             ("b", .5, RSIGraph(
-              ("c", 1d, RSIGraph(leafMetadata = Some(IntColumnMetadata(1,1,1)))),
-              ("d", .5, RSIGraph(leafMetadata = Some(IntColumnMetadata(5,5,1))))
+              ("c", 1d, RSIGraph(leafMetadata = Some(ColumnMetadata(1,1,1)))),
+              ("d", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(5,5,1))))
             )),
-            ("e", 1, RSIGraph(leafMetadata = Some(IntColumnMetadata(42,42,1))))
+            ("e", 1, RSIGraph(leafMetadata = Some(ColumnMetadata(42,42,1))))
           )
         )
       }

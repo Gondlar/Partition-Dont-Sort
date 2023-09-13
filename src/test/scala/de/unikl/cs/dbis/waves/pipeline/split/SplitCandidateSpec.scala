@@ -5,7 +5,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
-import de.unikl.cs.dbis.waves.split.recursive.IntColumnMetadata
+import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
 import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
 import de.unikl.cs.dbis.waves.util.PathKey
 
@@ -20,8 +20,8 @@ class SplitCandidateSpec extends WavesSpec
       "it is a presence split" when {
         "it is a valid location" in {
           presenceCandidate.split(graph).value should equal ((
-            RSIGraph(("a", 1d, RSIGraph(("b", .5, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 9, 6))))))),
-            RSIGraph(("a", 0d, RSIGraph(("b", .5, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 9, 6)))))))
+            RSIGraph(("a", 1d, RSIGraph(("b", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 9, 6))))))),
+            RSIGraph(("a", 0d, RSIGraph(("b", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 9, 6)))))))
           ))
         }
         "it is an invalid location" in {
@@ -33,7 +33,7 @@ class SplitCandidateSpec extends WavesSpec
       }
       "it is a median split" in {
         val (left, right) = medianCandidate.split(graph).value
-        left should equal (RSIGraph(("a", 1d, RSIGraph(("b", 1d, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 4, 3))))))))
+        left should equal (RSIGraph(("a", 1d, RSIGraph(("b", 1d, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 4, 3))))))))
         right.absoluteProbability(PathKey("a")) should equal (0.4285714285 +- 0.0000000001)
         right.absoluteProbability(PathKey("a.b")) should equal ((0.4285714285/3) +- 0.0000000001)
 
@@ -41,7 +41,7 @@ class SplitCandidateSpec extends WavesSpec
         val nodeA = right.children("a")._2
         val nodeB = nodeA.children("b")._2
         val newGraph = right.copy(children = Map("a" -> (1d, nodeA.copy(children = Map("b" -> (1d, nodeB))))))
-        newGraph should equal (RSIGraph(("a", 1d, RSIGraph(("b", 1d, RSIGraph(leafMetadata = Some(IntColumnMetadata(5, 9, 3))))))))
+        newGraph should equal (RSIGraph(("a", 1d, RSIGraph(("b", 1d, RSIGraph(leafMetadata = Some(ColumnMetadata(5, 9, 3))))))))
       }
     }
     "give its path options" when {
@@ -69,11 +69,11 @@ class SplitCandidateSpec extends WavesSpec
       }
       "it is a median split" in {
         Given("A graph and split candidate")
-        val graph = RSIGraph(("a", .5, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 9, 6)))))
+        val graph = RSIGraph(("a", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 9, 6)))))
         val candidate = MedianSplitCandidate(PathKey("a"))
 
         When("we split a dataframe according to them")
-        val res = candidate.shape(df,graph).asInstanceOf[SplitByValue[Int, DataFrame]]
+        val res = candidate.shape(df,graph).asInstanceOf[SplitByValue[DataFrame]]
 
         Then("the shape has the right shape")
         res.shape should equal (SplitByValue(4, "a", (), ()))
@@ -86,5 +86,5 @@ class SplitCandidateSpec extends WavesSpec
   val presenceCandidate = PresenceSplitCandidate(PathKey("a"))
   val medianCandidate = MedianSplitCandidate(PathKey("a.b"))
 
-  val graph = RSIGraph(("a", .5, RSIGraph(("b", .5, RSIGraph(leafMetadata = Some(IntColumnMetadata(0, 9, 6)))))))
+  val graph = RSIGraph(("a", .5, RSIGraph(("b", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 9, 6)))))))
 }

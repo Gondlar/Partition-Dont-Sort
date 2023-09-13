@@ -43,7 +43,7 @@ extends SingleResultVisitor[Payload,AnyNode[Payload]] {
         }
     }
 
-    override def visit[DataType](node: SplitByValue[Payload,DataType]) : Unit = {
+    override def visit(node: SplitByValue[Payload]) : Unit = {
         if (node eq needle) found() else {
             node.less.accept(this)
             if (replaced) {

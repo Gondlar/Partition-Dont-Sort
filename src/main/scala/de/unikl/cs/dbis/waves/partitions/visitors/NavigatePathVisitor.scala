@@ -73,8 +73,8 @@ abstract class NavigatePathVisitor[Payload](
     override def visit(node: SplitByPresence[Payload]): Unit
       = navigate[SplitByPresencePath,SplitByPresence[Payload]](node)
 
-    override def visit[DataType](node: SplitByValue[Payload,DataType]): Unit
-      = navigate[ValuePath,SplitByValue[Payload,DataType]](node)
+    override def visit(node: SplitByValue[Payload]): Unit
+      = navigate[ValuePath,SplitByValue[Payload]](node)
 
     override def visit(root: Spill[Payload]): Unit
       = navigate[SpillPath,Spill[Payload]](root)

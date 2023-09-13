@@ -13,8 +13,8 @@ trait PartitionTreeFixture extends BeforeAndAfterEach
   var bucket : Bucket[String] = null
   var split : SplitByPresence[String] = null
   var spill : Spill[String] = null
-  var median : SplitByValue[String, Int] = null
-  var medianOnly : SplitByValue[String, Int] = null
+  var median : SplitByValue[String] = null
+  var medianOnly : SplitByValue[String] = null
 
   var bucketTree : PartitionTree[String] = null
   var splitTree : PartitionTree[String] = null

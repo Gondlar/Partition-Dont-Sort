@@ -18,6 +18,7 @@ import java.lang.reflect.Type
 
 import TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.partitions.visitors.SingleResultVisitor
+import de.unikl.cs.dbis.waves.util.ColumnValue
 
 /**
   * A TreeNode is any node in the PartitionTree
@@ -133,8 +134,8 @@ object SplitByPresence {
         = apply(key, Bucket(present), Bucket(absent))
 }
 
-final case class SplitByValue[+Payload, +DataType](
-  separator: DataType, key: PathKey, less: AnyNode[Payload],more: AnyNode[Payload]
+final case class SplitByValue[+Payload](
+  separator: ColumnValue, key: PathKey, less: AnyNode[Payload],more: AnyNode[Payload]
 ) extends TreeNode[Payload, ValuePath] {
 
   override def accept(visitor: PartitionTreeVisitor[Payload]): Unit = visitor.visit(this)
@@ -152,16 +153,15 @@ final case class SplitByValue[+Payload, +DataType](
 object SplitByValue {
   val KIND = "value"
   val KEY_KEY = "key"
-  val TYPE_KEY = "type"
   val SEPARATOR_KEY = "separator"
   val LESS_KEY = "less"
   val MORE_KEY = "moreOrNull"
 
-  def apply[Payload, DataType](separator: DataType, key: String, less: AnyNode[Payload], more: AnyNode[Payload]): SplitByValue[Payload,DataType]
+  def apply[Payload](separator: ColumnValue, key: String, less: AnyNode[Payload], more: AnyNode[Payload]): SplitByValue[Payload]
     = SplitByValue(separator, PathKey(key), less, more)
-  def apply[Payload, DataType](separator: DataType, key: PathKey, less: Payload, more: Payload): SplitByValue[Payload,DataType]
+  def apply[Payload](separator: ColumnValue, key: PathKey, less: Payload, more: Payload): SplitByValue[Payload]
     = SplitByValue(separator, key, Bucket(less), Bucket(more))
-  def apply[Payload, DataType](separator: DataType, key: String, less: Payload, more: Payload): SplitByValue[Payload,DataType]
+  def apply[Payload](separator: ColumnValue, key: String, less: Payload, more: Payload): SplitByValue[Payload]
     = SplitByValue(separator, PathKey(key), less, more)
 }
 
@@ -199,35 +199,14 @@ object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence[Str
     }
 }
 
-object PartitionByValueSerializer extends JsonSerializer[SplitByValue[String,_]] {
-    override def serialize(node: SplitByValue[String,_], t: Type, ctx: JsonSerializationContext): JsonElement = {
+object PartitionByValueSerializer extends JsonSerializer[SplitByValue[String]] {
+    override def serialize(node: SplitByValue[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
         val obj = new JsonObject()
         obj.addProperty(TreeNode.KIND_KEY, SplitByValue.KIND)
         obj.addProperty(SplitByValue.KEY_KEY, node.key.toString())
         obj.add(SplitByValue.LESS_KEY, ctx.serialize(node.less))
         obj.add(SplitByValue.MORE_KEY, ctx.serialize(node.more))
-        node.separator match {
-          case str: String => {
-            obj.addProperty(SplitByValue.TYPE_KEY, "String")
-            obj.addProperty(SplitByValue.SEPARATOR_KEY, str)
-          }
-          case bool: Boolean => {
-            obj.addProperty(SplitByValue.TYPE_KEY, "Boolean")
-            obj.addProperty(SplitByValue.SEPARATOR_KEY, bool)
-          }
-          case int: Int => {
-            obj.addProperty(SplitByValue.TYPE_KEY, "Int")
-            obj.addProperty(SplitByValue.SEPARATOR_KEY, int)
-          }
-          case long: Long => {
-            obj.addProperty(SplitByValue.TYPE_KEY, "Long")
-            obj.addProperty(SplitByValue.SEPARATOR_KEY, long)
-          }
-          case double: Double => {
-            obj.addProperty(SplitByValue.TYPE_KEY, "Double")
-            obj.addProperty(SplitByValue.SEPARATOR_KEY, double)
-          }
-        }
+        obj.add(SplitByValue.SEPARATOR_KEY, node.separator.toGson)
         obj
     }
 }
@@ -244,7 +223,7 @@ object TreeNodeDeserializer extends JsonDeserializer[AnyNode[String]] {
               kind match {
                   case Bucket.KIND => ctx.deserialize[Bucket[String]](obj, classOf[Bucket[String]])
                   case SplitByPresence.KIND => ctx.deserialize[SplitByPresence[String]](obj, classOf[SplitByPresence[String]])
-                  case SplitByValue.KIND => ctx.deserialize[SplitByValue[String,_]](obj, classOf[SplitByValue[String,_]])
+                  case SplitByValue.KIND => ctx.deserialize[SplitByValue[String]](obj, classOf[SplitByValue[String]])
                   case Spill.KIND => ctx.deserialize[Spill[String]](obj, classOf[Spill[String]])
                   case unknown => throw new JsonParseException(s"kind '$unknown' is unknown")
               }
@@ -296,21 +275,17 @@ object PartitionByInnerNodeDeserializer extends JsonDeserializer[SplitByPresence
   }
 }
 
-object PartitionByValueDeserializer extends JsonDeserializer[SplitByValue[String,_]] {
-    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): SplitByValue[String,_] = {
+object PartitionByValueDeserializer extends JsonDeserializer[SplitByValue[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): SplitByValue[String] = {
         json match {
           case obj: JsonObject => {
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == SplitByValue.KIND)
               val key = obj.get(SplitByValue.KEY_KEY).getAsString()
               val lessKey = ctx.deserialize[AnyNode[String]](obj.get(SplitByValue.LESS_KEY), classOf[AnyNode[String]])
               val moreKey = ctx.deserialize[AnyNode[String]](obj.get(SplitByValue.MORE_KEY), classOf[AnyNode[String]])
-              obj.get(SplitByValue.TYPE_KEY).getAsString() match {
-                case "String" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsString(), key, lessKey, moreKey)
-                case "Boolean" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsBoolean(), key, lessKey, moreKey)
-                case "Int" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsInt(), key, lessKey, moreKey)
-                case "Long" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsLong(), key, lessKey, moreKey)
-                case "Double" => SplitByValue(obj.get(SplitByValue.SEPARATOR_KEY).getAsDouble(), key, lessKey, moreKey)
-              }
+              val separator = ColumnValue.fromGson(obj.getAsJsonObject(SplitByValue.SEPARATOR_KEY))
+                .getOrElse(throw new JsonParseException(s"could not parse separator"))
+              SplitByValue(separator, key, lessKey, moreKey)
           }
           case _ => throw new JsonParseException(s"$json is not an object")
       }

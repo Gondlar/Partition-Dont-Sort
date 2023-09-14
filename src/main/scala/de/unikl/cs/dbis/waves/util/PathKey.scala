@@ -168,6 +168,27 @@ final case class PathKey(identifiers: Seq[String]) {
     }
 
     /**
+      * Retrieve the node referred to by this PathKey in the given Row and its schema.
+      *
+      * @param row The row to retrieve data from
+      * @param schema The schema of that row
+      * @return The data if it is present, otherwise None
+      * @throws IllegalArgumentException if this path is not part of the row's schema
+      */
+    def retrieveFrom(row: Row, schema : StructType) : Option[Any] = {
+      val index = schema.fieldIndex(head)
+      if (row.isNullAt(index))
+        return None
+      val next = row.get(index)
+      if (!isNested)
+        return Some(next)
+      schema.fields(index).dataType match {
+        case struct: StructType => tail.retrieveFrom(next.asInstanceOf[Row], struct)
+        case _ => throw new IllegalArgumentException(s"schema element $head refers to a non-struct element, but the path continues as $tail")
+      }
+    }
+
+    /**
       * Retrieve the schema element referenced by this key
       *
       * @param tpe the schema
@@ -195,6 +216,7 @@ final case class PathKey(identifiers: Seq[String]) {
     }
 
     def present(row: InternalRow, schema: StructType) = retrieveFrom(row, schema).isDefined
+    def present(row: Row, schema: StructType) = retrieveFrom(row, schema).isDefined
 }
 
 object PathKey {

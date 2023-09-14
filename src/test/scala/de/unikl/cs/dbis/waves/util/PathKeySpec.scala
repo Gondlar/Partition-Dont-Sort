@@ -83,7 +83,7 @@ class PathKeySpec extends WavesSpec
                 PathKey("foo").equals(PathKey("bar.foo")) should equal (false)
             }
 
-            "retrieve the data from a row" in {
+            "retrieve the data from an internal row" in {
                 When("the key exists")
                 PathKey("a").retrieveFrom(internalData(0), schema) should equal (Some(5))
                 PathKey("a").present(internalData(0), schema) should equal (true)
@@ -92,6 +92,17 @@ class PathKeySpec extends WavesSpec
                 PathKey("a").present(internalData(4), schema) should equal (false)
                 When("the key is not part of the schema")
                 an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(internalData(0), schema))
+            }
+
+            "retrieve the data from a row" in {
+                When("the key exists")
+                PathKey("a").retrieveFrom(data(0), schema) should equal (Some(5))
+                PathKey("a").present(data(0), schema) should equal (true)
+                When("the key does not exist")
+                PathKey("a").retrieveFrom(data(4), schema) should equal (None)
+                PathKey("a").present(data(4), schema) should equal (false)
+                When("the key is not part of the schema")
+                an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(data(0), schema))
             }
 
             "retrieve a schema element from a schema" in {
@@ -168,7 +179,7 @@ class PathKeySpec extends WavesSpec
                 PathKey("foo.bar").equals(PathKey("bar.foo")) should equal (false)
             }
 
-            "retrieve the data from a row" in {
+            "retrieve the data from an internal row" in {
                 When("the key exists")
                 PathKey("b.d").retrieveFrom(internalData(0), schema) should equal (Some(5))
                 PathKey("b.d").present(internalData(0), schema) should equal (true)
@@ -179,6 +190,19 @@ class PathKeySpec extends WavesSpec
                 PathKey("b.d").present(internalData(5), schema) should equal (false)
                 When("the key is not part of the schema")
                 an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(internalData(0), schema))
+            }
+
+            "retrieve the data from a row" in {
+                When("the key exists")
+                PathKey("b.d").retrieveFrom(data(0), schema) should equal (Some(5))
+                PathKey("b.d").present(data(0), schema) should equal (true)
+                When("the key does not exist")
+                PathKey("b.d").retrieveFrom(data(7), schema) should equal (None)
+                PathKey("b.d").present(data(7), schema) should equal (false)
+                PathKey("b.d").retrieveFrom(data(5), schema) should equal (None)
+                PathKey("b.d").present(data(5), schema) should equal (false)
+                When("the key is not part of the schema")
+                an [IllegalArgumentException] should be thrownBy (PathKey("foo").retrieveFrom(data(0), schema))
             }
 
             "retrieve a schema element from a schema" in {

@@ -1,7 +1,14 @@
 package de.unikl.cs.dbis.waves.util
 
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.functions.{col,struct,udf}
 import org.apache.spark.sql.Column
+
+import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
+import de.unikl.cs.dbis.waves.partitions.visitors.operations._
+
+import scala.reflect.runtime.universe.TypeTag
 
 package object operators {
 
@@ -38,4 +45,19 @@ package object operators {
       * @return the column containing the result
       */
     def addX(col: Column, value: Int): Column = new Column(AddX(col.expr, value))
+
+    /**
+      * For each row, find the correct bucket in a PartitionTree and retrieve
+      * their respective payloads
+      *
+      * @param tree the tree to search. Its payloads must be encodable by spark
+      * @param schema the schema of the data. If the schema does not for the
+      *               DataFrame, the query will fail
+      */
+    def findBucket[Payload : TypeTag](tree: AnyNode[Payload], schema: StructType) = {
+      val map = udf((row: Row) => tree.bucketFor(row, schema).data)
+        .asNonNullable()
+      map(struct(schema.fields.map(foo => col(foo.name)):_*))
+        .as("bucket")
+    }
 }

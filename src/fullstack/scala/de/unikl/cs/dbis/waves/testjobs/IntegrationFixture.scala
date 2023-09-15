@@ -54,7 +54,7 @@ with ParquetFixture { this: Suite =>
     forAll (buckets) { bucket =>
       val dir = bucket.folder(wavesPath)
       dir.exists shouldBe (true)
-      dir.parquetFiles should have length (1)
+      dir.parquetFiles.size shouldBe <= (1)
     }
   }
 

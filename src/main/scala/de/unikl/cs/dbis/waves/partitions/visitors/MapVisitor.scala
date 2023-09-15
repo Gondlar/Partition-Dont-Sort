@@ -73,6 +73,14 @@ trait MapOperations {
       * @return the tree's shape
       */
     def shape = map({case _ => ()})
+
+    /**
+      * Return a tree with the same shape, but its payloads are numbered
+      * ascendingly in tree-order
+      *
+      * @return the tree with indexes
+      */
+    def indexes = map({case t => t._2})
   }
   implicit class MapTree[Payload](tree: PartitionTree[Payload]) {
     /**
@@ -91,6 +99,14 @@ trait MapOperations {
       * @return the tree's shape
       */
     def shape = tree.root.shape
+
+    /**
+      * Return a tree with the same shape, but its payloads are numbered
+      * ascendingly in tree-order
+      *
+      * @return the tree with indexes
+      */
+    def indexes = map({ case t => t._2})
 
     /**
       * Apply func to all buckets. As opposed to [[map]], this function modifies

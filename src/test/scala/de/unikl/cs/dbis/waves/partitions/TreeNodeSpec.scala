@@ -218,15 +218,23 @@ class TreeNodeSpec extends WavesSpec
     "be mapped" when itIsA {
       "bucket" in {
         bucket.map({(payload, index) => index}) should equal (Bucket(0))
+        bucket.indexes should equal (Bucket(0))
+        bucket.shape should equal (Bucket(()))
       }
       "split" in {
         split.map({(payload, index) => index}) should equal (SplitByPresence(split.key, Bucket(1), Bucket(0)))
+        split.indexes should equal (SplitByPresence(split.key, Bucket(1), Bucket(0)))
+        split.shape should equal (SplitByPresence(split.key, (), ()))
       }
       "split by value" in {
         median.map({(payload, index) => index}) should equal (SplitByValue(10, "foobar", Bucket(0), SplitByPresence(split.key, 2, 1)))
+        median.indexes should equal (SplitByValue(10, "foobar", Bucket(0), SplitByPresence(split.key, 2, 1)))
+        median.shape should equal (SplitByValue(10, "foobar", Bucket(()), SplitByPresence(split.key, (), ())))
       }
       "spill" in {
-        spill.map({(payload, index) => index}) should equal (Spill(SplitByPresence(split.key, Bucket(2), Bucket(1)), Bucket(0)))
+        spill.map({(payload, index) => index}) should equal (Spill(SplitByPresence(split.key, 2, 1), Bucket(0)))
+        spill.indexes should equal (Spill(SplitByPresence(split.key, 2, 1), Bucket(0)))
+        spill.shape should equal (Spill(SplitByPresence(split.key, (), ()), Bucket(())))
       }
     }
     "find all its Buckets' metadata" when itIsA {

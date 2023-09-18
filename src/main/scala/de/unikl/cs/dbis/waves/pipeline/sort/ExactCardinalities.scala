@@ -9,9 +9,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.count_distinct
 import org.apache.spark.sql.types.IntegerType
 
-object ExactCardinalities extends ColumnOrderer {
-
-  override def supports(state: PipelineState): Boolean = true
+object ExactCardinalities extends ColumnOrderer with NoPrerequisites {
 
   override def sort(state: PipelineState, df: DataFrame): Seq[Column] = {
     // generate columns for all value and definition level columns

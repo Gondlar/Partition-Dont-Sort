@@ -7,9 +7,7 @@ import org.apache.spark.sql.DataFrame
 
 final case class Predefined(
   order: Seq[Column]
-) extends ColumnOrderer {
-
-  override def supports(state: PipelineState): Boolean = true
+) extends ColumnOrderer with NoPrerequisites {
 
   override def sort(state: PipelineState, df: DataFrame): Seq[Column] = order
 

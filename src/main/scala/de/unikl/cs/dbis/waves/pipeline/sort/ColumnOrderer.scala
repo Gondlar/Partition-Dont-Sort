@@ -29,3 +29,10 @@ trait ColumnOrderer {
   def sort(state: PipelineState, df: DataFrame): Seq[Column]
   //TODO: Is df enough to distinguish between Buckets for all ColumnOrderers we consider?
 }
+
+/**
+  * A mixin to mark orderers which are always supported
+  */
+trait NoPrerequisites extends ColumnOrderer {
+  final override def supports(state: PipelineState) = true
+}

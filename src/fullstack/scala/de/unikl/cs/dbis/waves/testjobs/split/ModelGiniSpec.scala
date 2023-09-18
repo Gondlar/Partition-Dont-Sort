@@ -39,6 +39,14 @@ class ModelGiniSpec extends WavesSpec
     partitionSchema.sorter should equal (NoSorter)
 
     And("the log contains what happened")
-    events should contain allOf ("'split-start'", "'split-done'", "'split-cleanup-end'")
+    events should contain allOf (
+      "'split-start'",
+      "'start-CalculateRSIGraph'", "'end-CalculateRSIGraph'",
+      "'start-ModelGini'", "'end-ModelGini'",
+      "'start-ShuffleByShape'", "'end-ShuffleByShape'",
+      "'start-PrioritySink'", "'writer-chosen'", "'end-PrioritySink'",
+      "'split-done'",
+      "'split-cleanup-end'"
+    )
   }
 }

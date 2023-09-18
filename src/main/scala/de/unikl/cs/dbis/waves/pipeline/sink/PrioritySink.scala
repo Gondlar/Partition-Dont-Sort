@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.pipeline.sink
 
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.util.Logger
 
 /**
   * Pick a usable sink from a list of given sinks. Sinks which appear earlier in
@@ -15,7 +16,10 @@ final case class PrioritySink(
   override def supports(state: PipelineState): Boolean
     = sinks.exists(_ supports state)
 
-  override def run(state: PipelineState): (PipelineState, Seq[PartitionFolder])
-    = sinks.find(_ supports state).get.run(state)
+  override def run(state: PipelineState): (PipelineState, Seq[PartitionFolder]) = {
+    val chosen = sinks.find(_ supports state).get
+    Logger.log("writer-chosen", chosen.name)
+    chosen.run(state)
+  }
 
 }

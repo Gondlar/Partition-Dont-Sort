@@ -32,6 +32,13 @@ class JustSplitSpec extends WavesSpec
     partitionSchema should haveTheSameStructureAs(tree)
 
     And("the log contains what happened")
-    events should contain theSameElementsInOrderAs (Seq("'split-start'", "'split-done'", "'split-cleanup-end'"))
+    events should contain theSameElementsInOrderAs (Seq(
+      "'split-start'",
+      "'start-EvenBuckets'", "'end-EvenBuckets'",
+      "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
+      "'start-DataframeSink'", "'end-DataframeSink'",
+      "'split-done'",
+      "'split-cleanup-end'"
+    ))
   }
 }

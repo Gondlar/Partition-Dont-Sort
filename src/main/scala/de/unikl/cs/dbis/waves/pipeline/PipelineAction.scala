@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.pipeline
 
 import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.util.Logger
 
 /**
   * Abstract base class for all operations in a Pipeline.
@@ -8,6 +9,17 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
   * The type parameter is the action's result type.
   */
 trait PipelineAction[+T] {
+
+  /**
+    * The name of this step. The default is derived from the class or object
+    * name, but this can be overridden.
+    *
+    * @return the name of this step
+    */
+  def name = {
+    val name = getClass().getSimpleName()
+    if (name.last == '$') name.init else name
+  }
 
   /**
     * Perform the step on the given state.
@@ -21,7 +33,10 @@ trait PipelineAction[+T] {
     */
   final def apply(state: PipelineState) : T = {
     require(supports(state))
-    run(state)
+    Logger.log(s"start-$name")
+    val result = run(state)
+    Logger.log(s"end-$name")
+    result
   }
 
   /**

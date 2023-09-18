@@ -17,16 +17,18 @@ class ManualSpec extends WavesSpec
     "not using schema modifications" should {
       behave like split({
         Manual.main(args)
-      }, specificTests)
+      }, specificTests(false))
     }
     "using schema modifications" should {
       behave like split({
         Manual.main(args :+ "modifySchema=true")
-      }, specificTests, usesSchemaModifications = true)
+      }, specificTests(true), usesSchemaModifications = true)
     }
   }
 
   def specificTests(
+    modifySchema: Boolean
+  )(
     inputSchema: StructType,
     partitionSchema: PartitionTree[String],
     events: Seq[String],
@@ -47,6 +49,17 @@ class ManualSpec extends WavesSpec
     partitionSchema should haveTheSameStructureAs(tree)
 
     And("the log contains what happened")
-    events should contain theSameElementsInOrderAs (Seq("'split-start'", "'split-done'", "'split-cleanup-end'"))
+    events should contain theSameElementsInOrderAs (Seq(
+      "'split-start'",
+      "'start-Predefined'", "'end-Predefined'",
+      "'start-BucketsFromShape'", "'end-BucketsFromShape'",
+    ) ++ (if (!modifySchema) Seq.empty else Seq(
+      "'start-SchemaModifier'", "'end-SchemaModifier'"
+    )) ++ Seq(
+      "'start-Finalizer'", "'end-Finalizer'",
+      "'start-DataframeSink'", "'end-DataframeSink'",
+      "'split-done'",
+      "'split-cleanup-end'"
+    ))
   }
 }

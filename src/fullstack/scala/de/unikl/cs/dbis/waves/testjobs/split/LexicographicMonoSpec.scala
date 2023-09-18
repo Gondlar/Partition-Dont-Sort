@@ -38,6 +38,7 @@ class LexicographicMonoSpec extends WavesSpec
       "'start-SingleBucket'", "'end-SingleBucket'",
       "'start-GlobalOrder'", "'end-GlobalOrder'",
       "'start-DataframeSorter'", "'end-DataframeSorter'",
+      "'start-Finalizer'", "'end-Finalizer'",
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'split-done'",
       "'split-cleanup-end'"

@@ -36,6 +36,7 @@ class JustSplitSpec extends WavesSpec
       "'split-start'",
       "'start-EvenBuckets'", "'end-EvenBuckets'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
+      "'start-Finalizer'", "'end-Finalizer'", 
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'split-done'",
       "'split-cleanup-end'"

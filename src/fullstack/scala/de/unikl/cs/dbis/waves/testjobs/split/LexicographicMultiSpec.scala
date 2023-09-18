@@ -40,6 +40,7 @@ class LexicographicMultiSpec extends WavesSpec
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-LocalOrder'", "'end-LocalOrder'",
       "'start-DataframeSorter'", "'end-DataframeSorter'",
+      "'start-Finalizer'", "'end-Finalizer'",
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'split-done'",
       "'split-cleanup-end'"

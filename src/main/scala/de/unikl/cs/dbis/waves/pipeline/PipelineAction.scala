@@ -74,11 +74,30 @@ trait PipelineStep extends PipelineAction[PipelineState]
   * It reads the state before its execution and returns the PartitionFolders
   * it has written based on it.
   */
-trait PipelineSink extends PipelineAction[(PipelineState, Seq[PartitionFolder])]
+trait PipelineSink extends PipelineAction[(PipelineState, Seq[PartitionFolder])] {
+
+  /**
+    * Check whether this sink always produces finalized partitions given the
+    * state of the pipeline, i.e., a separare finalization step is not required.
+    * The default implememtatation assumes the sink does not finalize on its own.
+    *
+    * @see [[Finalizer]]
+    * @param state the current state of the pipelines
+    * @return true iff the buckets are always finalized.
+    */
+  def isAlwaysFinalizedFor(state: PipelineState) = false
+}
 
 /**
   * A mixin to mark actions which are always supported
   */
 trait NoPrerequisites extends PipelineAction[Any] {
   final override def supports(state: PipelineState) = true
+}
+
+/**
+  * A mixin to mark Sinks which always result in finalized partitons
+  */
+trait AlwaysFinalized extends PipelineSink {
+  final override def isAlwaysFinalizedFor(state: PipelineState): Boolean = true
 }

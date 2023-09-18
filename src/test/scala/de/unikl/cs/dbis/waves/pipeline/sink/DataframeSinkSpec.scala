@@ -26,6 +26,10 @@ class DataframeSinkSpec extends WavesSpec
         val withBuckets = Buckets(emptyState) = Seq()
         (DataframeSink supports withBuckets) shouldBe (true)
       }
+      "require finalization" in {
+        val emptyState = PipelineState(null,null)
+        (DataframeSink isAlwaysFinalizedFor emptyState) shouldBe (false)
+      }
       "store each bucket as a Partition" when {
         "there are multiple buckets" in {
           Given("A PipelineState with Buckets")

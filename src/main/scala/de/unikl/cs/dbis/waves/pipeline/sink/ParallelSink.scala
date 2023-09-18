@@ -12,7 +12,7 @@ import java.util.UUID
   * Write partitions to disk by reading the Shape from the state and writing
   * the data partitioned by buckets
   */
-object ParallelSink extends PipelineSink {
+object ParallelSink extends PipelineSink with AlwaysFinalized {
 
   override def supports(state: PipelineState): Boolean
     = (Shape isDefinedIn state) && (!ModifySchema(state))

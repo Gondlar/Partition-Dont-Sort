@@ -32,6 +32,9 @@ final case class SubtreeSink(
     (Shape isDefinedIn state) && (delegate supports state)
   }
 
+  override def isAlwaysFinalizedFor(state: PipelineState): Boolean
+    = delegate isAlwaysFinalizedFor state
+
   override def run(state: PipelineState): (PipelineState, Seq[PartitionFolder]) = {
     val (before, after) = pathHalfs(state.path)
     val (delegateResultState, newFolders) = delegate.run(state)

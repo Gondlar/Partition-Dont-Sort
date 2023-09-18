@@ -16,10 +16,16 @@ final case class PrioritySink(
   override def supports(state: PipelineState): Boolean
     = sinks.exists(_ supports state)
 
+  override def isAlwaysFinalizedFor(state: PipelineState): Boolean
+    = chooseSink(state) isAlwaysFinalizedFor state
+
   override def run(state: PipelineState): (PipelineState, Seq[PartitionFolder]) = {
-    val chosen = sinks.find(_ supports state).get
+    val chosen = chooseSink(state)
     Logger.log("writer-chosen", chosen.name)
     chosen.run(state)
   }
+
+  private def chooseSink(state: PipelineState)
+    = sinks.find(_ supports state).get
 
 }

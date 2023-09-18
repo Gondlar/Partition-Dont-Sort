@@ -76,7 +76,7 @@ class Pipeline(
     }
     if (ModifySchema(currentState))
       currentState = SchemaModifier(currentState)
-    if (DoFinalize(currentState))
+    if (!sink.isAlwaysFinalizedFor(currentState) && DoFinalize(currentState))
       currentState = Finalizer(currentState)
     val (finalState, buckets) = sink(currentState)
 

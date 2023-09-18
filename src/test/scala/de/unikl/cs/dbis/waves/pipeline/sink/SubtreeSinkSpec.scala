@@ -38,6 +38,20 @@ class SubtreeSinkSpec extends WavesSpec
         (SubtreeSink(DummyPipelineSink(true), split, Seq.empty) supports state) shouldBe (true)
       }
     }
+    "require finalization" when {
+      "the delegate requires finalization" in {
+        val state = PipelineState(null, null)
+        val delgate = DummyPipelineSink(true, isFinalized = false)
+        val sink = SubtreeSink(delgate, split, Seq.empty)
+        (sink isAlwaysFinalizedFor state) shouldBe (false)
+      }
+      "the delegate does not require finalization" in {
+        val state = PipelineState(null, null)
+        val delgate = DummyPipelineSink(true, isFinalized = true)
+        val sink = SubtreeSink(delgate, split, Seq.empty)
+        (sink isAlwaysFinalizedFor state) shouldBe (true)
+      }
+    }
     "write the correct subtree" when {
       "we replace a Present node" in replacement (
         Seq(Partitioned, Present),

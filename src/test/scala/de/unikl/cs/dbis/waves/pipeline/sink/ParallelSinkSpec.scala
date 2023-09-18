@@ -37,6 +37,10 @@ class ParallelSinkSpec extends WavesSpec
         val withShape = Shape(emptyState) = Bucket(())
         (ParallelSink supports withShape) shouldBe (true)
       }
+      "not require finaliration" in {
+        val emptyState = PipelineState(null,null)
+        (ParallelSink isAlwaysFinalizedFor emptyState) shouldBe (true)
+      }
       "store each bucket as a Partition" when {
         "there are multiple buckets" in {
           Given("A PipelineState with multiple buckets")

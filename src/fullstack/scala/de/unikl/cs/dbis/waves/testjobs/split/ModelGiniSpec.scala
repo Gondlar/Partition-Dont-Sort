@@ -16,16 +16,18 @@ class ModelGiniSpec extends WavesSpec
     "not using schema modifications" should {
       behave like split({
         ModelGini.main(args)
-      }, specificTests)
+      }, specificTests(false))
     }
     "using schema modifications" should {
       behave like split({
         ModelGini.main(args :+ "modifySchema=true")
-      }, specificTests, usesSchemaModifications = true)
+      }, specificTests(true), usesSchemaModifications = true)
     }
   }
 
   def specificTests(
+      modifySchema: Boolean
+    )(
     inputSchema: StructType,
     partitionSchema: PartitionTree[String],
     events: Seq[String],
@@ -39,14 +41,18 @@ class ModelGiniSpec extends WavesSpec
     partitionSchema.sorter should equal (NoSorter)
 
     And("the log contains what happened")
-    events should contain allOf (
+    events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
       "'start-CalculateRSIGraph'", "'end-CalculateRSIGraph'",
       "'start-ModelGini'", "'end-ModelGini'",
-      "'start-ShuffleByShape'", "'end-ShuffleByShape'",
+      "'start-ShuffleByShape'", "'end-ShuffleByShape'"
+    ) ++ (if (!modifySchema) Seq.empty else Seq(
+      "'start-SchemaModifier'", "'end-SchemaModifier'",
+      "'start-Finalizer'", "'end-Finalizer'",
+    )) ++ Seq(
       "'start-PrioritySink'", "'writer-chosen'", "'end-PrioritySink'",
       "'split-done'",
       "'split-cleanup-end'"
-    )
+    ))
   }
 }

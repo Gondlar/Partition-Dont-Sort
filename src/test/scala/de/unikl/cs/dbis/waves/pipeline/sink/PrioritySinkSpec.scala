@@ -39,6 +39,14 @@ class PrioritySinkSpec extends WavesSpec {
         folders(0).name should equal ("1")
       }
     }
+    "the chosen sink requires finalization should require finalization" in {
+      val sink = PrioritySink(DummyPipelineSink(true, isFinalized = false))
+      (sink isAlwaysFinalizedFor state) shouldBe (false)
+    }
+    "the chosen sink does not require finalization should not require finalization" in {
+      val sink = PrioritySink(DummyPipelineSink(true, isFinalized = true))
+      (sink isAlwaysFinalizedFor state) shouldBe (true)
+    }
   }
 
   val state = PipelineState(null, null)

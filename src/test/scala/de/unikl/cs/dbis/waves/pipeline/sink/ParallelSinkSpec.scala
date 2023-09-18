@@ -14,32 +14,28 @@ import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 
 class ParallelSinkSpec extends WavesSpec
-  with DataFrameFixture with TempFolderFixture with PartitionTreeFixture {
+  with DataFrameFixture with TempFolderFixture with PartitionTreeFixture with PipelineStateFixture {
 
   "A ParallelSink" when {
     "shape are undefined" should {
       "not be supported" in {
-        val emptyState = PipelineState(null,null)
-        (ParallelSink supports emptyState) shouldBe (false)
+        (ParallelSink supports dummyState) shouldBe (false)
       }
     }
     "schema modifications are requested" should {
       "not be supported" in {
-        val emptyState = PipelineState(null,null)
-        val withShape = Shape(emptyState) = Bucket(())
+        val withShape = Shape(dummyState) = Bucket(())
         val withSchemaModifications = ModifySchema(withShape) = true
         (ParallelSink supports withSchemaModifications) shouldBe (false)
       }
     }
     "shape is defined" should {
       "be supported" in {
-        val emptyState = PipelineState(null,null)
-        val withShape = Shape(emptyState) = Bucket(())
+        val withShape = Shape(dummyState) = Bucket(())
         (ParallelSink supports withShape) shouldBe (true)
       }
       "not require finaliration" in {
-        val emptyState = PipelineState(null,null)
-        (ParallelSink isAlwaysFinalizedFor emptyState) shouldBe (true)
+        (ParallelSink isAlwaysFinalizedFor dummyState) shouldBe (true)
       }
       "store each bucket as a Partition" when {
         "there are multiple buckets" in {

@@ -19,24 +19,23 @@ import de.unikl.cs.dbis.waves.util.PathKey
 
 
 class SchemaModifierSpec extends WavesSpec
-  with DataFrameFixture with PartitionTreeFixture {
+  with DataFrameFixture with PartitionTreeFixture with PipelineStateFixture {
 
   "The SchemaModifier Step" should {
     "not be supported" when {
       "only buckets are given" in {
-        (SchemaModifier supports (Buckets(PipelineState(null, null)) = Seq())) should be (false)
+        (SchemaModifier supports (Buckets(dummyState) = Seq())) should be (false)
       }
       "only a shape is given" in {
-        (SchemaModifier supports (Shape(PipelineState(null, null)) = Bucket(()))) should be (false)
+        (SchemaModifier supports (Shape(dummyState) = Bucket(()))) should be (false)
       }
       "nothing is given" in {
-        (SchemaModifier supports PipelineState(null, null)) should be (false)
+        (SchemaModifier supports dummyState) should be (false)
       }
     }
     "be supported" when {
       "buckets and shape are given" in {
-        val state = PipelineState(null, null)
-        val withBuckets = Buckets(state) = Seq()
+        val withBuckets = Buckets(dummyState) = Seq()
         val withBoth = Shape(withBuckets) = Bucket(())
         (SchemaModifier supports withBoth) shouldBe (true)
       }
@@ -44,8 +43,7 @@ class SchemaModifierSpec extends WavesSpec
     "modify the schemas correctly" when {
       "the key ist nested" in {
         Given("Buckets and their shape")
-        val state = PipelineState(null, null)
-        val withShape = Shape(state) = split.shape
+        val withShape = Shape(dummyState) = split.shape
         val buckets = Seq(df.filter(col("b.d").isNull), df.filter(col("b.d").isNotNull))
         val withBoth = Buckets(withShape) = buckets
 
@@ -78,8 +76,7 @@ class SchemaModifierSpec extends WavesSpec
       }
       "the key is flat" in {
         Given("Buckets and their shape")
-        val state = PipelineState(null, null)
-        val withShape = Shape(state) = SplitByPresence("b", (), ())
+        val withShape = Shape(dummyState) = SplitByPresence("b", (), ())
         val buckets = Seq(df.filter(col("b").isNull), df.filter(col("b").isNotNull))
         val withBoth = Buckets(withShape) = buckets
 
@@ -111,8 +108,7 @@ class SchemaModifierSpec extends WavesSpec
       "the key is three levels nested" in {
         Given("Buckets and their shape")
         val data = df.select(struct(df.columns.head, df.columns.tail:_*).as("foo"))
-        val state = PipelineState(null, null)
-        val withShape = Shape(state) = SplitByPresence("foo.b.d", (), ())
+        val withShape = Shape(dummyState) = SplitByPresence("foo.b.d", (), ())
         val buckets = Seq(data.filter(col("foo.b.d").isNull), data.filter(col("foo.b.d").isNotNull))
         val withBoth = Buckets(withShape) = buckets
 
@@ -148,8 +144,7 @@ class SchemaModifierSpec extends WavesSpec
       }
       "there is known metadata" in {
         Given("Buckets and their shape")
-        val state = PipelineState(null, null)
-        val withShape = Shape(state) = SplitByPresence("b", (), ())
+        val withShape = Shape(dummyState) = SplitByPresence("b", (), ())
         val buckets = Seq(df.filter(col("b").isNull && col("a").isNull), df.filter(col("b").isNotNull && col("a").isNull))
         val withBoth = Buckets(withShape) = buckets
         val withMetadata = KnownMetadata(withBoth) = PartitionMetadata(Seq.empty, Seq(PathKey("a")), Seq(Absent))

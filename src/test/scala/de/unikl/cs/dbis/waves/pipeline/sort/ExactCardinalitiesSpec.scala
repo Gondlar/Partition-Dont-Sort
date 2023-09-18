@@ -8,12 +8,12 @@ import org.apache.spark.sql.functions.col
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.PathKey
 
-class ExactCardinalitiesSpec extends WavesSpec with DataFrameFixture {
+class ExactCardinalitiesSpec extends WavesSpec
+  with DataFrameFixture with PipelineStateFixture {
 
   "The ExactCardinalities Orderer" should {
     "always be supported" in {
-      val state = PipelineState(null,null)
-      (ExactCardinalities supports state) shouldBe (true)
+      (ExactCardinalities supports dummyState) shouldBe (true)
     }
     "return the columns in increasing cardinality order" in {
       val order = Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"))

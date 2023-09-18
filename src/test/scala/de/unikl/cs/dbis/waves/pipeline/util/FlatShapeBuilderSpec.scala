@@ -9,22 +9,22 @@ import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.Spill
 import de.unikl.cs.dbis.waves.pipeline._
 
-class FlatShapeBuilderSpec extends WavesSpec {
+class FlatShapeBuilderSpec extends WavesSpec with PipelineStateFixture {
 
   "The FlatShapeBuilder Step" when {
     "no buckets are given" should {
       "not be supported" in {
-        (FlatShapeBuilder supports PipelineState(null, null)) shouldBe (false)
+        (FlatShapeBuilder supports dummyState) shouldBe (false)
       }
     }
     "buckets are given" should {
       "be supported" in {
-        (FlatShapeBuilder supports (Buckets(PipelineState(null, null)) = Seq())) shouldBe (true)
+        (FlatShapeBuilder supports (Buckets(dummyState) = Seq())) shouldBe (true)
       }
       "derive the correct shape" when {
         "there are multiple buckets" in {
           Given("A state with multiple buckets")
-          val state = Buckets(PipelineState(null, null)) = Seq(null, null)
+          val state = Buckets(dummyState) = Seq(null, null)
 
           When("we apply the FlatShapeBuilder step")
           val result = FlatShapeBuilder(state)
@@ -35,7 +35,7 @@ class FlatShapeBuilderSpec extends WavesSpec {
         }
         "there is just one bucket" in {
           Given("A state with one bucket")
-          val state = Buckets(PipelineState(null, null)) = Seq(null)
+          val state = Buckets(dummyState) = Seq(null)
 
           When("we apply the FlatShapeBuilder step")
           val result = FlatShapeBuilder(state)

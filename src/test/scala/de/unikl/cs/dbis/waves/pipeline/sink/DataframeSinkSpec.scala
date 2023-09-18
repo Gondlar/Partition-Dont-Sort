@@ -11,24 +11,21 @@ import de.unikl.cs.dbis.waves.WavesTable._
 import de.unikl.cs.dbis.waves.pipeline._
 
 class DataframeSinkSpec extends WavesSpec
-  with RelationFixture with TempFolderFixture {
+  with RelationFixture with TempFolderFixture with PipelineStateFixture {
 
   "A DataframeSink" when {
     "buckets are undefined" should {
       "not be supported" in {
-        val emptyState = PipelineState(null,null)
-        (DataframeSink supports emptyState) shouldBe (false)
+        (DataframeSink supports dummyState) shouldBe (false)
       }
     }
     "buckets are defined" should {
       "be supported" in {
-        val emptyState = PipelineState(null,null)
-        val withBuckets = Buckets(emptyState) = Seq()
+        val withBuckets = Buckets(dummyState) = Seq()
         (DataframeSink supports withBuckets) shouldBe (true)
       }
       "require finalization" in {
-        val emptyState = PipelineState(null,null)
-        (DataframeSink isAlwaysFinalizedFor emptyState) shouldBe (false)
+        (DataframeSink isAlwaysFinalizedFor dummyState) shouldBe (false)
       }
       "store each bucket as a Partition" when {
         "there are multiple buckets" in {

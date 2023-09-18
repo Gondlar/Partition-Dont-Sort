@@ -9,21 +9,21 @@ import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 
 class ShuffleByShapeSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
 
   "The ShuffleByShape Step" when {
     "no shape is given" should {
       "not be supported" in {
-        (ShuffleByShape supports PipelineState(null, null)) shouldBe (false)
+        (ShuffleByShape supports dummyState) shouldBe (false)
       }
     }
     "a shape is given" should {
       "be supported" in {
-        (ShuffleByShape supports (Shape(PipelineState(null, null)) = Bucket(()))) shouldBe (true)
+        (ShuffleByShape supports (Shape(dummyState) = Bucket(()))) shouldBe (true)
       }
       "shuffle the data according to the shape" in {
         Given("A state with buckets")
-        val state = Shape(PipelineState(df, null)) = SplitByPresence("a", (), ())
+        val state = Shape(dummyDfState) = SplitByPresence("a", (), ())
 
         When("we apply the FlatShapeBuilder step")
         val result = ShuffleByShape(state)

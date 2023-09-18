@@ -11,18 +11,15 @@ import de.unikl.cs.dbis.waves.partitions.Spill
 import de.unikl.cs.dbis.waves.pipeline._
 
 class SingleBucketSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
 
   "The FlatShapeBuilder Step" should {
     "always be supported" in {
-      (SingleBucket supports PipelineState(null, null)) shouldBe (true)
+      (SingleBucket supports dummyState) shouldBe (true)
     }
     "set the buckets and shape correctly" in {
-      Given("an empty state")
-      val state = PipelineState(df, null)
-
       When("we apply the SingleBucket step")
-      val result = SingleBucket(state)
+      val result = SingleBucket(dummyDfState)
 
       Then("the input data is the only bucket")
       (Buckets isDefinedIn result) shouldBe (true)

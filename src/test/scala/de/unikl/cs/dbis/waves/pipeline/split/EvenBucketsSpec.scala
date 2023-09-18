@@ -7,7 +7,7 @@ import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 
 class EvenBucketsSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
 
   "The EvenBuckets Step" should {
     "fail to be constructed" when {
@@ -19,14 +19,11 @@ class EvenBucketsSpec extends WavesSpec
       }
     }
     "always be supported" in {
-      (EvenBuckets(2) supports PipelineState(null, null)) shouldBe (true)
+      (EvenBuckets(2) supports dummyState) shouldBe (true)
     }
     "split a DataFrame evenly" in {
-      Given("a state")
-      val state = PipelineState(df, null)
-
       When("we run the EvenBuckets step")
-      val result = EvenBuckets(2)(state)
+      val result = EvenBuckets(2)(dummyDfState)
 
       Then("we see the correct buckets in the result")
       (Buckets isDefinedIn result) shouldBe (true)

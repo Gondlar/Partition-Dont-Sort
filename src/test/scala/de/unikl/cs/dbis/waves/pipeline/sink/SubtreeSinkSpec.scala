@@ -12,7 +12,7 @@ import de.unikl.cs.dbis.waves.partitions.{PartitionTreePath, Partitioned, Rest, 
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 
 class SubtreeSinkSpec extends WavesSpec
-  with PartitionTreeFixture with TempFolderFixture {
+  with PartitionTreeFixture with TempFolderFixture with PipelineStateFixture {
 
   "A SubtreeSink" should {
     "not be constructable from an invalid path" in {
@@ -20,36 +20,32 @@ class SubtreeSinkSpec extends WavesSpec
     }
     "not be supported" when {
       "the delegate is unsupported" in {
-        val state = Shape(PipelineState(null, null)) = split.shape
+        val state = Shape(dummyState) = split.shape
         (SubtreeSink(DummyPipelineSink(false), split, Seq.empty) supports state) shouldBe (false)
       }
       "the shape is undefined" in {
-        val state = PipelineState(null, null)
-        (SubtreeSink(DummyPipelineSink(true), split, Seq.empty) supports state) shouldBe (false)
+        (SubtreeSink(DummyPipelineSink(true), split, Seq.empty) supports dummyState) shouldBe (false)
       }
       "both shape is undefined and the delegate is unsupported" in {
-        val state = PipelineState(null, null)
-        (SubtreeSink(DummyPipelineSink(false), split, Seq.empty) supports state) shouldBe (false)
+        (SubtreeSink(DummyPipelineSink(false), split, Seq.empty) supports dummyState) shouldBe (false)
       }
     }
     "be supported" when {
       "both the shape is defined and the delegate is suppported" in {
-        val state = Shape(PipelineState(null, null)) = split.shape
+        val state = Shape(dummyState) = split.shape
         (SubtreeSink(DummyPipelineSink(true), split, Seq.empty) supports state) shouldBe (true)
       }
     }
     "require finalization" when {
       "the delegate requires finalization" in {
-        val state = PipelineState(null, null)
         val delgate = DummyPipelineSink(true, isFinalized = false)
         val sink = SubtreeSink(delgate, split, Seq.empty)
-        (sink isAlwaysFinalizedFor state) shouldBe (false)
+        (sink isAlwaysFinalizedFor dummyState) shouldBe (false)
       }
       "the delegate does not require finalization" in {
-        val state = PipelineState(null, null)
         val delgate = DummyPipelineSink(true, isFinalized = true)
         val sink = SubtreeSink(delgate, split, Seq.empty)
-        (sink isAlwaysFinalizedFor state) shouldBe (true)
+        (sink isAlwaysFinalizedFor dummyState) shouldBe (true)
       }
     }
     "write the correct subtree" when {

@@ -7,14 +7,13 @@ import org.apache.spark.sql.functions.col
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 
-class GlobalOrderSpec extends WavesSpec {
+class GlobalOrderSpec extends WavesSpec with PipelineStateFixture {
 
   "The GlobalOrder Step" when {
     "the Column orderer is not supported" should {
       "not be supported" in {
-        val state = PipelineState(null,null)
         val sorter = DummyColumnOrderer(false)
-        (GlobalOrder(sorter) supports state) shouldBe (false)
+        (GlobalOrder(sorter) supports dummyState) shouldBe (false)
       }
     }
     "the Column orderer is supported" should {
@@ -25,12 +24,11 @@ class GlobalOrderSpec extends WavesSpec {
       }
       "set the global sorter to the correct value" in {
         Given("A sorter and a state")
-        val state = PipelineState(null, null)
         val sorter = DummyColumnOrderer(true, Seq(col("a")))
         val step = GlobalOrder(sorter)
 
         When("we apply the GlobalOrder step")
-        val result = step(state)
+        val result = step(dummyState)
 
         Then("the correct order is stored")
         GlobalSortorder(result) should equal (Seq(col("a")))

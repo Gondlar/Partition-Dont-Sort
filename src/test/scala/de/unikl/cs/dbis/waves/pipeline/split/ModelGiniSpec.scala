@@ -14,7 +14,7 @@ import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.functions.col
 
 class ModelGiniSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
 
   "The ModelGini Step" can {
     "merge two options" when {
@@ -38,19 +38,16 @@ class ModelGiniSpec extends WavesSpec
     }
     "not be supported when no RSIGrapg is given in the state" in {
       val step = ModelGini(1)
-      val state = PipelineState(null, null)
-      (step supports state) shouldBe (false)
+      (step supports dummyState) shouldBe (false)
     }
     "be supported when an RSIGrapg is given in the state" in {
       val step = ModelGini(1)
-      val emptyState = PipelineState(null, null)
-      val state = StructureMetadata(emptyState) = graphForDf
+      val state = StructureMetadata(dummyState) = graphForDf
       (step supports state) shouldBe (true)
     }
     "split the dataset according to the best gini gain" in {
       Given("A state and a number of partitions")
-      val emptyState = PipelineState(df, null)
-      val state = StructureMetadata(emptyState) = graphForDf
+      val state = StructureMetadata(dummyDfState) = graphForDf
       val step = ModelGini(4)
 
       When("we apply the ExactGini step")

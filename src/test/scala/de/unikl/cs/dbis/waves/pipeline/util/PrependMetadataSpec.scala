@@ -8,15 +8,14 @@ import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.partitions.Present
 
-class PrependMetadataSpec extends WavesSpec {
+class PrependMetadataSpec extends WavesSpec with PipelineStateFixture {
 
   "The PrependMetadata Step" should {
     "always be supported" in {
-      val state = PipelineState(null,null)
-      (PrependMetadata(null) supports state) shouldBe (true)
+      (PrependMetadata(null) supports dummyState) shouldBe (true)
     }
     "prepend metadata" in {
-      val initialState = PipelineState(null,null)
+      val initialState = dummyState
       
       val metadata = PartitionMetadata(Seq(PathKey("foo")), Seq(), Seq(Present))
       val intermediate = PrependMetadata(metadata).run(initialState)

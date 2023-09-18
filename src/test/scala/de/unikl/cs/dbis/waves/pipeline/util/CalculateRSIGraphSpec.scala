@@ -13,7 +13,7 @@ import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.functions.col
 
 class CalculateRSIGraphSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
     import CalculateRSIGraphSpec._
 
   "The CalculateRSIGraph Step" can {
@@ -37,15 +37,11 @@ class CalculateRSIGraphSpec extends WavesSpec
   }
   it should {
     "always be supported" in {
-      val state = PipelineState(null, null)
-      (CalculateRSIGraph supports state) shouldBe (true)
+      (CalculateRSIGraph supports dummyState) shouldBe (true)
     }
     "calculate the correct RSIGraph for the state" in {
-      Given("A state")
-      val state = PipelineState(df, null)
-
       When("we apply the CalculateGSIGraph step")
-      val result = CalculateRSIGraph(state)
+      val result = CalculateRSIGraph(dummyDfState)
 
       Then("the correct RSIGraph is stored")
       (StructureMetadata isDefinedIn result) shouldBe (true)

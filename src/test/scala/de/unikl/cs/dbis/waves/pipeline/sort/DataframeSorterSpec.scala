@@ -9,21 +9,20 @@ import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 
 class DataframeSorterSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
 
   "The DataframeSorter Step" when {
     "no buckets are defined" should {
       "not be supported no matter which orders are defined" in {
         Given("a no orders")
-        val emptyState = PipelineState(null,null)
-        (DataframeSorter supports emptyState) shouldBe (false)
+        (DataframeSorter supports dummyState) shouldBe (false)
         
         Given("a local order")
-        val withLocal = BucketSortorders(emptyState) = Seq()
+        val withLocal = BucketSortorders(dummyState) = Seq()
         (DataframeSorter supports withLocal) shouldBe (false)
         
         Given("a global order")
-        val withGlobal = GlobalSortorder(emptyState) = Seq()
+        val withGlobal = GlobalSortorder(dummyState) = Seq()
         (DataframeSorter supports withGlobal) shouldBe (false)
         
         Given("a both orders")
@@ -33,12 +32,12 @@ class DataframeSorterSpec extends WavesSpec
     }
     "buckets and a global order are defined" should {
       "be supported" in {
-        val state = GlobalSortorder(PipelineState(null,null)) = Seq()
+        val state = GlobalSortorder(dummyState) = Seq()
         val withBuckets = Buckets(state) = Seq()
         (DataframeSorter supports withBuckets) shouldBe (true)
       }
       "sort using the global order" in {
-        val state = GlobalSortorder(PipelineState(df,null)) = Seq(col("a").asc)
+        val state = GlobalSortorder(dummyDfState) = Seq(col("a").asc)
         val withBuckets = Buckets(state) = Seq(df, df)
         val result = DataframeSorter.run(withBuckets)
         
@@ -51,12 +50,12 @@ class DataframeSorterSpec extends WavesSpec
     }
     "buckets and a local order are defined" should {
       "be supported" in {
-        val state = BucketSortorders(PipelineState(null,null)) = Seq()
+        val state = BucketSortorders(dummyState) = Seq()
         val withBuckets = Buckets(state) = Seq()
         (DataframeSorter supports withBuckets) shouldBe (true)
       }
       "sort using the local order" in {
-        val state = BucketSortorders(PipelineState(df,null)) = Seq(Seq(col("a").asc), Seq(col("b.d").asc))
+        val state = BucketSortorders(dummyDfState) = Seq(Seq(col("a").asc), Seq(col("b.d").asc))
         val withBuckets = Buckets(state) = Seq(df, df)
         val result = DataframeSorter.run(withBuckets)
         
@@ -69,13 +68,13 @@ class DataframeSorterSpec extends WavesSpec
     }
     "buckets and both orders are defined" should {
       "be supported" in {
-        val state = BucketSortorders(PipelineState(null,null)) = Seq()
+        val state = BucketSortorders(dummyState) = Seq()
         val withGlobal = GlobalSortorder(state) = Seq()
         val withBuckets = Buckets(withGlobal) = Seq()
         (DataframeSorter supports withBuckets) shouldBe (true)
       }
       "sort using the local order" in {
-        val state = BucketSortorders(PipelineState(df,null)) = Seq(Seq(col("a").asc), Seq(col("b.d").asc))
+        val state = BucketSortorders(dummyDfState) = Seq(Seq(col("a").asc), Seq(col("b.d").asc))
         val withGlobal = GlobalSortorder(state) = Seq(col("e").desc)
         val withBuckets = Buckets(withGlobal) = Seq(df, df)
         val result = DataframeSorter.run(withBuckets)

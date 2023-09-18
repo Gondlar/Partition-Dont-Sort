@@ -11,7 +11,7 @@ import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.functions.col
 
 class ExactGiniSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
   val calculate = afterWord("calculate")
 
   "The ExactGini Step" can calculate {
@@ -73,16 +73,14 @@ class ExactGiniSpec extends WavesSpec
     }
     "always be supported" in {
       val step = ExactGini(1)
-      val state = PipelineState(null, null)
-      (step supports state) shouldBe (true)
+      (step supports dummyState) shouldBe (true)
     }
     "split the dataset according to the best gini gain" in {
       Given("A state and a number of partitions")
-      val state = PipelineState(df, null)
       val step = ExactGini(4)
 
       When("we apply the ExactGini step")
-      val result = step(state)
+      val result = step(dummyDfState)
 
       Then("the correct shape is stored")
       Shape(result) should equal (

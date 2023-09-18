@@ -13,22 +13,22 @@ import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
 
 class FinalizerSpec extends WavesSpec
-  with DataFrameFixture {
+  with DataFrameFixture with PipelineStateFixture {
 
   "The Finalizer Step" when {
     "no buckets are given" should {
       "not be supported" in {
-        (Finalizer supports PipelineState(null, null)) shouldBe (false)
+        (Finalizer supports dummyState) shouldBe (false)
       }
     }
     "buckets are given" should {
       "be supported" in {
-        (Finalizer supports (Buckets(PipelineState(null, null)) = Seq())) shouldBe (true)
+        (Finalizer supports (Buckets(dummyState) = Seq())) shouldBe (true)
       }
       "merge each bucket's spark partitions" in {
         Given("A state with buckets")
         df.rdd.getNumPartitions should equal (2)
-        val state = Buckets(PipelineState(null, null)) = Seq(df, df)
+        val state = Buckets(dummyState) = Seq(df, df)
 
         When("we apply the FlatShapeBuilder step")
         val result = Finalizer(state)

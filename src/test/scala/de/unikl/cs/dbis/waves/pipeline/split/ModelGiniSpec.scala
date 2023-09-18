@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.pipeline.split
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
+import de.unikl.cs.dbis.waves.pipeline.util.CalculateRSIGraphSpec.graphForDf
 
 import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
 import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
@@ -14,37 +15,8 @@ import org.apache.spark.sql.functions.col
 
 class ModelGiniSpec extends WavesSpec
   with DataFrameFixture {
-  val calculate = afterWord("calculate")
 
-  "The ModelGini Step" can calculate {
-    "the RSIGraph for a DataFrame" when {
-      "the DataFrame is non-empty" in {
-        ModelGini.dfToRSIGraph(df, schema) should equal (
-          RSIGraph(
-            ("a", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(5,5,1)))),
-            ("b", .5, RSIGraph(
-              ("c", 1d, RSIGraph(leafMetadata = Some(ColumnMetadata(1,1,1)))),
-              ("d", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(5,5,1))))
-            )),
-            ("e", 1, RSIGraph(leafMetadata = Some(ColumnMetadata(42,42,1))))
-          )
-        )
-      }
-      "the DataFrame is empty" in {
-        ModelGini.dfToRSIGraph(emptyDf, schema) should equal (
-          RSIGraph(
-            ("a", 0, RSIGraph.empty),
-            ("b", 0, RSIGraph(
-              ("c", 1d, RSIGraph.empty),
-              ("d", 0d, RSIGraph.empty)
-            )),
-            ("e", 1, RSIGraph.empty)
-          )
-        )
-      }
-    }
-  }
-  it can {
+  "The ModelGini Step" can {
     "merge two options" when {
       "both are none" in {
         ModelGini.mergeOptions[Int](_+_)(None, None) should equal (None)
@@ -64,14 +36,21 @@ class ModelGiniSpec extends WavesSpec
     "not be constructable for non-positive splits" in {
       an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0))
     }
-    "always be supported" in {
+    "not be supported when no RSIGrapg is given in the state" in {
       val step = ModelGini(1)
       val state = PipelineState(null, null)
+      (step supports state) shouldBe (false)
+    }
+    "be supported when an RSIGrapg is given in the state" in {
+      val step = ModelGini(1)
+      val emptyState = PipelineState(null, null)
+      val state = StructureMetadata(emptyState) = graphForDf
       (step supports state) shouldBe (true)
     }
     "split the dataset according to the best gini gain" in {
       Given("A state and a number of partitions")
-      val state = PipelineState(df, null)
+      val emptyState = PipelineState(df, null)
+      val state = StructureMetadata(emptyState) = graphForDf
       val step = ModelGini(4)
 
       When("we apply the ExactGini step")

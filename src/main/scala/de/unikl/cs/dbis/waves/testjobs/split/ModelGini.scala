@@ -4,6 +4,7 @@ import de.unikl.cs.dbis.waves.testjobs.JobConfig
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.pipeline.sink.ParallelSink
 import de.unikl.cs.dbis.waves.pipeline.sink.DataframeSink
+import de.unikl.cs.dbis.waves.pipeline.util.CalculateRSIGraph
 
 /**
  * This is extremely slow, do not run this on large or wide datasets
@@ -15,6 +16,7 @@ object ModelGini extends SplitRunner {
     val spark = jobConfig.makeSparkSession(s"Autopartition Model Gini $numPartitions")
 
     val splitter = new Pipeline(Seq(
+      CalculateRSIGraph,
       split.ModelGini(numPartitions),
       util.ShuffleByShape),
       sink.PrioritySink(ParallelSink, DataframeSink)

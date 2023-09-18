@@ -2,9 +2,7 @@ package de.unikl.cs.dbis.waves.pipeline.split
 
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions._
-import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
 import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
-import de.unikl.cs.dbis.waves.split.recursive.PresentMetric
 import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.schemas._
@@ -12,11 +10,18 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.types.StructType
 
+/**
+  * Split the data based on a RSIGraph model of the data using the Gini Index
+  * to choose the best splits.
+  * The RSIGgraph must have been calculated beforehand.
+  * 
+  * @see [[CalculateGSIGraph]] for how to calculate the RSIGraph
+  * @param maxBuckets
+  */
 case class ModelGini(
   maxBuckets: Int
-) extends Recursive[SplitCandidateState] with NoPrerequisites {
+) extends Recursive[SplitCandidateState] {
   import ModelGini._
 
   require(maxBuckets > 0)
@@ -24,6 +29,9 @@ case class ModelGini(
   private var currentBuckets = 1
   private var splitLocations: RDD[SplitCandidate] = null
   private var spark: SparkSession = null
+
+  override def supports(state: PipelineState): Boolean
+    = StructureMetadata isDefinedIn state
 
   override protected def initialRecursionState(state: PipelineState): SplitCandidateState = {
     val schema = Schema(state)
@@ -35,8 +43,7 @@ case class ModelGini(
       schema.leafPaths.map(MedianSplitCandidate(_))
     ).persist()
     
-    val tree = dfToRSIGraph(state.data, schema)
-    findBestSplit(tree, Seq.empty).get
+    findBestSplit(StructureMetadata(state), Seq.empty).get
   }
 
   override protected def checkRecursion(recState: SplitCandidateState): Boolean
@@ -73,56 +80,6 @@ case class ModelGini(
 }
 
 object ModelGini {
-
-  /**
-    * Construct a RSIGraph which holds the metadata of a given DataFrame and
-    * schema. This method will perform two scans on the DataFrame
-    *
-    * @param df the DataFrame to process
-    * @param schema the schema of the df
-    * @return the constructed RSIGraph
-    */
-  def dfToRSIGraph(df: DataFrame, schema: StructType): RSIGraph
-    = addColumnMetadataToGraph(df,schema,loadRSIGRaph(df, schema))
-
-  private def loadRSIGRaph(df: DataFrame, schema: StructType) = {
-    val optionalCount = schema.optionalNodeCount()
-    val (rows, counts) = df.rdd.mapPartitions({ partition => 
-      val totalCount = ObjectCounter(optionalCount)
-      val currentCount = ObjectCounter(optionalCount)
-      var rowCount = 0
-      for(row <- partition) {
-        rowCount += 1
-        currentCount <-- PresentMetric(row)
-        totalCount += currentCount
-      }
-      Iterator((rowCount, totalCount))
-    }).reduce({ case ((rowsLhs, countsLhs), (rowsRhs, countRhs)) =>
-      countsLhs += countRhs
-      (rowsLhs + rowsRhs, countsLhs)
-    })
-    RSIGraph.fromObjectCounter(counts, schema, rows)
-  }
-
-  private def addColumnMetadataToGraph(df: DataFrame, schema: StructType, inputGraph: RSIGraph) = {
-    val leafs = schema.leafPaths
-    val aggs = leafs.map(p => (p.toDotfreeString, "min")) ++
-      leafs.map(p => (p.toDotfreeString, "max")) ++
-      leafs.map(p => (p.toDotfreeString, "approx_count_distinct"))
-    val summary = df.select(leafs.map(p => p.toCol.as(p.toDotfreeString)):_*)
-      .agg(aggs.head, aggs.tail:_*)
-      .head()
-    var graph = inputGraph
-    for {
-      (leaf, minIndex) <- leafs.zipWithIndex
-      maxIndex = minIndex+leafs.length
-      distinctIndex = minIndex+2*leafs.length
-      meta <- ColumnMetadata.fromRows(summary, minIndex, maxIndex, distinctIndex)
-    } {
-      graph = graph.setMetadata(Some(leaf), meta).right.get
-    }
-    graph
-  }
 
   def mergeOptions[A](fn: (A, A) => A)(lhs: Option[A], rhs: Option[A]): Option[A] = {
     if (lhs.isEmpty) return rhs

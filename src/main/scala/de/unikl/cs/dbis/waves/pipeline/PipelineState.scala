@@ -6,6 +6,7 @@ import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
 import org.apache.spark.sql.types.StructType
 
 /**
@@ -188,3 +189,8 @@ object Schema extends StateValue[StructType]("schema") {
     */
   override def apply(state: PipelineState): StructType = get(state).getOrElse(state.data.schema)
 }
+
+/**
+  * Stores the RSIGraph of the input data.
+  */
+object StructureMetadata extends StateValue[RSIGraph]("structureMetadata")

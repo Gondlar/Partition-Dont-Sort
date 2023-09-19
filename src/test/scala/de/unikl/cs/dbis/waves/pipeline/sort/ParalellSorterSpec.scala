@@ -21,6 +21,13 @@ class ParallelSorterSpec extends WavesSpec
         (ParallelSorter supports dummyState) shouldBe (false)
       }
     }
+    "schema modifications are requested" should {
+      "not be supported" in {
+        val state = GlobalSortorder(dummyState) = Seq(col("a"))
+        val stateWithModifications = ModifySchema(state) = true
+        (ParallelSorter supports stateWithModifications) shouldBe (false)
+      }
+    }
     "a sortorder is defined" should {
       "be supported" in {
         val state = GlobalSortorder(dummyState) = Seq(col("a"))

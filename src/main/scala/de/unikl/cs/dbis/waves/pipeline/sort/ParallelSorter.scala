@@ -9,7 +9,7 @@ import de.unikl.cs.dbis.waves.pipeline._
 object ParallelSorter extends PipelineStep {
 
   override def supports(state: PipelineState): Boolean
-    = (GlobalSortorder isDefinedIn state)
+    = (GlobalSortorder isDefinedIn state) && (!ModifySchema(state))
 
   override def run(state: PipelineState): PipelineState
     = state.copy(data = state.data.sortWithinPartitions(GlobalSortorder(state):_*))

@@ -11,6 +11,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SparkSession
 
+import Math.min
+
 /**
   * Split the data based on a RSIGraph model of the data using the Gini Index
   * to choose the best splits.
@@ -18,13 +20,18 @@ import org.apache.spark.sql.SparkSession
   * 
   * @see [[CalculateGSIGraph]] for how to calculate the RSIGraph
   * @param maxBuckets
+  * @param minimumBucketFill the minimum size - relative to an even distribution
+  *                          - that a bucket may be expected to have for the
+  *                          split to be considered. Defaults to 50%
   */
 case class ModelGini(
-  maxBuckets: Int
+  maxBuckets: Int,
+  minimumBucketFill: Double = 0.5
 ) extends Recursive[SplitCandidateState] {
   import ModelGini._
 
   require(maxBuckets > 0)
+  require(minimumBucketFill >= 0 && minimumBucketFill <= 1)
 
   private var currentBuckets = 1
   private var splitLocations: RDD[SplitCandidate] = null
@@ -62,11 +69,12 @@ case class ModelGini(
     splitLocations.mapPartitions({ partition =>
       val splits = for {
         candidate <- partition
+        leftFraction = candidate.leftFraction(tree)
+        if minimumBucketFill/maxBuckets <= min(leftFraction, 1-leftFraction)*size
         split = candidate.split(tree)
         if split.isRight
         (leftSide, rightSide) = split.right.get
       } yield {
-        val leftFraction = candidate.leftFraction(tree)
         val gini = leftFraction * leftSide.gini + (1-leftFraction) * rightSide.gini
         (candidate, gini)
       }

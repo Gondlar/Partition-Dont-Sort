@@ -36,6 +36,10 @@ class ModelGiniSpec extends WavesSpec
     "not be constructable for non-positive splits" in {
       an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0))
     }
+    "not be constructable for non-percentage values of minimumBucketFill" in {
+      an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0, -1))
+      an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0, 2))
+    }
     "not be supported when no RSIGrapg is given in the state" in {
       val step = ModelGini(1)
       (step supports dummyState) shouldBe (false)

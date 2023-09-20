@@ -32,15 +32,13 @@ class SplitCandidateStateSpec extends WavesSpec
     }
     "return its children" in {
       val (right, left) = graph.splitBy(PathKey("a")).value
-      val res = state.children
-      res should contain theSameElementsInOrderAs (Seq(
-        (left, Seq(Present, Absent, Present)),
-        (right, Seq(Present, Absent, Absent))
-      ))
+      val (resLeft, resRight) = state.children
+      resLeft should equal ((left, Seq(Present, Absent, Present)))
+      resRight should equal ((right, Seq(Present, Absent, Absent)))
     }
   }
 
   val candidate = PresenceSplitCandidate(PathKey("a"))
   val graph = RSIGraph(("a", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 9, 6)))))
-  val state = SplitCandidateState(candidate, graph, 5, Seq(Present, Absent))
+  val state = SplitCandidateState(candidate, graph, 1, 5, Seq(Present, Absent))
 }

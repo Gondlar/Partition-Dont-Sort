@@ -43,7 +43,7 @@ case class ModelGini(
       schema.leafPaths.map(MedianSplitCandidate(_))
     ).persist()
     
-    findBestSplit(StructureMetadata(state), Seq.empty).get
+    findBestSplit(StructureMetadata(state), Seq.empty, 1).get
   }
 
   override protected def checkRecursion(recState: SplitCandidateState): Boolean
@@ -51,13 +51,14 @@ case class ModelGini(
 
   override protected def doRecursionStep(recState: SplitCandidateState, df: DataFrame): Seq[SplitCandidateState] = {
     currentBuckets += 1
-    for {
-      (childGraph, childPath) <- recState.children
-      child <- findBestSplit(childGraph, childPath)
-    } yield child
+    val ((leftGraph, leftPath), (rightGraph, rightPath)) = recState.children
+    val leftSize = recState.leftFraction
+    val leftCandidate = findBestSplit(leftGraph, leftPath, recState.size*leftSize)
+    val rightCandidate = findBestSplit(rightGraph, rightPath, recState.size*(1-leftSize))
+    Seq(leftCandidate, rightCandidate).flatten
   }
 
-  private def findBestSplit(tree: RSIGraph, path: Seq[PartitionTreePath]): Option[SplitCandidateState] = {
+  private def findBestSplit(tree: RSIGraph, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidateState] = {
     splitLocations.mapPartitions({ partition =>
       val splits = for {
         candidate <- partition
@@ -73,8 +74,8 @@ case class ModelGini(
     }).fold(None)(mergeOptions({ case (lhs@(_, lhsGini), rhs@(_, rhsGini)) =>
       if (lhsGini < rhsGini) lhs else rhs
     })).map({ case (candidate, gini) =>
-      val improvement = tree.gini - gini
-      SplitCandidateState(candidate, tree, improvement, path)
+      val improvement = (tree.gini - gini) * size
+      SplitCandidateState(candidate, tree, size, improvement, path)
     })
   }
 }
@@ -132,6 +133,7 @@ final case class MedianSplitCandidate(
 final case class SplitCandidateState(
   split: SplitCandidate,
   graph: RSIGraph,
+  size: Double,
   priority: Double,
   path: Seq[PartitionTreePath]
 ) extends RecursionState {
@@ -142,6 +144,8 @@ final case class SplitCandidateState(
   def children = {
     val (leftGraph, rightGraph) = split.split(graph).right.get
     val (leftStep, rightStep) = split.paths
-    Seq((leftGraph, path :+ leftStep), (rightGraph, path :+ rightStep))
+    ((leftGraph, path :+ leftStep), (rightGraph, path :+ rightStep))
   }
+
+  def leftFraction = split.leftFraction(graph)
 }

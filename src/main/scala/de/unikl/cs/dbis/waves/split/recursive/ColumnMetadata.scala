@@ -5,6 +5,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.ArrayType
 
 import de.unikl.cs.dbis.waves.util.ColumnValue
+import scala.collection.mutable.WrappedArray
 
 final case class ColumnMetadata(
   val min: ColumnValue,
@@ -45,15 +46,15 @@ final case class ColumnMetadata(
 }
 
 object ColumnMetadata extends Logging {
-  def fromRows(data: Row, minIndex: Int, maxIndex: Int, distinctIndex: Int): Option[ColumnMetadata] = {
-    val distinct = data.getLong(distinctIndex)
+  def fromSeq(data: Seq[Any], minIndex: Int = 0, maxIndex: Int = 1, distinctIndex: Int = 2): Option[ColumnMetadata] = {
+    val distinct = data(distinctIndex).asInstanceOf[Long]
     if (distinct == 0) None else try {
       val col = for {
-        min <- ColumnValue.fromRow(data, minIndex)
-        max <- ColumnValue.fromRow(data, maxIndex)
-      } yield ColumnMetadata(min, max, data.getLong(distinctIndex))
-      if (col.isEmpty && !data.schema.fields(minIndex).dataType.isInstanceOf[ArrayType])
-        logWarning(s"Ignoring Colum $minIndex with unimplemented type ${data.schema.fields(minIndex).dataType}")
+        min <- ColumnValue.fromAny(data(minIndex))
+        max <- ColumnValue.fromAny(data(maxIndex))
+      } yield ColumnMetadata(min, max, distinct)
+      if (col.isEmpty && !data(minIndex).isInstanceOf[WrappedArray[_]])
+        logWarning(s"Ignoring Colum $minIndex with unimplemented type ${data(minIndex).getClass().getName()}")
       col
     } catch {
       case e: IllegalArgumentException => None

@@ -14,7 +14,7 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
   *               The array index corresponds to an optional node's position in pre-order. 
   */
   @SerialVersionUID(100L)
-class ObjectCounter private[recursive] (
+class ObjectCounter (
     private[recursive] val values : Array[Int]
 ) extends Serializable {
     /**

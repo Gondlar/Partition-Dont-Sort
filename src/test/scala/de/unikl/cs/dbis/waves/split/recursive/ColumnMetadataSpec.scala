@@ -11,6 +11,7 @@ import de.unikl.cs.dbis.waves.util.StringColumn
 
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._
+import scala.collection.mutable.WrappedArray
 
 class ColumnMetadataSpec extends WavesSpec {
 
@@ -22,29 +23,29 @@ class ColumnMetadataSpec extends WavesSpec {
     }
     "be constructable from a row" when {
       "it contains Booleans" in {
-        val row = makeRowOfType(BooleanType, false, true, 2)
-        ColumnMetadata.fromRows(row, 0, 1, 2).value should equal (ColumnMetadata(false, true, 2))
+        val row = makeRowOfType(false, true, 2)
+        ColumnMetadata.fromSeq(row).value should equal (ColumnMetadata(false, true, 2))
       }
       "it contains integers" in {
-        val row = makeRowOfType(IntegerType, 0, 10, 5)
-        ColumnMetadata.fromRows(row, 0, 1, 2).value should equal (ColumnMetadata(0, 10, 5))
+        val row = makeRowOfType(0, 10, 5)
+        ColumnMetadata.fromSeq(row).value should equal (ColumnMetadata(0, 10, 5))
       }
       "it contains longs" in {
-        val row = makeRowOfType(LongType, 0l, 10l, 5)
-        ColumnMetadata.fromRows(row, 0, 1, 2).value should equal (ColumnMetadata(0L, 10L, 5))
+        val row = makeRowOfType(0l, 10l, 5)
+        ColumnMetadata.fromSeq(row).value should equal (ColumnMetadata(0L, 10L, 5))
       }
       "it contains doubles" in {
-        val row = makeRowOfType(DoubleType, 0d, 10d, 5)
-        ColumnMetadata.fromRows(row, 0, 1, 2).value should equal (ColumnMetadata(0d, 10d, 5))
+        val row = makeRowOfType(0d, 10d, 5)
+        ColumnMetadata.fromSeq(row).value should equal (ColumnMetadata(0d, 10d, 5))
       }
       "it contains Strings" in {
-        val row = makeRowOfType(StringType, "abc", "def", 5)
-        ColumnMetadata.fromRows(row, 0, 1, 2).value should equal (ColumnMetadata("abc", "def", 5))
+        val row = makeRowOfType("abc", "def", 5)
+        ColumnMetadata.fromSeq(row).value should equal (ColumnMetadata("abc", "def", 5))
       }
     }
     "not be constructable from Arrays" in {
-      val row = makeRowOfType(ArrayType(IntegerType), null, null, 5)
-      ColumnMetadata.fromRows(row, 0, 1, 2) should not be 'defined
+      val row = makeRowOfType[WrappedArray[Object]](WrappedArray.empty, WrappedArray.empty, 5)
+      ColumnMetadata.fromSeq(row) should not be 'defined
     }
   }
   "Boolean ColumnMetadata" should {
@@ -213,8 +214,6 @@ class ColumnMetadataSpec extends WavesSpec {
     }
   }
 
-  def makeRowOfType(tpe: DataType, min: Any, max: Any, distinct: Long) = {
-    val schema = StructType(Array(StructField("min", tpe), StructField("max", tpe), StructField("distinct", LongType)))
-    new GenericRowWithSchema(Array[Any](min, max, distinct), schema)
-  }
+  def makeRowOfType[Type](min: Type, max: Type, distinct: Long)
+    = Seq[Any](min, max, distinct)
 }

@@ -10,7 +10,7 @@ object ModelGiniWithSort extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
     val numPartitions = jobConfig.getInt("numPartitions").getOrElse(8)
-    val spark = jobConfig.makeSparkSession(s"Autopartition Model Gini $numPartitions")
+    val spark = jobConfig.makeSparkSession(s"Autopartition Model Gini (Sorted) $numPartitions")
 
     val splitter = new Pipeline(Seq(
       util.CalculateRSIGraph,

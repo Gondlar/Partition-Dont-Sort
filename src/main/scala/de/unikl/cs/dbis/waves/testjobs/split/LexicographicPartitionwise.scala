@@ -11,7 +11,7 @@ object LexicographicPartitionwise extends SplitRunner {
     val jobConfig = JobConfig.fromArgs(args)
     val numPartitions = jobConfig.getInt("numPartitions").getOrElse(8)
     val exact = jobConfig.getBool("exact").getOrElse(false)
-    val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Partitionwise $numPartitions$numPartitions ${if (exact) " (exact)" else ""}")
+    val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Partitionwise $numPartitions${if (exact) " (exact)" else ""}")
 
     val splitter = new Pipeline(Seq(
       split.ParallelEvenBuckets(numPartitions),

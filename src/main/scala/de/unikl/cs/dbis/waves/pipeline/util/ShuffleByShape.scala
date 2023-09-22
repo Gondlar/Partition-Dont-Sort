@@ -27,10 +27,4 @@ object ShuffleByShape extends PipelineStep {
     )
     state.copy(data = shuffledDf)
   }
-
-  private def makeFilter(df: DataFrame, metadata: PartitionMetadata) = {
-    val absent = metadata.getAbsent.map(k => k.toCol(df).isNull)
-    val present = metadata.getPresent.map(k => k.toCol(df).isNotNull)
-    (absent ++ present).reduce((lhs, rhs) => lhs && rhs)
-  }
 }

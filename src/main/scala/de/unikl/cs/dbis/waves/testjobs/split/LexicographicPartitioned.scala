@@ -14,7 +14,7 @@ object LexicographicPartitioned extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
     val numPartitions = jobConfig.getInt("numPartitions").getOrElse(8)
-    val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Partitionwise $numPartitions")
+    val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Partitioned $numPartitions")
 
     run(spark, jobConfig, df => {
       // Find sort order

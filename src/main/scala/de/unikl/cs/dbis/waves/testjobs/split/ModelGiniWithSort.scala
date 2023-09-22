@@ -18,7 +18,7 @@ object ModelGiniWithSort extends SplitRunner {
       util.ShuffleByShape,
       sort.GlobalOrder(sort.RSIGRaphCardinalities),
       util.PriorityStep(sort.ParallelSorter, sort.DataframeSorter)),
-      sink.PrioritySink(sink.ParallelSink, sink.DataframeSink)
+      sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)
     )
 
     runSplitter(spark, jobConfig, splitter)

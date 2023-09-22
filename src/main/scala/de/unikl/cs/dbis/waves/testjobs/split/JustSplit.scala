@@ -10,9 +10,8 @@ object JustSplit extends SplitRunner {
     val spark = jobConfig.makeSparkSession("Autopartition Split")
 
     val splitter = new Pipeline(Seq(
-      split.EvenBuckets(numPartitions),
-      util.FlatShapeBuilder),
-      sink.DataframeSink
+      split.ParallelEvenBuckets(numPartitions)),
+      sink.ParallelSink.byPartition
     )
 
     runSplitter(spark, jobConfig, splitter)

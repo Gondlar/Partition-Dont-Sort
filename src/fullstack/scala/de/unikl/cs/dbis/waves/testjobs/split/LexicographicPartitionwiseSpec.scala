@@ -5,18 +5,19 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.PartitionTreeMatchers
 
 import de.unikl.cs.dbis.waves.partitions.{PartitionTree, TreeNode, Spill, Bucket}
-import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.sort.LexicographicSorter
 
 import org.apache.spark.sql.types.StructType
 
-class JustSplitSpec extends WavesSpec
-  with SplitFixture
-  with PartitionTreeMatchers {
+class LexicographicPartitionwiseSpec extends WavesSpec
+  with SplitFixture with PartitionTreeMatchers {
 
-  "The JustSplit job" should {
-    behave like split({
-      JustSplit.main(args)
-    }, specificTests)
+  "The LexicographicPartitionwise Split job" when {
+    "not using schema modifications" should {
+      behave like split({
+        LexicographicPartitionwise.main(args)
+      }, specificTests)
+    }
   }
 
   def specificTests(
@@ -25,16 +26,18 @@ class JustSplitSpec extends WavesSpec
     events: Seq[String],
     data: Seq[String]
   ) = {
-    And("the correct sorter is used")
-    val buckets = (0 to 7).map(_ => Bucket())
+    And("the partition tree has the right shape")
+    val buckets = (0 until 8).map(_ => Bucket())
     val manualShape = buckets.tail.foldLeft(buckets.head: TreeNode.AnyNode[String])((partitioned, spill) => Spill(partitioned, spill))
-    val tree = new PartitionTree(inputSchema, NoSorter, manualShape)
+    val tree = new PartitionTree(inputSchema, LexicographicSorter, manualShape)
     partitionSchema should haveTheSameStructureAs(tree)
 
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
+      "'start-GlobalOrder'", "'end-GlobalOrder'",
+      "'start-ParallelSorter'", "'end-ParallelSorter'",
       "'start-ParallelSink'", "'end-ParallelSink'",
       "'split-done'",
       "'split-cleanup-end'"

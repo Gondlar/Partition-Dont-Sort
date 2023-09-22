@@ -16,7 +16,7 @@ object ModelGini extends SplitRunner {
       util.CalculateRSIGraph,
       split.ModelGini(numPartitions),
       util.ShuffleByShape),
-      sink.PrioritySink(sink.ParallelSink, sink.DataframeSink)
+      sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)
     )
 
     runSplitter(spark, jobConfig, splitter)

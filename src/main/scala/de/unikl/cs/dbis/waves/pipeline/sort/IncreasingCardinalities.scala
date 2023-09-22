@@ -6,10 +6,12 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
 
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.count_distinct
+import org.apache.spark.sql.functions.{count_distinct,approx_count_distinct}
 import org.apache.spark.sql.types.IntegerType
 
-object ExactCardinalities extends ColumnOrderer with NoPrerequisites {
+abstract class IncreasingCardinalities(
+  distinctValueCounter: Column => Column
+) extends ColumnOrderer with NoPrerequisites {
 
   override def sort(state: PipelineState, df: DataFrame): Seq[Column] = {
     // generate columns for all value and definition level columns
@@ -17,7 +19,7 @@ object ExactCardinalities extends ColumnOrderer with NoPrerequisites {
     val cols = (paths.map(p => p.toCol) ++ paths.map(definitionLevel(_)))
 
     // get all cardinalities
-    val withCount = cols.map(count_distinct(_))
+    val withCount = cols.map(distinctValueCounter(_))
     val cardinalities = df.agg(withCount.head, withCount.tail:_*).head()
 
     // order in increasing order ignoring those with card 1
@@ -38,3 +40,6 @@ object ExactCardinalities extends ColumnOrderer with NoPrerequisites {
     builder.result().map(step => step.toCol.isNotNull.cast(IntegerType)).reduce(_+_)
   }
 }
+
+object ExactCardinalities extends IncreasingCardinalities(count_distinct(_))
+object EstimatedCardinalities extends IncreasingCardinalities(approx_count_distinct(_))

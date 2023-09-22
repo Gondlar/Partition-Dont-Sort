@@ -6,11 +6,12 @@ import de.unikl.cs.dbis.waves.pipeline._
 object LexicographicMono extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
-    val spark = jobConfig.makeSparkSession("Autopartition Lexicographic Mono")
+    val exact = jobConfig.getBool("exact").getOrElse(false)
+    val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Mono${if (exact) " (exact)" else ""}")
 
     val splitter = new Pipeline(Seq(
       split.SingleBucket,
-      sort.GlobalOrder(sort.ExactCardinalities),
+      sort.GlobalOrder(if (exact) sort.ExactCardinalities else sort.EstimatedCardinalities),
       sort.DataframeSorter),
       sink.DataframeSink
     )

@@ -4,9 +4,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.PartitionTreeFixture
 
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
-import de.unikl.cs.dbis.waves.pipeline.PipelineState
-import de.unikl.cs.dbis.waves.pipeline.Shape
-import de.unikl.cs.dbis.waves.pipeline.PipelineStateFixture
+import de.unikl.cs.dbis.waves.pipeline._
 
 class PredefinedSpec extends WavesSpec
   with PartitionTreeFixture with PipelineStateFixture {
@@ -26,6 +24,7 @@ class PredefinedSpec extends WavesSpec
 
       Then("the correct shape is stored")
       Shape(result) should equal (split.shape)
+      NumBuckets(result) should equal (2)
     }
   }
 }

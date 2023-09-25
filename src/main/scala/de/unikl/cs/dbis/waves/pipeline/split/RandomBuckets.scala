@@ -1,12 +1,7 @@
 package de.unikl.cs.dbis.waves.pipeline.split
 
-import de.unikl.cs.dbis.waves.pipeline.PipelineStep
-import de.unikl.cs.dbis.waves.pipeline.PipelineState
+import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.operators.TempColumn
-
-import org.apache.spark.sql.functions.monotonically_increasing_id
-import de.unikl.cs.dbis.waves.pipeline.Buckets
-import de.unikl.cs.dbis.waves.pipeline.NoPrerequisites
 
 /**
   * This PipelineStep splits the input data into buckets of approximately even
@@ -25,6 +20,7 @@ final case class RandomBuckets(numPartitions: Int) extends PipelineStep with NoP
 
   override def run(state: PipelineState): PipelineState = {
     val buckets = state.data.randomSplit(Array.fill(numPartitions)(1)).filter(!_.isEmpty)
-    Buckets(state) = buckets
+    val newState = Buckets(state) = buckets
+    NumBuckets(newState) = numPartitions
   }
 }

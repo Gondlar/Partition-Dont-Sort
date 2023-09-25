@@ -27,6 +27,9 @@ class SingleBucketSpec extends WavesSpec
       buckets should have length (1)
       buckets(0) shouldBe theSameInstanceAs (df)
 
+      (NumBuckets isDefinedIn result) shouldBe (true)
+      NumBuckets(result) should equal (1)
+
       And("the shape is a single bucket")
       (Shape isDefinedIn result) shouldBe (true)
       Shape(result) should equal (Bucket(()))

@@ -35,7 +35,7 @@ class ParallelSinkSpec extends WavesSpec
         val withShape = Shape(dummyState) = Bucket(())
         (ParallelSink.byShape supports withShape) shouldBe (true)
       }
-      "not require finaliration" in {
+      "not require finalization" in {
         (ParallelSink.byShape isAlwaysFinalizedFor dummyState) shouldBe (true)
       }
       "store each bucket as a Partition" when {
@@ -92,27 +92,34 @@ class ParallelSinkSpec extends WavesSpec
 
 
   "A ParallelSink by Partition" when {
+    "NumBuckets is not defined" should {
+      "not be supported" in {
+        (ParallelSink.byPartition supports dummyState) shouldBe (false)
+      }
+    }
     "schema modifications are requested" should {
       "not be supported" in {
-        val withSchemaModifications = ModifySchema(dummyState) = true
+        val withNumBuckets = NumBuckets(dummyState) = 2
+        val withSchemaModifications = ModifySchema(withNumBuckets) = true
         (ParallelSink.byPartition supports withSchemaModifications) shouldBe (false)
       }
     }
-    "shape is defined" should {
+    "NumBuckets is defined" should {
       "be supported" in {
-        (ParallelSink.byPartition supports dummyState) shouldBe (true)
+        val state = NumBuckets(dummyState) = 2
+        (ParallelSink.byPartition supports state) shouldBe (true)
       }
-      "not require finaliration" in {
+      "not require finalization" in {
         (ParallelSink.byPartition isAlwaysFinalizedFor dummyState) shouldBe (true)
       }
       "store each bucket as a Partition" when {
         "there are multiple buckets" in {
           Given("A PipelineState with multiple buckets")
           val emptyState = PipelineState(df, tempDirectory)
-          val withBuckets = Shape(emptyState) = Spill(Bucket(()),Bucket(()))
+          val withNumBuckets = NumBuckets(emptyState) = 2
 
           When("we run the ParallelSink")
-          val (finalState, result) = ParallelSink.byPartition.run(withBuckets)
+          val (finalState, result) = ParallelSink.byPartition.run(withNumBuckets)
 
           Then("the written partitions look as expected")
           result should have length (2)
@@ -120,22 +127,22 @@ class ParallelSinkSpec extends WavesSpec
           spark.read.parquet(result(1).filename).collect() should contain theSameElementsInOrderAs (df.filter(spark_partition_id === 1).collect())
 
           And("the final state is unchanged")
-          finalState should equal (withBuckets)
+          finalState should equal (withNumBuckets)
         }
         "there is only one bucket" in {
           Given("A PipelineState with one Bucket")
           val emptyState = PipelineState(df.repartition(1), tempDirectory)
-          val withBuckets = Shape(emptyState) = Bucket(())
+          val withNumBuckets = NumBuckets(emptyState) = 1
 
           When("we run the ParallelSink")
-          val (finalState, result) = ParallelSink.byPartition.run(withBuckets)
+          val (finalState, result) = ParallelSink.byPartition.run(withNumBuckets)
 
           Then("the written partitions look as expected")
           result should have length (1)
           spark.read.parquet(result(0).filename).collect() should contain theSameElementsInOrderAs (df.collect())
 
           And("the final state is unchanged")
-          finalState should equal (withBuckets)
+          finalState should equal (withNumBuckets)
         }
       }
     }

@@ -14,5 +14,5 @@ import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 object SingleBucket extends PipelineStep with NoPrerequisites {
 
   override def run(state: PipelineState): PipelineState
-    = Buckets(Shape(state) = Bucket(())) = Seq(state.data)
+    = NumBuckets(Buckets(Shape(state) = Bucket(())) = Seq(state.data)) = 1
 }

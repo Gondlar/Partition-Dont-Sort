@@ -89,6 +89,7 @@ class ExactGiniSpec extends WavesSpec
           SplitByPresence("a", (), ())
         )
       )
+      NumBuckets.get(result).value should equal (4)
 
       And("the buckets have the right data")
       val buckets = Buckets(result)

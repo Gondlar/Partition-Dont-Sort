@@ -65,7 +65,9 @@ abstract class Recursive[RS <: RecursionState] extends PipelineStep {
       currentShape = currentShape.replace(step.path, step.splitShape(df))
     }
     val withShape = Shape(state) = currentShape.shape
-    Buckets(withShape) = currentShape.buckets.map(_.data)
+    val buckets = currentShape.buckets
+    val withBuckets = Buckets(withShape) = buckets.map(_.data)
+    NumBuckets(withBuckets) = buckets.size
   }
 }
 

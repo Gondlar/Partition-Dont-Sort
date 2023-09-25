@@ -194,3 +194,8 @@ object Schema extends StateValue[StructType]("schema") {
   * Stores the RSIGraph of the input data.
   */
 object StructureMetadata extends StateValue[RSIGraph]("structureMetadata")
+
+/**
+  * Stores the number of Buckets
+  */
+object NumBuckets extends StateValue[Int]("numBuckets")

@@ -33,6 +33,9 @@ class RandomBucketsSpec extends WavesSpec
         alert("Got less than 2 partitions. This can be random chance, but is a bug if it persists")
       buckets.map(_.count()).sum should equal (8)
 
+      (NumBuckets isDefinedIn result) shouldBe (true)
+      NumBuckets(result) should equal (2)
+
       And("no shape is set")
       (Shape isDefinedIn result) shouldBe (false)
     }

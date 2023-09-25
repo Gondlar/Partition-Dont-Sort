@@ -32,6 +32,9 @@ class EvenBucketsSpec extends WavesSpec
       buckets(0).count should equal (4)
       buckets(1).count should equal (4)
 
+      (NumBuckets isDefinedIn result) shouldBe (true)
+      NumBuckets(result) should equal (2)
+
       And("no shape is set")
       (Shape isDefinedIn result) shouldBe (false)
     }

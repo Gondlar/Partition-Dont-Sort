@@ -95,8 +95,9 @@ object ParallelSink {
   val byPartition = new ParallelSink( new ParallelPartitioner {
 
     override def apply(state: PipelineState): (Iterable[_], Column)
-      = (0 until state.data.rdd.getNumPartitions, spark_partition_id)
+      = (0 until NumBuckets(state), spark_partition_id)
 
-    override def supports(state: PipelineState): Boolean = true
+    override def supports(state: PipelineState): Boolean
+      = NumBuckets isDefinedIn state
   })
 }

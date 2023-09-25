@@ -36,6 +36,9 @@ class ParallelEvenBucketsSpec extends WavesSpec
       val shape = Shape(result)
       shape should equal (Spill(Spill(Spill(Bucket(()),Bucket(())),Bucket(())),Bucket(())))
 
+      (NumBuckets isDefinedIn result) shouldBe (true)
+      NumBuckets(result) should equal (4)
+
       result.data.rdd.getNumPartitions should equal (4)
       result.data.collect() should contain theSameElementsAs (df.collect())
       result.data.rdd.mapPartitions(partition => Iterator(partition.size)).collect() should equal (Array(2,2,2,2))

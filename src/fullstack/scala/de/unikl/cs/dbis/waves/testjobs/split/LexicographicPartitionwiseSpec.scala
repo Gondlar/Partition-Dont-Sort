@@ -36,6 +36,7 @@ class LexicographicPartitionwiseSpec extends WavesSpec
     events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
+      "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-GlobalOrder'", "'end-GlobalOrder'",
       "'start-ParallelSorter'", "'end-ParallelSorter'",
       "'start-ParallelSink'", "'end-ParallelSink'",

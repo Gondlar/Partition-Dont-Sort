@@ -35,6 +35,7 @@ class JustSplitSpec extends WavesSpec
     events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
+      "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-ParallelSink'", "'end-ParallelSink'",
       "'split-done'",
       "'split-cleanup-end'"

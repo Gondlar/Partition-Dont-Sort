@@ -32,10 +32,6 @@ class ParallelEvenBucketsSpec extends WavesSpec
       val result = ParallelEvenBuckets(4)(dummyDfState)
 
       Then("we see the correct buckets in the result")
-      (Shape isDefinedIn result) shouldBe (true)
-      val shape = Shape(result)
-      shape should equal (Spill(Spill(Spill(Bucket(()),Bucket(())),Bucket(())),Bucket(())))
-
       (NumBuckets isDefinedIn result) shouldBe (true)
       NumBuckets(result) should equal (4)
 

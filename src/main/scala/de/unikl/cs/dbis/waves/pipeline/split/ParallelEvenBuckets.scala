@@ -21,12 +21,6 @@ final case class ParallelEvenBuckets(numPartitions: Int) extends PipelineStep {
 
   override def run(state: PipelineState): PipelineState = {
     val newData = state.data.repartition(numPartitions)
-    val newState = Shape(state.copy(data = newData)) = makeShape
-    NumBuckets(newState) = numPartitions
-  }
-
-  private def makeShape = {
-    val buckets = Iterator.fill(numPartitions-1)(Bucket(()))
-    buckets.foldLeft(Bucket(()): AnyNode[Unit])((partitioned,bucket) => Spill(partitioned,bucket))
+    NumBuckets(state.copy(data = newData)) = numPartitions
   }
 }

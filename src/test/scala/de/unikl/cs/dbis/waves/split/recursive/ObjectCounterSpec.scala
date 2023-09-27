@@ -21,17 +21,6 @@ class ObjectCounterSpec extends WavesSpec
             "have all zero counts" in {
                 ObjectCounter(3).values should contain only (0)
             }
-            "find the correct paths" in {
-                When("determining paths")
-                val paths = ObjectCounter.paths(schema)
-                Then("all paths are correct")
-                paths should equal (Seq(PathKey("a"), PathKey("b"), PathKey("b.d")))
-
-                When("Schema is empty")
-                val paths2 = ObjectCounter(StructType(Seq()))
-                Then("no paths are found")
-                paths2.values should have length (0)
-            }
         }
         "not empty" should {
             "have the correct size" in {

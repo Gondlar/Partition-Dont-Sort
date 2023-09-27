@@ -46,7 +46,7 @@ case class ModelGini(
     currentBuckets = 1
     spark = state.data.sparkSession
     splitLocations = spark.sparkContext.parallelize[SplitCandidate](
-      ObjectCounter.paths(schema).map(PresenceSplitCandidate(_)) ++
+      schema.optionalPaths.map(PresenceSplitCandidate(_)) ++
       schema.leafPaths.map(MedianSplitCandidate(_))
     ).persist()
     

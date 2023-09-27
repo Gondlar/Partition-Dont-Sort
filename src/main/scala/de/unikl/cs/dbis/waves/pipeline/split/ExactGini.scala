@@ -41,7 +41,7 @@ object ExactGini {
   implicit val ord = Ordering.by[PossibleExactSplit[BucketInfo], Double](_.priority)
 
   def findBestSplit(df: DataFrame, info: BucketInfo, path: Seq[PartitionTreePath]) = {
-    val splits = ObjectCounter.paths(df.schema).flatMap{
+    val splits = df.schema.optionalPaths.flatMap{
       calculateDefinitionLevelSplit(df, info, path, _): Option[PossibleExactSplit[BucketInfo]]
     }
     if (splits.isEmpty) None else Some(splits.max)

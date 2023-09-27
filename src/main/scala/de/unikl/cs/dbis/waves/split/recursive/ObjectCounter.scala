@@ -98,19 +98,4 @@ object ObjectCounter {
       * @return The newly constructed ObjectCounter
       */
     def apply(schema : StructType) : ObjectCounter = ObjectCounter(schema.optionalNodeCount)
-
-    /**
-      * Determine the paths of all optional nodes in a schema in pre-order
-      *
-      * @param schema the schema
-      * @return its optional paths
-      */
-    def paths(schema : StructType) : Seq[PathKey] = {
-        schema.fields.flatMap(field => {
-            val name = field.name
-            val head = if (field.nullable) Seq(PathKey(name)) else Seq.empty
-            val tail = if (field.dataType.isInstanceOf[StructType]) paths(field.dataType.asInstanceOf[StructType]) else Seq.empty
-            head ++ tail.map(name +: _)
-        })
-    }
 }

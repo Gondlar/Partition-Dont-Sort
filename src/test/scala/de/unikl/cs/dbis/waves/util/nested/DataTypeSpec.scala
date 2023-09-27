@@ -65,6 +65,14 @@ class DataTypeSpec extends WavesSpec
       "lists its root-to-leaf paths in left-to-right order" in {
         schema.leafPaths should contain theSameElementsInOrderAs (Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"), PathKey("e")))
       }
+      "list its optional paths in pre-order" when {
+          "the schema is empty" in {
+            StructType(Seq()).optionalPaths shouldBe 'empty
+          }
+          "the schema is non-empty" in {
+            schema.optionalPaths should equal (Seq(PathKey("a"), PathKey("b"), PathKey("b.d")))
+          }
+      }
     }
     it should {
       "fail to mark a path as present" when {

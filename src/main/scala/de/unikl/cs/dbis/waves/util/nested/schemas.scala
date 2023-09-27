@@ -209,5 +209,31 @@ object schemas {
           tpe.accept(visitor)
           paths.flatten
         }
+
+        /**
+         * Determine the paths to all optional nodes in a schema in pre-order
+         *
+         * @param schema the schema
+         * @return its optional paths
+         */
+        def optionalPaths = {
+          var paths : Seq[PathKey] = Seq.empty
+          val visitor = new DataTypeVisitor {
+
+            override def visitLeaf(leaf: DataType): Unit = {
+              paths = Seq.empty
+            }
+
+            override def visitStruct(row: StructType): Unit = {
+              paths = row.fields.zipWithIndex.flatMap { case (field, i) =>
+                row.subAccept(i, this)
+                val extendedPaths = paths.map(field.name +: _)
+                if (field.nullable) PathKey(field.name) +: extendedPaths else extendedPaths
+              }
+            }
+          }
+          tpe.accept(visitor)
+          paths
+        }
     }
 }

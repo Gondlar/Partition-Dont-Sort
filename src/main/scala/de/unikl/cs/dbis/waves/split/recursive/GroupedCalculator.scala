@@ -37,5 +37,5 @@ case class GroupedCalculator(
   override protected def leafMetric(df: DataFrame): Metric = LeafMetric(schema)
   
   override def paths(df: DataFrame): Iterator[PathKey]
-    = ObjectCounter.paths(schema).iterator
+    = schema.optionalPaths.iterator
 }

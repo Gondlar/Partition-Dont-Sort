@@ -28,5 +28,5 @@ case class RowwiseCalculator() extends AbstractPartitionMetricCalculator {
   = LeafMetric(df.schema)
   
   override def paths(df: DataFrame): Iterator[PathKey]
-    = ObjectCounter.paths(df.schema).iterator
+    = df.schema.optionalPaths.iterator
 }

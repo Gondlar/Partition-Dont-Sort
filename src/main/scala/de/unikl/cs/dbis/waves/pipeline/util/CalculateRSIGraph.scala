@@ -43,7 +43,7 @@ object CalculateRSIGraph extends PipelineStep with NoPrerequisites {
   }
 
   private def makeStructureColumns(schema: StructType)
-    = ObjectCounter.paths(schema).map(p => count(when(p.toCol.isNotNull, 1)))
+    = schema.optionalPaths.map(p => count(when(p.toCol.isNotNull, 1)))
 
   private def loadRSIGRaph(count: Long, data: Iterable[Long], schema: StructType) = {
     val counter = new ObjectCounter(data.map(_.asInstanceOf[Long].toInt).toArray)

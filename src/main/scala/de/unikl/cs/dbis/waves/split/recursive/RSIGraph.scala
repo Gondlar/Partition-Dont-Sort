@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.split.recursive
 
 import de.unikl.cs.dbis.waves.util.ColumnValue
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.nested.schemas._
 import org.apache.spark.sql.types.StructType
 
 /**
@@ -250,7 +251,7 @@ object RSIGraph {
     * @return the RSIGraph with the conditional probabilities reflecting the frequencies from the counter
     */
   def fromObjectCounter(counter: ObjectCounter, schema: StructType, total: Int) = {
-    val map = counter.toMap(ObjectCounter.paths(schema))
+    val map = counter.toMap(schema.optionalPaths)
       .map({ case (key, count) => (Some(key): Option[PathKey], count)})
       .updated(None, total)
     fromObjectCounterHelper(map, schema, None)

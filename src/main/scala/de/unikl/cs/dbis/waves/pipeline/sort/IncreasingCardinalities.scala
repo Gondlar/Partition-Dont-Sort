@@ -34,7 +34,7 @@ abstract class IncreasingCardinalities(
     val builder = Seq.newBuilder[PathKey]
     builder += path
     while (current.isNested) {
-      current = current.parent
+      current = current.parent.get
       builder += current
     }
     builder.result().map(step => step.toCol.isNotNull.cast(IntegerType)).reduce(_+_)

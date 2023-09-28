@@ -20,7 +20,7 @@ object Distributions {
     })
     var partsum = 0
     val probabilities = for (column <- leaves) yield {
-      val amounts = Seq.iterate(column,column.maxDefinitionLevel)(_.parent).map(counts(_)).reverse
+      val amounts = Seq.iterate(column,column.maxDefinitionLevel)(_.parent.get).map(counts(_)).reverse
       val optionalPresence = amounts.foldLeft(Seq(total))({case (list@(x::_), next) =>
         if (x == next) list else next::list
       })

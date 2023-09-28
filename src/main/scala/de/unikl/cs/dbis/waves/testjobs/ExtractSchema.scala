@@ -33,7 +33,7 @@ object ExtractSchema {
     var schema = df.schema
     for(path <- paths) {
       val myOccurences = pathCounts(path)
-      val parentOccurences = if (path.isNested) pathCounts(path.parent) else total
+      val parentOccurences = path.parent.map(pathCounts(_)).getOrElse(total)
       if (parentOccurences == myOccurences) {
         schema = markRequired(schema, path)
       }

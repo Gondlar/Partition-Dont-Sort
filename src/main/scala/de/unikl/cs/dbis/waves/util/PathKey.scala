@@ -78,10 +78,9 @@ final case class PathKey(identifiers: Seq[String]) {
       * 
       * A call to this method is only valid if this PathKey is nested
       *
-      * @return the path key
+      * @return the path key or none if the path is not nested
       */
-    def parent = if (isNested) PathKey(identifiers.init)
-                 else throw new NoSuchElementException
+    def parent = if (isNested) Some(PathKey(identifiers.init)) else None
 
     /**
       * Whether this PathKey represents a nested node, i.e., the path has more than one step
@@ -241,8 +240,7 @@ object PathKey {
         }
         def parent = key match {
           case None => throw new NoSuchElementException
-          case Some(key) if !key.isNested => None
-          case Some(key) => Some(key.parent)
+          case Some(key) => key.parent
         }
         def isNested = key.map(_.isNested).getOrElse(false)
         def +:(step : String) = key.map(step +: _).orElse(Some(PathKey(step)))

@@ -134,7 +134,7 @@ final case class MedianSplitCandidate(
 
   override def shape(df: DataFrame, graph: RSIGraph): TreeNode.AnyNode[DataFrame] = {
     val separator = graph.separatorForLeaf(Some(path), quantile).right.get
-    SplitByValue(separator, path, df.filter(path.toCol <= separator.toLiteral), df.filter(!(path.toCol <= separator.toLiteral)))
+    SplitByValue(separator, path, df.filter(path.toCol <= separator.toLiteral), df.filter(path.toCol.isNull || path.toCol > separator.toLiteral))
   }
 }
 

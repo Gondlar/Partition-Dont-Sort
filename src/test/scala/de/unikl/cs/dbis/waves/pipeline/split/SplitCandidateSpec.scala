@@ -78,7 +78,7 @@ class SplitCandidateSpec extends WavesSpec
         Then("the shape has the right shape")
         res.shape should equal (SplitByValue(4, "a", (), ()))
         res.less.asInstanceOf[Bucket[DataFrame]].data.collect() should contain theSameElementsAs (df.filter(col("a") <= 4).collect())
-        res.more.asInstanceOf[Bucket[DataFrame]].data.collect() should contain theSameElementsAs (df.filter(!(col("a")<= 4)).collect())
+        res.more.asInstanceOf[Bucket[DataFrame]].data.collect() should contain theSameElementsAs (df.filter(col("a").isNull || col("a") > 4).collect())
       }
     }
   }

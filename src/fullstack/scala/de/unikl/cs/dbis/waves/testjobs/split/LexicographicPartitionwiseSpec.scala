@@ -35,9 +35,9 @@ class LexicographicPartitionwiseSpec extends WavesSpec
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
+      "'start-GlobalOrder'", "'end-GlobalOrder'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
-      "'start-GlobalOrder'", "'end-GlobalOrder'",
       "'start-ParallelSorter'", "'end-ParallelSorter'",
       "'start-ParallelSink'", "'end-ParallelSink'",
       "'split-done'",

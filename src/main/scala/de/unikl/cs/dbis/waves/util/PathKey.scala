@@ -83,6 +83,14 @@ final case class PathKey(identifiers: Seq[String]) {
     def parent = if (isNested) Some(PathKey(identifiers.init)) else None
 
     /**
+      * Check whether the two path keys are siblings, i.e., have the same parent
+      *
+      * @param other the other PathKey
+      * @return true iff the keys are siblings
+      */
+    def isSiblingOf(other: PathKey) = parent == other.parent
+
+    /**
       * Whether this PathKey represents a nested node, i.e., the path has more than one step
       *
       * @return true iff this PathKey is nested, else false

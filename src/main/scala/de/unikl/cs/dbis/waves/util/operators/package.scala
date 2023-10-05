@@ -2,7 +2,7 @@ package de.unikl.cs.dbis.waves.util
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.functions.{col,struct,udf}
+import org.apache.spark.sql.functions.{col,struct,udf,udaf}
 import org.apache.spark.sql.Column
 
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
@@ -60,4 +60,18 @@ package object operators {
       map(struct(schema.fields.map(foo => col(foo.name)):_*))
         .as("bucket")
     }
+
+    /**
+      * For a given input column, produce a List of its distinct non-null values
+      * and the respective count. This function is semantically equivalent to 
+      * `collect_set(when(X.isNotNull, struct(X, count(*) over Window.partitionBy(X)))`
+      * but requires only a single scan.
+      * 
+      * Type must conform to the input column and thus extend AnyRef if the input
+      * column contains null values.
+      *
+      * @return the column function
+      */
+    def collect_set_with_count[Type : TypeTag]
+      = udaf(new CollectSetWithCountAggregator[Type])
 }

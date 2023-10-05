@@ -25,6 +25,11 @@ object schemas {
             case _ => visitor.visitLeaf(tpe)
         }
 
+        def apply[Type](visitor: SingleResult[Type]) = {
+          accept(visitor)
+          visitor.result
+        }
+
         /**
           * Count the number of leaf nodes in this schema.
           * Arrays and maps are treated as leafs

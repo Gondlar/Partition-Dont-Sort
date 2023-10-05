@@ -45,3 +45,10 @@ trait DataTypeVisitor {
       */
     def visitLeaf(leaf : DataType) : Unit
 }
+
+/**
+  * Mixin for visitors which supply a single result
+  */
+trait SingleResult[Type] extends DataTypeVisitor {
+  def result: Type
+}

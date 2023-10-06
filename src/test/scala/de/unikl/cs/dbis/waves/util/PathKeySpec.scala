@@ -26,6 +26,15 @@ class PathKeySpec extends WavesSpec
                 an [NoSuchElementException] should be thrownBy (PathKey("foo").tail)
             }
 
+            "find its parent" in {
+                PathKey("foo").parent should equal (None)
+            }
+
+            "detect its siblings" in {
+                (PathKey("foo") isSiblingOf PathKey("bar")) shouldBe (true)
+                (PathKey("foo") isSiblingOf PathKey("foo.bar")) shouldBe (false)
+            }
+
             "not be nested" in {
                 PathKey("foo") should not be 'nested
             }
@@ -123,6 +132,15 @@ class PathKeySpec extends WavesSpec
 
             "be nested" in {
                 PathKey("foo.bar") shouldBe 'nested
+            }
+
+            "find its parent" in {
+                PathKey("foo.bar").parent.value should equal (PathKey("foo"))
+            }
+
+            "detect its siblings" in {
+                (PathKey("foo.bar") isSiblingOf PathKey("bar")) shouldBe (false)
+                (PathKey("foo.bar") isSiblingOf PathKey("foo.baz")) shouldBe (true)
             }
 
             "have a valid string representation" in {

@@ -30,6 +30,20 @@ class JobConfigSpec extends WavesSpec {
         config.getString("foO") should equal (None)
       }
     }
+    "fetch Int options" when {
+      "they exist" in {
+        val config = new JobConfig(Map(("Foo", "123")))
+        config.getInt("foO") should equal (Some(123L))
+      }
+      "they do not exist" in {
+        val config = new JobConfig()
+        config.getInt("foO") should equal (None)
+      }
+      "they are invalid" in {
+        val config = new JobConfig(Map(("Foo", "abc")))
+        config.getInt("foO") should equal (None)
+      }
+    }
     "fetch Long options" when {
       "they exist" in {
         val config = new JobConfig(Map(("Foo", "123")))
@@ -91,7 +105,9 @@ class JobConfigSpec extends WavesSpec {
     behave like valueWithDefault('inputPath, "/test", "file:///cluster-share/benchmarks/json/twitter/109g_multiple")
     behave like valueWithDefault('fallbackBlocksize, 123L, 128*1024*1024L)
     behave like valueWithDefault('sampleSize, 123L, 10*1024*1024L)
+    behave like valueWithDefault('wavesPath, "asdf", "hdfs://namenode:9000/out/")
     behave like valueWithDefault('useWaves, false, true)
+    behave like valueWithDefault('modifySchema, true, false)
     behave like valueWithDefault('completeScanColumn, "asdf", "user.name")
     behave like valueWithDefault('partialScanColumn, "asdf", "quoted_status.user.name")
     behave like valueWithDefault('scanValue, "asdf", "xx")

@@ -58,6 +58,10 @@ class PartitionTreeSpec extends WavesSpec
                 bucketTree.modify({(payload, index) => payload + "SUFFIX"})
                 bucketTree.root should equal (Bucket("fooSUFFIX"))
             }
+            "map to indexes" in {
+                val result = bucketTree.indexes
+                result.root should equal (Bucket(0))
+            }
             "contain no paths" in {
                 val metadata = bucketTree.metadataFor(Seq.empty)
                 metadata should equal (PartitionMetadata())
@@ -110,6 +114,10 @@ class PartitionTreeSpec extends WavesSpec
             "modify correctly" in {
                 splitTree.modify({(payload, index) => payload + "SUFFIX"})
                 splitTree.root should equal (SplitByPresence(split.key, "bar2SUFFIX", "baz2SUFFIX"))
+            }
+            "map to indexes" in {
+                val result = splitTree.indexes
+                result.root should equal (SplitByPresence(split.key, 1, 0))
             }
             "know that path" in {
                 val metadata = splitTree.metadataFor(Seq(Present))
@@ -165,6 +173,10 @@ class PartitionTreeSpec extends WavesSpec
             "modify correctly" in {
                 medianTree.modify({(payload, index) => payload + "SUFFIX"})
                 medianTree.root should equal (SplitByValue(10, "foobar", Bucket("fooSUFFIX"), SplitByPresence("b.d", "bar2SUFFIX", "baz2SUFFIX")))
+            }
+            "map to indexes" in {
+                val result = medianTree.indexes
+                result.root should equal (SplitByValue(10, "foobar", Bucket(0), SplitByPresence("b.d", 2, 1)))
             }
             "know that path" in {
                 val metadata = medianTree.metadataFor(Seq(Less))
@@ -224,6 +236,10 @@ class PartitionTreeSpec extends WavesSpec
             "modify correctly" in {
                 spillTree.modify({(payload, index) => payload + "SUFFIX"})
                 spillTree.root should equal (Spill(SplitByPresence(split.key, "bar2SUFFIX", "baz2SUFFIX"), Bucket("foo3SUFFIX")))
+            }
+            "map to indexes" in {
+                val result = spillTree.indexes
+                result.root should equal (Spill(SplitByPresence(split.key, 2, 1), Bucket(0)))
             }
             "find no paths in the root" in {
                 val metadata = spillTree.metadataFor(Seq(Partitioned))

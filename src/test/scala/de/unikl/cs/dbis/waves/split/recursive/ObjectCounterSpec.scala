@@ -103,6 +103,11 @@ class ObjectCounterSpec extends WavesSpec
                     lhs.combine(smaller, (_, _) => fail("Called f despite different size"))
                 }
             }
+            "convert to map correctly" in {
+              val paths = Seq("a", "b", "c")
+              lhs.toMap(paths) should equal (Map(("a", 5), ("b", 3), ("c", 1)))
+              an [AssertionError] shouldBe thrownBy (lhs.toMap(Seq.empty[String]))
+            }
             "equal itself" in {
               lhs should equal (lhs)
             }
@@ -172,6 +177,11 @@ class ObjectCounterSpec extends WavesSpec
                 Then("it is still empty")
                 counter.values should have length (0)
                 counter.size should equal (0)
+            }
+            "convert to map correctly" in {
+              val counter = ObjectCounter(0)
+              counter.toMap(Seq.empty[String]) should equal (Map.empty)
+              an [AssertionError] shouldBe thrownBy (lhs.toMap(Seq("a")))
             }
             "equal itself" in {
               ObjectCounter(0) should equal (ObjectCounter(0))

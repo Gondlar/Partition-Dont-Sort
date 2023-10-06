@@ -19,6 +19,10 @@ class OptionalPathKeySpec extends WavesSpec
                 an [NoSuchElementException] should be thrownBy (Option.empty[PathKey].tail)
             }
 
+            "know its parent" in {
+              a [NoSuchElementException] shouldBe thrownBy (Option.empty[PathKey].parent)
+            }
+
             "not be nested" in {
                 Option.empty[PathKey].isNested should equal (false)
             }
@@ -83,6 +87,11 @@ class OptionalPathKeySpec extends WavesSpec
             "have the correct tail" in {
                 Some(PathKey("foo")).tail should equal (None)
                 Some(PathKey("foo.bar")).tail should equal (Some(PathKey("bar")))
+            }
+
+            "know its parent" in {
+              Some(PathKey("foo")).parent should equal (None)
+              Some(PathKey("foo.bar")).parent.value should equal (PathKey("foo"))
             }
 
             "be nested in the correct cases" in {

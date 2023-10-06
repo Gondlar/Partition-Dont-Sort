@@ -43,7 +43,7 @@ class ModelGiniWithSortSpec extends WavesSpec
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
-      "'start-CalculateRSIGraph'", "'end-CalculateRSIGraph'",
+      "'start-CalculateVersionTree'", "'end-CalculateVersionTree'",
       "'start-ModelGini'", "'end-ModelGini'",
       "'start-ShuffleByShape'", "'end-ShuffleByShape'",
       "'start-GlobalOrder'", "'end-GlobalOrder'",

@@ -13,7 +13,7 @@ object ModelGini extends SplitRunner {
     val spark = jobConfig.makeSparkSession(s"Autopartition Model Gini $numPartitions")
 
     val splitter = new Pipeline(Seq(
-      util.CalculateRSIGraph,
+      util.CalculateVersionTree,
       split.ModelGini(numPartitions),
       util.ShuffleByShape),
       sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)

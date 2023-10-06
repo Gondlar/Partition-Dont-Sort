@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.pipeline.split
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
-import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
+import de.unikl.cs.dbis.waves.util.VersionTree
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 
@@ -14,11 +14,11 @@ import org.apache.spark.sql.SparkSession
 import Math.min
 
 /**
-  * Split the data based on a RSIGraph model of the data using the Gini Index
+  * Split the data based on a VersionTree model of the data using the Gini Index
   * to choose the best splits.
   * The RSIGgraph must have been calculated beforehand.
   * 
-  * @see [[CalculateGSIGraph]] for how to calculate the RSIGraph
+  * @see [[CalculateVersionTree]] for how to calculate the VersionTree
   * @param maxBuckets
   * @param minimumBucketFill the minimum size - relative to an even distribution
   *                          - that a bucket may be expected to have for the
@@ -65,7 +65,7 @@ case class ModelGini(
     Seq(leftCandidate, rightCandidate).flatten
   }
 
-  private def findBestSplit(tree: RSIGraph, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidateState] = {
+  private def findBestSplit(tree: VersionTree, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidateState] = {
     splitLocations.mapPartitions({ partition =>
       val splits = for {
         candidate <- partition
@@ -98,25 +98,25 @@ object ModelGini {
 }
 
 sealed trait SplitCandidate {
-  def split(graph: RSIGraph): Either[String,(RSIGraph, RSIGraph)]
+  def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
   def paths: (PartitionTreePath, PartitionTreePath)
-  def leftFraction(graph: RSIGraph): Double
-  def shape(df: DataFrame, graph: RSIGraph): TreeNode.AnyNode[DataFrame]
+  def leftFraction(graph: VersionTree): Double
+  def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame]
 }
 
 final case class PresenceSplitCandidate(
   path: PathKey
 ) extends SplitCandidate {
-  override def split(graph: RSIGraph): Either[String,(RSIGraph, RSIGraph)]
+  override def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
     = if (graph.isValidSplitLocation(path)) graph.splitBy(path).map(_.swap) else Left("invalid split location")
 
   override def paths: (PartitionTreePath, PartitionTreePath)
     = (Present, Absent)
 
-  override def leftFraction(graph: RSIGraph): Double
+  override def leftFraction(graph: VersionTree): Double
     = graph.absoluteProbability(path)
   
-  override def shape(df: DataFrame, graph: RSIGraph): TreeNode.AnyNode[DataFrame]
+  override def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame]
     = SplitByPresence(path, df.filter(path.toCol.isNotNull), df.filter(path.toCol.isNull))
 }
 
@@ -124,15 +124,15 @@ final case class MedianSplitCandidate(
   path: PathKey,
   quantile: Double = .5
 ) extends SplitCandidate {
-  override def split(graph: RSIGraph): Either[String,(RSIGraph, RSIGraph)]
+  override def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
     = graph.splitBy(path, quantile)
 
   override def paths: (PartitionTreePath, PartitionTreePath) = (Less, MoreOrNull)
 
-  override def leftFraction(graph: RSIGraph): Double
+  override def leftFraction(graph: VersionTree): Double
     = graph.absoluteProbability(path) * quantile
 
-  override def shape(df: DataFrame, graph: RSIGraph): TreeNode.AnyNode[DataFrame] = {
+  override def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame] = {
     val separator = graph.separatorForLeaf(Some(path), quantile).right.get
     SplitByValue(separator, path, df.filter(path.toCol <= separator.toLiteral), df.filter(path.toCol.isNull || path.toCol > separator.toLiteral))
   }
@@ -140,7 +140,7 @@ final case class MedianSplitCandidate(
 
 final case class SplitCandidateState(
   split: SplitCandidate,
-  graph: RSIGraph,
+  graph: VersionTree,
   size: Double,
   priority: Double,
   path: Seq[PartitionTreePath]

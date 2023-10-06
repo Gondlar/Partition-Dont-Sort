@@ -6,8 +6,9 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresence,Present,Absent,Bucket}
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
-import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
 import de.unikl.cs.dbis.waves.util.PathKey
+import de.unikl.cs.dbis.waves.util.Versions
+import de.unikl.cs.dbis.waves.util.Leaf
 
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.DataFrame
@@ -39,6 +40,10 @@ class SplitCandidateStateSpec extends WavesSpec
   }
 
   val candidate = PresenceSplitCandidate(PathKey("a"))
-  val graph = RSIGraph(("a", .5, RSIGraph(leafMetadata = Some(ColumnMetadata(0, 9, 6)))))
+  val graph = Versions(
+          IndexedSeq("a"),
+          IndexedSeq(Leaf(Some(ColumnMetadata(0, 9, 6)))),
+          Seq((IndexedSeq(true), .5),(IndexedSeq(false), .5))
+        )
   val state = SplitCandidateState(candidate, graph, 1, 5, Seq(Present, Absent))
 }

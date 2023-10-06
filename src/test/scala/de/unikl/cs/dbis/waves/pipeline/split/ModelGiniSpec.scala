@@ -2,10 +2,9 @@ package de.unikl.cs.dbis.waves.pipeline.split
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
-import de.unikl.cs.dbis.waves.pipeline.util.CalculateRSIGraphSpec.graphForDf
+import de.unikl.cs.dbis.waves.pipeline.util.CalculateVersionTreeSpec.graphForDf
 
 import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
-import de.unikl.cs.dbis.waves.split.recursive.RSIGraph
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
@@ -40,11 +39,11 @@ class ModelGiniSpec extends WavesSpec
       an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0, -1))
       an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0, 2))
     }
-    "not be supported when no RSIGrapg is given in the state" in {
+    "not be supported when no VersionTree is given in the state" in {
       val step = ModelGini(1)
       (step supports dummyState) shouldBe (false)
     }
-    "be supported when an RSIGrapg is given in the state" in {
+    "be supported when an VersionTree is given in the state" in {
       val step = ModelGini(1)
       val state = StructureMetadata(dummyState) = graphForDf
       (step supports state) shouldBe (true)

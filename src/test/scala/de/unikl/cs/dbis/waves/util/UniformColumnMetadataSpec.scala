@@ -2,10 +2,6 @@ package de.unikl.cs.dbis.waves.util
 
 import de.unikl.cs.dbis.waves.WavesSpec
 
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
-import org.apache.spark.sql.types._
-import scala.collection.mutable.WrappedArray
-
 class UniformColumnMetadataSpec extends WavesSpec {
 
   "The UniformColumnMetadata" should {
@@ -13,32 +9,6 @@ class UniformColumnMetadataSpec extends WavesSpec {
       // simply test on int metadata, value is independant of type
       val meta = UniformColumnMetadata(0, 10, 4)
       meta.gini should equal (0.75)
-    }
-    "be constructable from a row" when {
-      "it contains Booleans" in {
-        val row = makeRowOfType(false, true, 2)
-        UniformColumnMetadata.fromSeq(row).value should equal (UniformColumnMetadata(false, true, 2))
-      }
-      "it contains integers" in {
-        val row = makeRowOfType(0, 10, 5)
-        UniformColumnMetadata.fromSeq(row).value should equal (UniformColumnMetadata(0, 10, 5))
-      }
-      "it contains longs" in {
-        val row = makeRowOfType(0l, 10l, 5)
-        UniformColumnMetadata.fromSeq(row).value should equal (UniformColumnMetadata(0L, 10L, 5))
-      }
-      "it contains doubles" in {
-        val row = makeRowOfType(0d, 10d, 5)
-        UniformColumnMetadata.fromSeq(row).value should equal (UniformColumnMetadata(0d, 10d, 5))
-      }
-      "it contains Strings" in {
-        val row = makeRowOfType("abc", "def", 5)
-        UniformColumnMetadata.fromSeq(row).value should equal (UniformColumnMetadata("abc", "def", 5))
-      }
-    }
-    "not be constructable from Arrays" in {
-      val row = makeRowOfType[WrappedArray[Object]](WrappedArray.empty, WrappedArray.empty, 5)
-      UniformColumnMetadata.fromSeq(row) should not be 'defined
     }
   }
   "Boolean UniformColumnMetadata" should {

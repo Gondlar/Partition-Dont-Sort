@@ -5,7 +5,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
-import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.ColumnMetadata
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.Versions
 import de.unikl.cs.dbis.waves.util.Leaf

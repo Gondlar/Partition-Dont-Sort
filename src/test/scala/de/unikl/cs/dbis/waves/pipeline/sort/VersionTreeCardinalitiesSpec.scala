@@ -5,7 +5,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import org.apache.spark.sql.functions.col
 
 import de.unikl.cs.dbis.waves.pipeline._
-import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.ColumnMetadata
 import de.unikl.cs.dbis.waves.util.{Leaf, Versions}
 import de.unikl.cs.dbis.waves.util.PathKey
 

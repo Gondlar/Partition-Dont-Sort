@@ -1,7 +1,6 @@
 package de.unikl.cs.dbis.waves.util
 
 import Math.max
-import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
 
 sealed trait VersionTree {
 

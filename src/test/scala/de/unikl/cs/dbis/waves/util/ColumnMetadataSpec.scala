@@ -1,13 +1,6 @@
-package de.unikl.cs.dbis.waves.split.recursive
+package de.unikl.cs.dbis.waves.util
 
 import de.unikl.cs.dbis.waves.WavesSpec
-
-import de.unikl.cs.dbis.waves.util.ColumnValue
-import de.unikl.cs.dbis.waves.util.BooleanColumn
-import de.unikl.cs.dbis.waves.util.IntegerColumn
-import de.unikl.cs.dbis.waves.util.LongColumn
-import de.unikl.cs.dbis.waves.util.DoubleColumn
-import de.unikl.cs.dbis.waves.util.StringColumn
 
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types._

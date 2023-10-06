@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.pipeline.util
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 
-import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.ColumnMetadata
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 

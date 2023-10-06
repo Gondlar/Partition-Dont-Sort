@@ -2,7 +2,6 @@ package de.unikl.cs.dbis.waves.util
 
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.SchemaFixture
-import de.unikl.cs.dbis.waves.split.recursive.ColumnMetadata
 
 class VersionTreeSpec extends WavesSpec with SchemaFixture {
 

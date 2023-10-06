@@ -1,10 +1,9 @@
-package de.unikl.cs.dbis.waves.split.recursive
+package de.unikl.cs.dbis.waves.util
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.ArrayType
 
-import de.unikl.cs.dbis.waves.util.ColumnValue
 import scala.collection.mutable.WrappedArray
 
 final case class ColumnMetadata(

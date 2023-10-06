@@ -16,7 +16,7 @@ import de.unikl.cs.dbis.waves.util.{VersionTree, Leaf, Versions}
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.SingleResult
 import de.unikl.cs.dbis.waves.util.ColumnValue
-import de.unikl.cs.dbis.waves.util.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.util.operators.TempColumn
 import de.unikl.cs.dbis.waves.util.operators.collect_set_with_count
 
@@ -133,7 +133,7 @@ object CalculateVersionTree extends PipelineStep with NoPrerequisites {
         max <- ColumnValue.fromRow(row, maxIndex)
       } yield {
         val distinct = row.getLong(distinctIndex)
-        ColumnMetadata(min, max, distinct)
+        UniformColumnMetadata(min, max, distinct)
       }
       resultStructure = Leaf(metadata)
     }

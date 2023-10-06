@@ -5,7 +5,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
-import de.unikl.cs.dbis.waves.util.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.Versions
 import de.unikl.cs.dbis.waves.util.Leaf
@@ -65,7 +65,7 @@ class SplitCandidateSpec extends WavesSpec
         Given("A graph and split candidate")
         val graph = Versions(
           IndexedSeq("a"),
-          IndexedSeq(Leaf(Some(ColumnMetadata(0, 9, 6)))),
+          IndexedSeq(Leaf(Some(UniformColumnMetadata(0, 9, 6)))),
           makeVersions(.5)
         )
         val candidate = MedianSplitCandidate(PathKey("a"))
@@ -89,7 +89,7 @@ class SplitCandidateSpec extends WavesSpec
     IndexedSeq(
       Versions(
         IndexedSeq("b"),
-        IndexedSeq(Leaf(Some(ColumnMetadata(min, max, distinct)))),
+        IndexedSeq(Leaf(Some(UniformColumnMetadata(min, max, distinct)))),
         makeVersions(probB)
       )
     ),

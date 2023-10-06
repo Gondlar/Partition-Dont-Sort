@@ -4,7 +4,6 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 import de.unikl.cs.dbis.waves.pipeline.util.CalculateVersionTreeSpec.graphForDf
 
-import de.unikl.cs.dbis.waves.util.ColumnMetadata
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._

@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.pipeline.util
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.DataFrameFixture
 
-import de.unikl.cs.dbis.waves.util.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 import de.unikl.cs.dbis.waves.pipeline._
 
@@ -60,18 +60,18 @@ object CalculateVersionTreeSpec {
   val graphForDf = Versions(
     IndexedSeq("a", "b", "e"),
     IndexedSeq(
-      Leaf(Some(ColumnMetadata(5,5,1))),
+      Leaf(Some(UniformColumnMetadata(5,5,1))),
       Versions(
         IndexedSeq("c", "d"),
         IndexedSeq(
-          Leaf(Some(ColumnMetadata(1,1,1))),
-          Leaf(Some(ColumnMetadata(5,5,1)))
+          Leaf(Some(UniformColumnMetadata(1,1,1))),
+          Leaf(Some(UniformColumnMetadata(5,5,1)))
         ),
         Seq( (IndexedSeq(true, true), .5)
            , (IndexedSeq(true, false), .5)
            )
       ),
-      Leaf(Some(ColumnMetadata(42,42,1)))
+      Leaf(Some(UniformColumnMetadata(42,42,1)))
     ),
     Seq( (IndexedSeq(true, true, true), .25)
        , (IndexedSeq(true, false, true), .25)

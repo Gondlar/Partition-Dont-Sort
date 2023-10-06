@@ -85,19 +85,19 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
     "set metadata" when {
       "it is a leaf" in {
         val path = Some(PathKey("foo.bar.baz"))
-        val metadata = ColumnMetadata(0, 10, 4)
+        val metadata = UniformColumnMetadata(0, 10, 4)
         Leaf.empty.setMetadata(path, metadata) shouldBe ('left)
       }
       "the path is valid" in {
         val path = Some(PathKey("foo.bar.baz"))
-        val metadata = ColumnMetadata(0, 10, 4)
+        val metadata = UniformColumnMetadata(0, 10, 4)
         val expected = Versions(
           IndexedSeq("foo"),
           IndexedSeq(Versions(
             IndexedSeq("bar"),
             IndexedSeq(Versions(
               IndexedSeq("baz"),
-              IndexedSeq(Leaf(Some(ColumnMetadata(0, 10, 4)))),
+              IndexedSeq(Leaf(Some(UniformColumnMetadata(0, 10, 4)))),
               Seq((IndexedSeq(false), .25), (IndexedSeq(true), .75))
             )),
             Seq((IndexedSeq(true), 1d))  
@@ -108,12 +108,12 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
       }
       "the path does not exist" in {
         val path = Some(PathKey("bar"))
-        val metadata = ColumnMetadata(0, 10, 4)
+        val metadata = UniformColumnMetadata(0, 10, 4)
         lineGraph.setMetadata(path, metadata) shouldBe ('left)
       }
       "the path is not a leaf" in {
         val path = Some(PathKey("foo.bar"))
-        val metadata = ColumnMetadata(0, 10, 4)
+        val metadata = UniformColumnMetadata(0, 10, 4)
         lineGraph.setMetadata(path, metadata) shouldBe ('left)
       }
     }
@@ -239,7 +239,7 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
       "the path is always absent" in {
         val graph = Versions(
           IndexedSeq("foo"),
-          IndexedSeq(Leaf(Some(ColumnMetadata(12, 14, 2)))),
+          IndexedSeq(Leaf(Some(UniformColumnMetadata(12, 14, 2)))),
           Seq((IndexedSeq(false), 1d))
         )
         graph.splitBy(PathKey("foo"), 0.5) shouldBe ('left)
@@ -258,7 +258,7 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
             Versions(
               IndexedSeq("b", "c"),
               IndexedSeq(
-                Leaf(Some(ColumnMetadata(3, 11, 3))),
+                Leaf(Some(UniformColumnMetadata(3, 11, 3))),
                 Versions(
                   IndexedSeq("d", "e"),
                   IndexedSeq(
@@ -282,7 +282,7 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
             Versions(
               IndexedSeq("b", "c"),
               IndexedSeq(
-                Leaf(Some(ColumnMetadata(12, 14, 1))),
+                Leaf(Some(UniformColumnMetadata(12, 14, 1))),
                 Versions(
                   IndexedSeq("d", "e"),
                   IndexedSeq(
@@ -318,7 +318,7 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
       "it has metadata for always absent columns" in {
         val graph = Versions(
           IndexedSeq("foo"),
-          IndexedSeq(Leaf(Some(ColumnMetadata(0, 10, 4)))),
+          IndexedSeq(Leaf(Some(UniformColumnMetadata(0, 10, 4)))),
           Seq((IndexedSeq(false), 1d))
         )
         (graph.gini: Double) should equal (0)
@@ -367,5 +367,5 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
     ),
     Seq((IndexedSeq(true, false), .25), (IndexedSeq(false, true), .75))
   )
-  val bushyGraphWithMetadata = bushyGraph.setMetadata(Some(PathKey("a.b")), ColumnMetadata(3, 14, 4)).right.get
+  val bushyGraphWithMetadata = bushyGraph.setMetadata(Some(PathKey("a.b")), UniformColumnMetadata(3, 14, 4)).right.get
 }

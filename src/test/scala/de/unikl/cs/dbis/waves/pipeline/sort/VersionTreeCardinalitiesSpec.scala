@@ -5,7 +5,7 @@ import de.unikl.cs.dbis.waves.WavesSpec
 import org.apache.spark.sql.functions.col
 
 import de.unikl.cs.dbis.waves.pipeline._
-import de.unikl.cs.dbis.waves.util.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.util.{Leaf, Versions}
 import de.unikl.cs.dbis.waves.util.PathKey
 
@@ -25,7 +25,7 @@ class VersionTreeCardinalitiesSpec extends WavesSpec
       val graph = Versions(
         IndexedSeq("a", "b", "e"),
         IndexedSeq(
-          Leaf(Some(ColumnMetadata(0, 9, 5))),
+          Leaf(Some(UniformColumnMetadata(0, 9, 5))),
           Versions(
             IndexedSeq("c", "d"),
             IndexedSeq(

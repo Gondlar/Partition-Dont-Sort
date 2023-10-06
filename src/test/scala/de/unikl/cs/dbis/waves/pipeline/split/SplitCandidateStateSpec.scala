@@ -5,7 +5,7 @@ import de.unikl.cs.dbis.waves.DataFrameFixture
 
 import de.unikl.cs.dbis.waves.partitions.{SplitByPresence,Present,Absent,Bucket}
 import de.unikl.cs.dbis.waves.partitions.visitors.operations._
-import de.unikl.cs.dbis.waves.util.ColumnMetadata
+import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.Versions
 import de.unikl.cs.dbis.waves.util.Leaf
@@ -42,7 +42,7 @@ class SplitCandidateStateSpec extends WavesSpec
   val candidate = PresenceSplitCandidate(PathKey("a"))
   val graph = Versions(
           IndexedSeq("a"),
-          IndexedSeq(Leaf(Some(ColumnMetadata(0, 9, 6)))),
+          IndexedSeq(Leaf(Some(UniformColumnMetadata(0, 9, 6)))),
           Seq((IndexedSeq(true), .5),(IndexedSeq(false), .5))
         )
   val state = SplitCandidateState(candidate, graph, 1, 5, Seq(Present, Absent))

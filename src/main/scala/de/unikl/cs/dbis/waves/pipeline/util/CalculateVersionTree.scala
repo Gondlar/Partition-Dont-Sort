@@ -8,15 +8,16 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions.{
-  when, min, max, approx_count_distinct, array, struct
+  when, min, max, approx_count_distinct, count, array, struct
 }
-import org.apache.spark.sql.types.{StructType, DataType, ArrayType, MapType}
+import org.apache.spark.sql.types.{StructType, DataType, ArrayType, MapType, BooleanType}
 
 import de.unikl.cs.dbis.waves.util.{VersionTree, Leaf, Versions}
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.SingleResult
 import de.unikl.cs.dbis.waves.util.ColumnValue
 import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
+import de.unikl.cs.dbis.waves.util.BooleanColumnMetadata
 import de.unikl.cs.dbis.waves.util.operators.TempColumn
 import de.unikl.cs.dbis.waves.util.operators.collect_set_with_count
 
@@ -72,9 +73,22 @@ object CalculateVersionTree extends PipelineStep with NoPrerequisites {
     override def visitLeaf(leaf: DataType): Unit = {
       val tempCol = TempColumn(currentPath.get.toDotfreeString)
       features += currentPath.toCol as tempCol
-      aggregates += min(tempCol.col())
-      aggregates += max(tempCol.col())
-      aggregates += approx_count_distinct(tempCol.col())
+
+      leaf match {
+        case BooleanType => visitBoolean(tempCol)
+        case _ => visitOtherColumn(tempCol)
+      }
+    }
+
+    private def visitBoolean(feature: TempColumn) = {
+      aggregates += count(when(!feature, 1))
+      aggregates += count(when(feature, 1))
+    }
+
+    private def visitOtherColumn(feature: TempColumn) = {
+      aggregates += min(feature.col())
+      aggregates += max(feature.col())
+      aggregates += approx_count_distinct(feature.col())
     }
 
     override def visitList(list: ArrayType): Unit = {}
@@ -125,17 +139,30 @@ object CalculateVersionTree extends PipelineStep with NoPrerequisites {
     }
 
     override def visitLeaf(leaf: DataType): Unit = {
+      val metadata = leaf match {
+        case BooleanType => visitBoolean()
+        case _ => visitOtherColumn()
+      }
+      resultStructure = Leaf(metadata)
+    }
+
+    private def visitBoolean() = {
+      val falseIndex = iterator.next()
+      val trueIndex = iterator.next()
+      BooleanColumnMetadata.fromCounts(row.getLong(falseIndex), row.getLong(trueIndex))
+    }
+
+    private def visitOtherColumn() = {
       val minIndex = iterator.next()
       val maxIndex = iterator.next()
       val distinctIndex = iterator.next()
-      val metadata = for {
+      for {
         min <- ColumnValue.fromRow(row, minIndex)
         max <- ColumnValue.fromRow(row, maxIndex)
       } yield {
         val distinct = row.getLong(distinctIndex)
         UniformColumnMetadata(min, max, distinct)
       }
-      resultStructure = Leaf(metadata)
     }
 
     override def visitList(list: ArrayType): Unit
@@ -166,7 +193,7 @@ object CalculateVersionTree extends PipelineStep with NoPrerequisites {
     override def visitLeaf(leaf: DataType): Unit = {
       metadataToSkip.next()
       metadataToSkip.next()
-      metadataToSkip.next()
+      if (leaf != BooleanType) metadataToSkip.next()
       resultStructure = Leaf.empty
     }
 

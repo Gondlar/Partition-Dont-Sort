@@ -136,7 +136,7 @@ class VersionTreeSpec extends WavesSpec with SchemaFixture {
         bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("a")), .75) shouldBe ('left)
       }
       "the path has metadata" in {
-        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("a.b")), .75).value should equal (IntegerColumn(11))
+        bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("a.b")), .75).value should equal ((IntegerColumn(11), .75))
       }
       "the path has no metadata" in {
         bushyGraphWithMetadata.separatorForLeaf(Some(PathKey("f")), .75) shouldBe 'left

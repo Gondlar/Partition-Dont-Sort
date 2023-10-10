@@ -18,6 +18,43 @@ class SplitCandidateSpec extends WavesSpec
   with DataFrameFixture {
 
   "The SplitCandidate" can {
+    "know if a split is valid" when {
+      "it is a presence split" when {
+        "the node is certain" in {
+          (presenceCandidate isValidFor testGraph(1, 1)) shouldBe (false)
+        }
+        "the probability is 0" in {
+          (presenceCandidate isValidFor testGraph(0, 1)) shouldBe (false)
+        }
+        "the path does not exist" in {
+          (PresenceSplitCandidate(PathKey("foobar")) isValidFor testGraph(1, 1)) shouldBe (false)
+        }
+        "the path is valid" in {
+          (presenceCandidate isValidFor graph) shouldBe (true)
+        }
+      }
+      "it is a median split" when {
+        "the probability is 0" in {
+          (medianCandidate isValidFor testGraph(1, 0)) shouldBe (false)
+        }
+        "the path does not exist" in {
+          (MedianSplitCandidate(PathKey("foobar")) isValidFor testGraph(1, 0)) shouldBe (false)
+        }
+        "the path has no metadata" in {
+          (MedianSplitCandidate(PathKey("a")) isValidFor Versions(
+            IndexedSeq("a"),
+            IndexedSeq(Leaf.empty),
+            Seq((IndexedSeq(true), 1.0))
+          )) shouldBe (false)
+        }
+        "the path is not a leaf" in {
+          (MedianSplitCandidate(PathKey("a")) isValidFor testGraph(1, 1)) shouldBe (false)
+        }
+        "the split is valid" in {
+          (medianCandidate isValidFor graph) shouldBe (true)
+        }
+      }
+    }
     "split a graph" when {
       "it is a presence split" when {
         "it is a valid location" in {

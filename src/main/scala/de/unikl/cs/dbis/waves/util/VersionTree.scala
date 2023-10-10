@@ -55,12 +55,17 @@ sealed trait VersionTree {
 
   /**
     * Calculate given quantile of the colum at the given root-to-leaf path.
+    * 
+    * The quantile is a request that may not be able to be matched exactly.
+    * Instead, the method returns the actual probability of being less than or
+    * equal to the given separator along with the value.
     *
     * @param path the path to check
     * @param quantile the quantile of values from the column, defaults to the median
-    * @return The value or an error if the path does not lead to a leaf with metadata
+    * @return The value and its actual quantile or an error if the path does not
+    *         lead to a leaf with metadata
     */
-  def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,ColumnValue]
+  def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,(ColumnValue, Double)]
 
   /**
     * Check whether the path is a valid split location, i.e., it is not certain
@@ -128,9 +133,13 @@ final case class Leaf(
   override def absoluteProbability(path: Option[PathKey]): Double
     = if (path.isDefined) 0 else 1
   
-  override def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,ColumnValue]
+  override def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,(ColumnValue, Double)]
     = path match {
-      case None => metadata.toRight("no metadata available").map(_.separator(quantile))
+      case None => metadata.toRight("no metadata available").map { m =>
+        val separator = m.separator(quantile)
+        val probability = m.probability(separator).getOrElse(quantile)
+        (separator, probability)
+      }
       case Some(value) => Left("path is not a leaf")
     }
   
@@ -228,7 +237,7 @@ final case class Versions(
       }
     }
 
-  override def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,ColumnValue]
+  override def separatorForLeaf(path: Option[PathKey], quantile: Double = .5): Either[String,(ColumnValue, Double)]
     = for {
       existingPath <- path.toRight("path is not a leaf")
       index <- childIndex(existingPath.head).toRight("path not found")

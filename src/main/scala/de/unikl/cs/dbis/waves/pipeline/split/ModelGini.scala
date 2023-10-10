@@ -69,6 +69,7 @@ case class ModelGini(
     splitLocations.mapPartitions({ partition =>
       val splits = for {
         candidate <- partition
+        if candidate isValidFor tree
         leftFraction = candidate.leftFraction(tree)
         if minimumBucketFill/maxBuckets <= min(leftFraction, 1-leftFraction)*size
         split = candidate.split(tree)
@@ -98,6 +99,7 @@ object ModelGini {
 }
 
 sealed trait SplitCandidate {
+  def isValidFor(graph: VersionTree): Boolean
   def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
   def paths: (PartitionTreePath, PartitionTreePath)
   def leftFraction(graph: VersionTree): Double
@@ -107,8 +109,12 @@ sealed trait SplitCandidate {
 final case class PresenceSplitCandidate(
   path: PathKey
 ) extends SplitCandidate {
+
+  override def isValidFor(graph: VersionTree): Boolean
+    = graph.isValidSplitLocation(path)
+
   override def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
-    = if (graph.isValidSplitLocation(path)) graph.splitBy(path).map(_.swap) else Left("invalid split location")
+    = graph.splitBy(path).map(_.swap)
 
   override def paths: (PartitionTreePath, PartitionTreePath)
     = (Present, Absent)
@@ -124,16 +130,22 @@ final case class MedianSplitCandidate(
   path: PathKey,
   quantile: Double = .5
 ) extends SplitCandidate {
+
+  override def isValidFor(graph: VersionTree): Boolean
+    = graph.absoluteProbability(Some(path)) > 0 && graph.separatorForLeaf(Some(path), quantile).isRight
+    
   override def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
     = graph.splitBy(path, quantile)
 
   override def paths: (PartitionTreePath, PartitionTreePath) = (Less, MoreOrNull)
 
-  override def leftFraction(graph: VersionTree): Double
-    = graph.absoluteProbability(path) * quantile
+  override def leftFraction(graph: VersionTree): Double = {
+    val (_, probability) = graph.separatorForLeaf(Some(path), quantile).right.get
+    graph.absoluteProbability(path) * probability
+  }
 
   override def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame] = {
-    val separator = graph.separatorForLeaf(Some(path), quantile).right.get
+    val (separator, _) = graph.separatorForLeaf(Some(path), quantile).right.get
     SplitByValue(separator, path, df.filter(path.toCol <= separator.toLiteral), df.filter(path.toCol.isNull || path.toCol > separator.toLiteral))
   }
 }

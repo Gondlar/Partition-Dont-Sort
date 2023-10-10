@@ -34,6 +34,17 @@ class BooleanColumnMetadataSpec extends WavesSpec {
     "have the correct separator" in {
       BooleanColumnMetadata.uniform.separator(.25) should equal (BooleanColumn(false))
     }
+    "calculate the correct probability" when {
+      "the separator is of the wrong type" in {
+        an [IllegalArgumentException] shouldBe thrownBy (BooleanColumnMetadata.uniform.probability(5))
+      }
+      "the separator is true" in {
+        BooleanColumnMetadata(.25).probability(false).value should equal (.75)
+      }
+      "the separator is false" in {
+        BooleanColumnMetadata(.25).probability(true).value should equal (1)
+      }
+    }
     "calculate the correct split" when {
       "the colum is all true" in {
         BooleanColumnMetadata.allTrue.split(.5) shouldBe ('left)

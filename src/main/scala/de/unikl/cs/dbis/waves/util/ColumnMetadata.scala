@@ -25,6 +25,16 @@ trait ColumnMetadata {
   def separator(quantile: Double = .5): ColumnValue
 
   /**
+    * Calulate the probability of a value in this colum to be less than or equal
+    * to the given value. It must be of the correct type.
+    *
+    * @param separator the value
+    * @return P(x <= separator) or None if the metadata cannot provide a good
+    *         estimate
+    */
+  def probability(separator: ColumnValue): Option[Double]
+
+  /**
     * Calculate the resulting metadata after a split by the given quantile
     *
     * @param quantile the quantile of values to end up in the first partition

@@ -17,6 +17,11 @@ final case class BooleanColumnMetadata(
 
   override def separator(quantile: Double): ColumnValue = false
 
+  override def probability(separator: ColumnValue): Option[Double] = separator match {
+    case BooleanColumn(b) => Some(if (b) 1 else 1-truePercentage)
+    case _ => throw new IllegalArgumentException("wrong data type")
+  }
+
   override def split(quantile: Double): Either[String,(BooleanColumnMetadata, BooleanColumnMetadata)]
     = Either.cond(distinct == 2, (allFalse, allTrue), "range cannot be split")
 }

@@ -10,6 +10,8 @@ import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.PathKey
 
 import org.apache.spark.sql.functions.col
+import de.unikl.cs.dbis.waves.util.Versions
+import de.unikl.cs.dbis.waves.util.Leaf
 
 class ModelGiniSpec extends WavesSpec
   with DataFrameFixture with PipelineStateFixture {
@@ -71,6 +73,34 @@ class ModelGiniSpec extends WavesSpec
       buckets(1).collect should contain theSameElementsAs (df.filter(col("b").isNull && col("a").isNotNull).collect())
       buckets(2).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("a").isNull).collect())
       buckets(3).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("a").isNotNull).collect())
+    }
+    "not throw exceptions if column metadata is missing" in {
+      val graph = Versions(
+        IndexedSeq("a", "b", "e"),
+        IndexedSeq(
+          Leaf.empty,
+          Versions(
+            IndexedSeq("c", "d"),
+            IndexedSeq(
+              Leaf.empty,
+              Leaf.empty
+            ),
+            Seq( (IndexedSeq(true, true), .5)
+              , (IndexedSeq(true, false), .5)
+              )
+          ),
+          Leaf.empty
+        ),
+        Seq( (IndexedSeq(true, true, true), .25)
+          , (IndexedSeq(true, false, true), .25)
+          , (IndexedSeq(false, true, true), .25)
+          , (IndexedSeq(false, false, true), .25)
+          )
+      )
+      val state = StructureMetadata(dummyDfState) = graph
+      val step = ModelGini(4)
+
+      noException shouldBe thrownBy (step(state))
     }
   }
 }

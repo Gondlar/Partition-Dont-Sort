@@ -10,6 +10,9 @@ class UniformColumnMetadataSpec extends WavesSpec {
       val meta = UniformColumnMetadata(0, 10, 4)
       meta.gini should equal (0.75)
     }
+    "not provide a precise probability" in {
+      UniformColumnMetadata(0, 10, 4).probability(5) should not be ('defined)
+    }
   }
   "Boolean UniformColumnMetadata" should {
     "construct correctly" in {

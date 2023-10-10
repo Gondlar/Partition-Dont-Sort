@@ -23,6 +23,8 @@ final case class UniformColumnMetadata(
   override def separator(quantile: Double = .5): ColumnValue
     = min.interpolate(max, quantile)
 
+  override def probability(separator: ColumnValue): Option[Double] = None
+
   override def split(quantile: Double = .5): Either[String,(UniformColumnMetadata, UniformColumnMetadata)] = {
     if (distinct == 1 || min >= max) Left("range cannot be split") else {
       val lowBoundary = separator(quantile)

@@ -2,12 +2,12 @@ package de.unikl.cs.dbis.waves.pipeline.sort
 
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.util.{VersionTree, Leaf, Versions}
+import de.unikl.cs.dbis.waves.util.{StructuralMetadata, Leaf, Versions}
 
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
 
-object VersionTreeCardinalities extends ColumnOrderer {
+object StructuralMetadataCardinalities extends ColumnOrderer {
 
   override def supports(state: PipelineState): Boolean
     = StructureMetadata isDefinedIn state
@@ -19,7 +19,7 @@ object VersionTreeCardinalities extends ColumnOrderer {
     (spark1 ++ spark2).filter(_._2 > 1).sortBy(_._2).map(_._1)
   }
 
-  def colsFromVersionTreeGraph(graph: VersionTree): (Seq[(Option[PathKey], Long)], Seq[(Option[PathKey], Long)])
+  def colsFromVersionTreeGraph(graph: StructuralMetadata): (Seq[(Option[PathKey], Long)], Seq[(Option[PathKey], Long)])
     = graph match {
       case Leaf(metadata) => {
         val leafColumn = metadata.map(meta => (None, meta.distinct))
@@ -34,7 +34,7 @@ object VersionTreeCardinalities extends ColumnOrderer {
       }
     }
 
-  private def appendStep(graph: VersionTree, step: String, probability: Double) = {
+  private def appendStep(graph: StructuralMetadata, step: String, probability: Double) = {
     val (dlColumns, leafColumns) = colsFromVersionTreeGraph(graph)
     val change = if (probability < 1) 1 else 0
     val appendedLeafColumns

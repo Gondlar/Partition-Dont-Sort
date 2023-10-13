@@ -3,7 +3,7 @@ package de.unikl.cs.dbis.waves.pipeline.split
 import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
-import de.unikl.cs.dbis.waves.util.VersionTree
+import de.unikl.cs.dbis.waves.util.StructuralMetadata
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 
@@ -65,7 +65,7 @@ case class ModelGini(
     Seq(leftCandidate, rightCandidate).flatten
   }
 
-  private def findBestSplit(tree: VersionTree, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidateState] = {
+  private def findBestSplit(tree: StructuralMetadata, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidateState] = {
     splitLocations.mapPartitions({ partition =>
       val splits = for {
         candidate <- partition
@@ -99,30 +99,30 @@ object ModelGini {
 }
 
 sealed trait SplitCandidate {
-  def isValidFor(graph: VersionTree): Boolean
-  def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
+  def isValidFor(graph: StructuralMetadata): Boolean
+  def split(graph: StructuralMetadata): Either[String,(StructuralMetadata, StructuralMetadata)]
   def paths: (PartitionTreePath, PartitionTreePath)
-  def leftFraction(graph: VersionTree): Double
-  def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame]
+  def leftFraction(graph: StructuralMetadata): Double
+  def shape(df: DataFrame, graph: StructuralMetadata): TreeNode.AnyNode[DataFrame]
 }
 
 final case class PresenceSplitCandidate(
   path: PathKey
 ) extends SplitCandidate {
 
-  override def isValidFor(graph: VersionTree): Boolean
+  override def isValidFor(graph: StructuralMetadata): Boolean
     = graph.isValidSplitLocation(path)
 
-  override def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
+  override def split(graph: StructuralMetadata): Either[String,(StructuralMetadata, StructuralMetadata)]
     = graph.splitBy(path).map(_.swap)
 
   override def paths: (PartitionTreePath, PartitionTreePath)
     = (Present, Absent)
 
-  override def leftFraction(graph: VersionTree): Double
+  override def leftFraction(graph: StructuralMetadata): Double
     = graph.absoluteProbability(path)
   
-  override def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame]
+  override def shape(df: DataFrame, graph: StructuralMetadata): TreeNode.AnyNode[DataFrame]
     = SplitByPresence(path, df.filter(path.toCol.isNotNull), df.filter(path.toCol.isNull))
 }
 
@@ -131,20 +131,20 @@ final case class MedianSplitCandidate(
   quantile: Double = .5
 ) extends SplitCandidate {
 
-  override def isValidFor(graph: VersionTree): Boolean
+  override def isValidFor(graph: StructuralMetadata): Boolean
     = graph.absoluteProbability(Some(path)) > 0 && graph.separatorForLeaf(Some(path), quantile).isRight
     
-  override def split(graph: VersionTree): Either[String,(VersionTree, VersionTree)]
+  override def split(graph: StructuralMetadata): Either[String,(StructuralMetadata, StructuralMetadata)]
     = graph.splitBy(path, quantile)
 
   override def paths: (PartitionTreePath, PartitionTreePath) = (Less, MoreOrNull)
 
-  override def leftFraction(graph: VersionTree): Double = {
+  override def leftFraction(graph: StructuralMetadata): Double = {
     val (_, probability) = graph.separatorForLeaf(Some(path), quantile).right.get
     graph.absoluteProbability(path) * probability
   }
 
-  override def shape(df: DataFrame, graph: VersionTree): TreeNode.AnyNode[DataFrame] = {
+  override def shape(df: DataFrame, graph: StructuralMetadata): TreeNode.AnyNode[DataFrame] = {
     val (separator, _) = graph.separatorForLeaf(Some(path), quantile).right.get
     SplitByValue(separator, path, df.filter(path.toCol <= separator.toLiteral), df.filter(path.toCol.isNull || path.toCol > separator.toLiteral))
   }
@@ -152,7 +152,7 @@ final case class MedianSplitCandidate(
 
 final case class SplitCandidateState(
   split: SplitCandidate,
-  graph: VersionTree,
+  graph: StructuralMetadata,
   size: Double,
   priority: Double,
   path: Seq[PartitionTreePath]

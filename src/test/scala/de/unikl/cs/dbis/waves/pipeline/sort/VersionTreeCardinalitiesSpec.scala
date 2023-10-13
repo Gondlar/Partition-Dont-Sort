@@ -14,11 +14,11 @@ class VersionTreeCardinalitiesSpec extends WavesSpec
 
   "The VersionTreeCardinalities Orderer" should {
     "require a graph to be supported" in {
-      (VersionTreeCardinalities supports dummyState) shouldBe (false)
+      (StructuralMetadataCardinalities supports dummyState) shouldBe (false)
     }
     "be supported if a graph is defined" in {
       val state = StructureMetadata(dummyState) = Leaf.empty
-      (VersionTreeCardinalities supports state) shouldBe (true)
+      (StructuralMetadataCardinalities supports state) shouldBe (true)
     }
     "return the columns in increasing cardinality order" in {
       Given("a state with a graph")
@@ -46,7 +46,7 @@ class VersionTreeCardinalitiesSpec extends WavesSpec
       val state = StructureMetadata(dummyState) = graph
 
       When("we get the column order")
-      val result = VersionTreeCardinalities.sort(state, null)
+      val result = StructuralMetadataCardinalities.sort(state, null)
       
       Then("it should be correct")
       val order = Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"))

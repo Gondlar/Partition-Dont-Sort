@@ -6,7 +6,7 @@ import org.apache.spark.sql.DataFrame
 import de.unikl.cs.dbis.waves.partitions.TreeNode.AnyNode
 import de.unikl.cs.dbis.waves.partitions.PartitionMetadata
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
-import de.unikl.cs.dbis.waves.util.VersionTree
+import de.unikl.cs.dbis.waves.util.StructuralMetadata
 import org.apache.spark.sql.types.StructType
 
 /**
@@ -193,7 +193,7 @@ object Schema extends StateValue[StructType]("schema") {
 /**
   * Stores the VersionTree of the input data.
   */
-object StructureMetadata extends StateValue[VersionTree]("structureMetadata")
+object StructureMetadata extends StateValue[StructuralMetadata]("structureMetadata")
 
 /**
   * Stores the number of Buckets

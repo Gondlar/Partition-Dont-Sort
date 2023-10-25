@@ -9,6 +9,9 @@ project/metals.sbt
 # vscode
 .vscode
 
+# intellij
+.idea/
+
 # sbt
 target/
 project/project

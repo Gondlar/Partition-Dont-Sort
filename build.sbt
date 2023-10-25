@@ -37,7 +37,11 @@ lazy val waves = project
     Test / logBuffered := false,
 
     // Compile settings
-    scalacOptions ++= Seq("-unchecked", "-deprecation"),
+    scalacOptions ++= Seq(
+      "-unchecked",
+      "-deprecation",
+      //"-Xdisable-assertions", // might want to disable this for testing
+    ),
 
     // Needed for spark, Otherwise the ClassLoader does not find parquet
     classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,

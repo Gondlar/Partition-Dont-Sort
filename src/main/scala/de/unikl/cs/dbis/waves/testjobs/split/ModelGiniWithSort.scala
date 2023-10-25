@@ -14,7 +14,7 @@ object ModelGiniWithSort extends SplitRunner {
     val spark = jobConfig.makeSparkSession(s"Autopartition Model Gini (Sorted) $numPartitions")
 
     val splitter = new Pipeline(Seq(
-      util.CalculateVersionTree,
+      util.CalculateTotalFingerprint,
       split.ModelGini(numPartitions),
       util.ShuffleByShape,
       sort.GlobalOrder(StructuralMetadataCardinalities),

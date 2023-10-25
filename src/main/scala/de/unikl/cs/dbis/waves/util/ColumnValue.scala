@@ -88,8 +88,9 @@ object ColumnValue {
     case _ => None
   }
 
-  def fromRow(row: Row, schema: StructType, index: Int): Option[ColumnValue]
-    = schema.fields(index).dataType match {
+  def fromRow(row: Row, schema: StructType, index: Int): Option[ColumnValue] = {
+    if (row.isNullAt(index)) return None
+    schema.fields(index).dataType match {
       case BooleanType => Some(BooleanColumn(row.getBoolean(index)))
       case IntegerType => Some(IntegerColumn(row.getInt(index)))
       case LongType => Some(LongColumn(row.getLong(index)))
@@ -97,6 +98,7 @@ object ColumnValue {
       case StringType => Some(StringColumn(row.getString(index)))
       case _ => None
     }
+  }
 
   def fromRow(row: Row, index: Int): Option[ColumnValue]
     = fromRow(row, row.schema, index)

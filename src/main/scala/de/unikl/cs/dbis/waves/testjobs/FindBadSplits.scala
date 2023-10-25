@@ -11,6 +11,7 @@ import org.apache.hadoop.fs.Path
 import java.nio.charset.StandardCharsets
 import de.unikl.cs.dbis.waves.pipeline.PipelineState
 import de.unikl.cs.dbis.waves.pipeline.util.CalculateVersionTree
+import de.unikl.cs.dbis.waves.pipeline.util.CalculateTotalFingerprint
 import de.unikl.cs.dbis.waves.pipeline.StructureMetadata
 import de.unikl.cs.dbis.waves.util.VersionTree
 import de.unikl.cs.dbis.waves.pipeline.split.ModelGini
@@ -34,7 +35,7 @@ object FindBadSplits {
     }
 
     // get VersionTree
-    val versionTree = StructureMetadata(CalculateVersionTree(PipelineState(spark.read.json(jobConfig.inputPath), "")))
+    val versionTree = StructureMetadata(CalculateTotalFingerprint(PipelineState(spark.read.json(jobConfig.inputPath), "")))
 
     // analyze partition tree
     val visitor = new PartitionTreeVisitor[Option[(Long, Long)]] with SingleResultVisitor[Option[(Long, Long)],(Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)])] {

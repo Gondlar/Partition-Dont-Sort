@@ -43,7 +43,7 @@ class ModelGiniSpec extends WavesSpec
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
       "'split-start'",
-      "'start-CalculateVersionTree'", "'end-CalculateVersionTree'",
+      "'start-CalculateTotalFingerprint'", "'end-CalculateTotalFingerprint'",
       "'start-ModelGini'", "'end-ModelGini'",
       "'start-ShuffleByShape'", "'end-ShuffleByShape'"
     ) ++ (if (!modifySchema) Seq.empty else Seq(

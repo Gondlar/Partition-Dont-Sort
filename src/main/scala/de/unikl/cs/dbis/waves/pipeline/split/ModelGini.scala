@@ -26,7 +26,8 @@ import Math.min
   */
 case class ModelGini(
   maxBucketSize: Double,
-  minBucketSize: Double
+  minBucketSize: Double,
+  useColumnSplits: Boolean
 ) extends Recursive[SplitCandidateState] {
   import ModelGini._
 
@@ -45,7 +46,7 @@ case class ModelGini(
     val spark = state.data.sparkSession
     splitLocations = spark.sparkContext.parallelize[SplitCandidate](
       schema.optionalPaths.map(PresenceSplitCandidate(_)) ++
-      schema.leafPaths.map(MedianSplitCandidate(_))
+      (if (useColumnSplits) schema.leafPaths.map(MedianSplitCandidate(_)) else Seq.empty)
     ).persist()
     
     SplitCandidateState(StructureMetadata(state), 1, Seq.empty)
@@ -87,8 +88,8 @@ case class ModelGini(
 
 object ModelGini {
 
-  def apply(maxBucketSize: Double): ModelGini
-    = apply(maxBucketSize, maxBucketSize/2)
+  def apply(maxBucketSize: Double, useColumnSplits: Boolean = true): ModelGini
+    = apply(maxBucketSize, maxBucketSize/2, useColumnSplits)
 
   def mergeOptions[A](fn: (A, A) => A)(lhs: Option[A], rhs: Option[A]): Option[A] = {
     if (lhs.isEmpty) return rhs

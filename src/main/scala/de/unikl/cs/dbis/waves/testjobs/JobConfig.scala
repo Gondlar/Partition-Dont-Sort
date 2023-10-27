@@ -72,6 +72,9 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   )
   def fallbackBlocksize = getLong("fallbackBlocksize").getOrElse(128*1024*1024L)
   def sampleSize = getLong("sampleSize").getOrElse(10*1024*1024L)
+  def numPartitions = getInt("numPartitions")
+  def useColumnSplits = getBool("useColumnSplits").getOrElse(true)
+  def useExactCardinalities = getBool("useExactCardinalities").getOrElse(false)
 
   def wavesPath = getString("wavesPath").getOrElse(s"$filesystem/out/")
   def useWaves = getBool("useWaves").getOrElse(true)

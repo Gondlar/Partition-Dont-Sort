@@ -34,16 +34,16 @@ class ModelGiniSpec extends WavesSpec
   }
   it should {
     "not be constructable for non-percentage values of maxBucketSize" in {
-      an [AssertionError] shouldBe thrownBy (ModelGini(-1, .5))
-      an [AssertionError] shouldBe thrownBy (ModelGini(2, .5))
+      an [AssertionError] shouldBe thrownBy (ModelGini(-1, .5, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(2, .5, false))
     }
     "not be constructable for non-percentage values of minBucketSize" in {
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, -1))
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, 2))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, -1, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, 2, false))
     }
     "not be constructable if minBucketSize >= maxBucketSize" in {
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .8))
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .5))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .8, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .5, false))
     }
     "not be supported when no VersionTree is given in the state" in {
       val step = ModelGini(.5)

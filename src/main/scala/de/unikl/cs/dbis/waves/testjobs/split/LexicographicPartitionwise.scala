@@ -9,8 +9,8 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
 object LexicographicPartitionwise extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
-    val numPartitions = jobConfig.getInt("numPartitions").getOrElse(8)
-    val exact = jobConfig.getBool("exact").getOrElse(false)
+    val numPartitions = jobConfig.numPartitions.getOrElse(8)
+    val exact = jobConfig.useExactCardinalities
     val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Partitionwise $numPartitions${if (exact) " (exact)" else ""}")
 
     val splitter = new Pipeline(Seq(

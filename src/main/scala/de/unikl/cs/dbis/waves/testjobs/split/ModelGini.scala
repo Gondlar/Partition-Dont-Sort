@@ -14,7 +14,7 @@ object ModelGini extends SplitRunner {
 
     val splitter = new Pipeline(Seq(
       util.CalculateTotalFingerprint,
-      split.ModelGini(numPartitions),
+      split.ModelGini(1.0/numPartitions),
       util.ShuffleByShape),
       sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)
     )

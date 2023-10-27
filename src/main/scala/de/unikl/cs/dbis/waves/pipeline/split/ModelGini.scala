@@ -25,17 +25,16 @@ import Math.min
   *                          split to be considered. Defaults to 50%
   */
 case class ModelGini(
-  maxBuckets: Int,
-  minimumBucketFill: Double = 0.5
+  maxBucketSize: Double,
+  minBucketSize: Double
 ) extends Recursive[SplitCandidateState] {
   import ModelGini._
 
-  require(maxBuckets > 0)
-  require(minimumBucketFill >= 0 && minimumBucketFill <= 1)
+  assert(maxBucketSize > 0 && maxBucketSize <= 1)
+  assert(minBucketSize > 0 && minBucketSize <= 1)
+  assert(minBucketSize < maxBucketSize)
 
-  private var currentBuckets = 1
   private var splitLocations: RDD[SplitCandidate] = null
-  private var spark: SparkSession = null
 
   override def supports(state: PipelineState): Boolean
     = StructureMetadata isDefinedIn state
@@ -43,35 +42,35 @@ case class ModelGini(
   override protected def initialRecursionState(state: PipelineState): SplitCandidateState = {
     val schema = Schema(state)
 
-    currentBuckets = 1
-    spark = state.data.sparkSession
+    val spark = state.data.sparkSession
     splitLocations = spark.sparkContext.parallelize[SplitCandidate](
       schema.optionalPaths.map(PresenceSplitCandidate(_)) ++
       schema.leafPaths.map(MedianSplitCandidate(_))
     ).persist()
     
-    findBestSplit(StructureMetadata(state), Seq.empty, 1).get
+    SplitCandidateState(StructureMetadata(state), 1, Seq.empty)
   }
 
   override protected def checkRecursion(recState: SplitCandidateState): Boolean
-    = currentBuckets < maxBuckets
+    = recState.size > maxBucketSize
 
-  override protected def doRecursionStep(recState: SplitCandidateState, df: DataFrame): Seq[SplitCandidateState] = {
-    currentBuckets += 1
-    val ((leftGraph, leftPath), (rightGraph, rightPath)) = recState.children
-    val leftSize = recState.leftFraction
-    val leftCandidate = findBestSplit(leftGraph, leftPath, recState.size*leftSize)
-    val rightCandidate = findBestSplit(rightGraph, rightPath, recState.size*(1-leftSize))
-    Seq(leftCandidate, rightCandidate).flatten
+  override protected def doRecursionStep(recState: SplitCandidateState, df: DataFrame): (Seq[SplitCandidateState], DataFrame => TreeNode.AnyNode[DataFrame]) = {
+    val split = findBestSplit(recState.graph, recState.path, recState.size).get  //TODO handle
+    val leftSize = split.leftFraction(recState.graph)
+    val (leftGraph, rightGraph) = split.split(recState.graph).right.get
+    val (leftStep, rightStep) = split.paths
+    val leftCandidate = SplitCandidateState(leftGraph, leftSize * recState.size, recState.path :+ leftStep)
+    val rightCandidate = SplitCandidateState(rightGraph, (1- leftSize) * recState.size, recState.path :+ rightStep)
+    (Seq(leftCandidate, rightCandidate).filter(_.size > maxBucketSize), df => split.shape(df, recState.graph))
   }
 
-  private def findBestSplit(tree: StructuralMetadata, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidateState] = {
+  private def findBestSplit(tree: StructuralMetadata, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidate] = {
     splitLocations.mapPartitions({ partition =>
       val splits = for {
         candidate <- partition
         if candidate isValidFor tree
         leftFraction = candidate.leftFraction(tree)
-        if minimumBucketFill/maxBuckets <= min(leftFraction, 1-leftFraction)*size
+        if minBucketSize <= min(leftFraction, 1-leftFraction)*size
         split = candidate.split(tree)
         if split.isRight
         (leftSide, rightSide) = split.right.get
@@ -82,14 +81,14 @@ case class ModelGini(
       if (splits.isEmpty) Iterator.empty else Iterator(Some(splits.minBy(_._2)): Option[(SplitCandidate, Double)])
     }).fold(None)(mergeOptions({ case (lhs@(_, lhsGini), rhs@(_, rhsGini)) =>
       if (lhsGini < rhsGini) lhs else rhs
-    })).map({ case (candidate, gini) =>
-      val improvement = (tree.gini - gini) * size
-      SplitCandidateState(candidate, tree, size, improvement, path)
-    })
+    })).map(_._1)
   }
 }
 
 object ModelGini {
+
+  def apply(maxBucketSize: Double): ModelGini
+    = apply(maxBucketSize, maxBucketSize/2)
 
   def mergeOptions[A](fn: (A, A) => A)(lhs: Option[A], rhs: Option[A]): Option[A] = {
     if (lhs.isEmpty) return rhs
@@ -151,21 +150,11 @@ final case class MedianSplitCandidate(
 }
 
 final case class SplitCandidateState(
-  split: SplitCandidate,
   graph: StructuralMetadata,
   size: Double,
-  priority: Double,
   path: Seq[PartitionTreePath]
 ) extends RecursionState {
 
-  override def splitShape(df: DataFrame): TreeNode.AnyNode[DataFrame]
-    = split.shape(df, graph)
+  override def priority: Double = size
 
-  def children = {
-    val (leftGraph, rightGraph) = split.split(graph).right.get
-    val (leftStep, rightStep) = split.paths
-    ((leftGraph, path :+ leftStep), (rightGraph, path :+ rightStep))
-  }
-
-  def leftFraction = split.leftFraction(graph)
 }

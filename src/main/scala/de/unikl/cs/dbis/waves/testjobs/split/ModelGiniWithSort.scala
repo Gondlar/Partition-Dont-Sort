@@ -15,7 +15,7 @@ object ModelGiniWithSort extends SplitRunner {
 
     val splitter = new Pipeline(Seq(
       util.CalculateTotalFingerprint,
-      split.ModelGini(numPartitions),
+      split.ModelGini(1.0/numPartitions),
       util.ShuffleByShape,
       sort.GlobalOrder(StructuralMetadataCardinalities),
       util.PriorityStep(sort.ParallelSorter, sort.DataframeSorter)),

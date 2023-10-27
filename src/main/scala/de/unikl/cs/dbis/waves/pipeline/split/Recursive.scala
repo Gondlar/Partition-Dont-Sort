@@ -53,7 +53,7 @@ abstract class Recursive[RS <: RecursionState] extends PipelineStep {
     * @param df the DataFrame being split
     * @return the recursive steps below the one just undertaken
     */
-  protected def doRecursionStep(recState: RS, df: DataFrame): Seq[RS]
+  protected def doRecursionStep(recState: RS, df: DataFrame): (Seq[RS], DataFrame => AnyNode[DataFrame])
 
   override def run(state: PipelineState): PipelineState = {
     val queue = PriorityQueue(initialRecursionState(state))
@@ -61,8 +61,9 @@ abstract class Recursive[RS <: RecursionState] extends PipelineStep {
     while (queue.nonEmpty && checkRecursion(queue.head)) {
       val step = queue.dequeue
       val df = currentShape.find(step.path).get.asInstanceOf[Bucket[DataFrame]].data
-      queue.enqueue(doRecursionStep(step, df):_*)
-      currentShape = currentShape.replace(step.path, step.splitShape(df))
+      val (children, newShape) = doRecursionStep(step, df)
+      queue.enqueue(children:_*)
+      currentShape = currentShape.replace(step.path, newShape(df))
     }
     val withShape = Shape(state) = currentShape.shape
     val buckets = currentShape.buckets
@@ -88,9 +89,4 @@ trait RecursionState {
     * @return the path to the bucket which is split by this step
     */
   def path: Seq[PartitionTreePath]
-
-  /**
-    * @return the shape this split creates from the bucket
-    */
-  def splitShape(df: DataFrame): AnyNode[DataFrame]
 }

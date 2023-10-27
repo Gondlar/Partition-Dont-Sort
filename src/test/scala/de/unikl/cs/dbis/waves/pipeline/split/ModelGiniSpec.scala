@@ -33,26 +33,31 @@ class ModelGiniSpec extends WavesSpec
     }
   }
   it should {
-    "not be constructable for non-positive splits" in {
-      an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0))
+    "not be constructable for non-percentage values of maxBucketSize" in {
+      an [AssertionError] shouldBe thrownBy (ModelGini(-1, .5))
+      an [AssertionError] shouldBe thrownBy (ModelGini(2, .5))
     }
-    "not be constructable for non-percentage values of minimumBucketFill" in {
-      an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0, -1))
-      an [IllegalArgumentException] shouldBe thrownBy (ModelGini(0, 2))
+    "not be constructable for non-percentage values of minBucketSize" in {
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, -1))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, 2))
+    }
+    "not be constructable if minBucketSize >= maxBucketSize" in {
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .8))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .5))
     }
     "not be supported when no VersionTree is given in the state" in {
-      val step = ModelGini(1)
+      val step = ModelGini(.5)
       (step supports dummyState) shouldBe (false)
     }
     "be supported when an VersionTree is given in the state" in {
-      val step = ModelGini(1)
+      val step = ModelGini(.5)
       val state = StructureMetadata(dummyState) = graphForDf
       (step supports state) shouldBe (true)
     }
     "split the dataset according to the best gini gain" in {
       Given("A state and a number of partitions")
       val state = StructureMetadata(dummyDfState) = graphForDf
-      val step = ModelGini(4)
+      val step = ModelGini(.25)
 
       When("we apply the ExactGini step")
       val result = step(state)
@@ -98,7 +103,7 @@ class ModelGiniSpec extends WavesSpec
           )
       )
       val state = StructureMetadata(dummyDfState) = graph
-      val step = ModelGini(4)
+      val step = ModelGini(.25)
 
       noException shouldBe thrownBy (step(state))
     }

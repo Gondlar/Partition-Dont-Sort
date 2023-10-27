@@ -29,11 +29,14 @@ case class ExactGini(
   override protected def checkRecursion(recState: PossibleExactSplit[BucketInfo]): Boolean
     = currentBuckets < maxBuckets
 
-  override protected def doRecursionStep(recState: PossibleExactSplit[BucketInfo], df: DataFrame): Seq[PossibleExactSplit[BucketInfo]] = {
+  override protected def doRecursionStep(recState: PossibleExactSplit[BucketInfo], df: DataFrame): (Seq[PossibleExactSplit[BucketInfo]], DataFrame => TreeNode.AnyNode[DataFrame]) = {
     currentBuckets += 1
-    recState.info(df).flatMap({ case (df, info, path) =>
-      findBestSplit(df, info, path)
-    })
+    (
+      recState.info(df).flatMap({ case (df, info, path) =>
+        findBestSplit(df, info, path)
+      }),
+      recState.splitShape
+    )
   }
 }
 
@@ -86,6 +89,7 @@ final case class BucketInfo(
 
 trait PossibleExactSplit[Info] extends RecursionState {
   def info(df: DataFrame): Seq[(DataFrame, Info, Seq[PartitionTreePath])]
+  def splitShape(df: DataFrame): TreeNode.AnyNode[DataFrame]
 }
 
 final case class PossiblePresenceSplit[Info](

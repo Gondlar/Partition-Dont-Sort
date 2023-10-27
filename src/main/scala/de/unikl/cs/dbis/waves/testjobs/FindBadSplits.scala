@@ -14,6 +14,7 @@ import de.unikl.cs.dbis.waves.pipeline.util.CalculateVersionTree
 import de.unikl.cs.dbis.waves.pipeline.util.CalculateTotalFingerprint
 import de.unikl.cs.dbis.waves.pipeline.StructureMetadata
 import de.unikl.cs.dbis.waves.util.VersionTree
+import de.unikl.cs.dbis.waves.util.TotalFingerprint
 import de.unikl.cs.dbis.waves.pipeline.split.ModelGini
 
 object FindBadSplits {
@@ -28,25 +29,41 @@ object FindBadSplits {
     implicit val fs = hdfs.fs
 
     // get partition size information
+    val bucketSizesBuilder = Seq.newBuilder[(String, Long, Long)]
     val tree = hdfs.read().get
     val sizeMetadata = tree.root.map { (name, index) =>
       val folder = new PartitionFolder(jobConfig.wavesPath, name, false)
-      if (folder.isEmpty) None else Some((folder.diskSize, spark.read.parquet(folder.filename).count()))
+      if (folder.isEmpty) {
+        bucketSizesBuilder += ((name, 0L, 0L))
+        None
+      } else {
+        val diskSize = folder.diskSize
+        val rowCount = spark.read.parquet(folder.filename).count()
+        bucketSizesBuilder += ((name, diskSize, rowCount))
+        Some((diskSize, rowCount))
+      }
     }
+    val bucketSizes = bucketSizesBuilder.result()
 
     // get VersionTree
     val versionTree = StructureMetadata(CalculateTotalFingerprint(PipelineState(spark.read.json(jobConfig.inputPath), "")))
 
     // analyze partition tree
-    val visitor = new PartitionTreeVisitor[Option[(Long, Long)]] with SingleResultVisitor[Option[(Long, Long)],(Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)])] {
+    val visitor = new PartitionTreeVisitor[Option[(Long, Long)]] with SingleResultVisitor[Option[(Long, Long)],(Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)],Seq[(Double, Long, Long)])] {
       var currentNodeMetadata: Option[(Long, Long)] = None
       var currentNodeStructure = versionTree
       var knownEmpty: Seq[NamedTreePath] = Seq.empty
       var sizeErrors: Seq[(NamedTreePath, Double)] = Seq.empty
       var rowsErrors: Seq[(NamedTreePath, Double)] = Seq.empty
+      var bucketErrors: Seq[(Double, Long, Long)] = Seq.empty
 
       override def visit(bucket: Bucket[Option[(Long, Long)]]): Unit = {
         currentNodeMetadata = bucket.data
+
+        val estimatedRows = currentNodeStructure.asInstanceOf[TotalFingerprint].total
+        val actualRows = currentNodeMetadata.map(_._2).getOrElse(0L)
+        val error = (estimatedRows-actualRows).abs.toDouble / actualRows
+        bucketErrors = bucketErrors :+ (error, actualRows, estimatedRows)
       }
 
       override def visit(node: SplitByPresence[Option[(Long, Long)]]): Unit = {
@@ -119,8 +136,8 @@ object FindBadSplits {
 
       override def visit(root: Spill[Option[(Long, Long)]]): Unit = ???
 
-      override def result: (Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)])
-        = (knownEmpty, sizeErrors, rowsErrors)
+      override def result: (Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)],Seq[(Double, Long, Long)])
+        = (knownEmpty, sizeErrors, rowsErrors, bucketErrors)
 
       private def mergeSubtrees(lhs: Option[(Long, Long)], rhs: Option[(Long, Long)])
         = ModelGini.mergeOptions[(Long, Long)]({
@@ -146,14 +163,20 @@ object FindBadSplits {
          )).toSeq.unzip
     }
     
-    val (empty, sizeError, rowsError) = sizeMetadata(visitor)
+    val (empty, sizeError, rowsError, bucketError) = sizeMetadata(visitor)
     val sb = new StringBuilder()
-    sb ++= "Empty Partitions:\n"
+    sb ++= "Partition Sizes:\n"
+    sb ++= "Name, Bytes, Rows\n"
+    sb ++= bucketSizes.sortBy(_._3).map(t => s"${t._1}, ${t._2}, ${t._3}").reverse.mkString("\n")
+    sb ++= "\n\nEmpty Partitions:\n"
     sb ++= empty.sortBy(_.size).reverse.mkString("\n")
-    sb ++= "\nError by Size:\n"
+    sb ++= "\n\nError by Size:\n"
     sb ++= sizeError.sortBy(_._2).reverse.mkString("\n")
-    sb ++= "\nError by Rows:\n"
+    sb ++= "\n\nError by Rows:\n"
     sb ++= rowsError.sortBy(_._2).reverse.mkString("\n")
+    sb ++= "\n\nError by Buckets:\n"
+    sb ++= "Actual, Estimated, Error\n"
+    sb ++= bucketError.sortBy(_._2).reverse.map(t => s"${t._2}, ${t._3}, ${t._1}").mkString("\n")
 
     val path = new Path(s"badPaths.txt")
     val out = fs.create(path)

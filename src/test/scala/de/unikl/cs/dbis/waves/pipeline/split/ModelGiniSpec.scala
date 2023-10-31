@@ -67,7 +67,7 @@ class ModelGiniSpec extends WavesSpec
       Then("the correct shape is stored")
       Shape(result) should equal (
         SplitByPresence(PathKey("b"),
-          SplitByPresence("a", (), ()),
+          SplitByPresence("b.d", (), ()),
           SplitByPresence("a", (), ())
         )
       )
@@ -78,8 +78,8 @@ class ModelGiniSpec extends WavesSpec
       buckets should have length (4)
       buckets(0).collect should contain theSameElementsAs (df.filter(col("b").isNull && col("a").isNull).collect())
       buckets(1).collect should contain theSameElementsAs (df.filter(col("b").isNull && col("a").isNotNull).collect())
-      buckets(2).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("a").isNull).collect())
-      buckets(3).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("a").isNotNull).collect())
+      buckets(2).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("b.d").isNull).collect())
+      buckets(3).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("b.d").isNotNull).collect())
     }
     "create n-way splits if no others are eligible" in {
       Given("A state and a very high bound")

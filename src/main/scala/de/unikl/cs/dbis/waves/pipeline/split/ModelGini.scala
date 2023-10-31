@@ -13,6 +13,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.monotonically_increasing_id
 
 import Math.min
+import scala.collection.parallel.ParSeq
 
 /**
   * Split the data based on a VersionTree model of the data using the Gini Index
@@ -36,7 +37,7 @@ case class ModelGini(
   assert(minBucketSize > 0 && minBucketSize <= 1)
   assert(minBucketSize < maxBucketSize)
 
-  private var splitLocations: RDD[SplitCandidate] = null
+  private var splitLocations: ParSeq[SplitCandidate] = null
 
   override def supports(state: PipelineState): Boolean
     = StructureMetadata isDefinedIn state
@@ -45,10 +46,8 @@ case class ModelGini(
     val schema = Schema(state)
 
     val spark = state.data.sparkSession
-    splitLocations = spark.sparkContext.parallelize[SplitCandidate](
-      schema.optionalPaths.map(PresenceSplitCandidate(_)) ++
-      (if (useColumnSplits) schema.leafPaths.map(MedianSplitCandidate(_)) else Seq.empty)
-    ).persist()
+    splitLocations = (schema.optionalPaths.map(PresenceSplitCandidate(_)) ++
+      (if (useColumnSplits) schema.leafPaths.map(MedianSplitCandidate(_)) else Seq.empty)).par
     
     SplitCandidateState(StructureMetadata(state), 1, Seq.empty)
   }
@@ -74,23 +73,25 @@ case class ModelGini(
   }
 
   private def findBestSplit(tree: StructuralMetadata, path: Seq[PartitionTreePath], size: Double): Option[SplitCandidate] = {
-    splitLocations.mapPartitions({ partition =>
-      val splits = for {
-        candidate <- partition
-        if candidate isValidFor tree
-        leftFraction = candidate.leftFraction(tree)
-        if minBucketSize <= min(leftFraction, 1-leftFraction)*size
-        split = candidate.split(tree)
-        if split.isRight
-        (leftSide, rightSide) = split.right.get
-      } yield {
-        val gini = leftFraction * leftSide.gini + (1-leftFraction) * rightSide.gini
-        (candidate, gini)
-      }
-      if (splits.isEmpty) Iterator.empty else Iterator(Some(splits.minBy(_._2)): Option[(SplitCandidate, Double)])
-    }).fold(None)(mergeOptions({ case (lhs@(_, lhsGini), rhs@(_, rhsGini)) =>
-      if (lhsGini < rhsGini) lhs else rhs
-    })).map(_._1)
+    splitLocations.aggregate(None: Option[(SplitCandidate, Double)])(
+      (prev, cand) => {
+        val cur = for {
+          candidate <- Some(cand)
+          if candidate isValidFor tree
+          leftFraction = candidate.leftFraction(tree)
+          if minBucketSize <= min(leftFraction, 1-leftFraction)*size
+          split = candidate.split(tree)
+          if split.isRight
+          (leftSide, rightSide) = split.right.get
+        } yield {
+          val gini = leftFraction * leftSide.gini + (1-leftFraction) * rightSide.gini
+          (candidate, gini)
+        }
+        mergeOptions[(SplitCandidate, Double)]((lhs, rhs) => if (lhs._2 < rhs._2) lhs else rhs)(prev, cur)
+      },
+      mergeOptions((lhs, rhs) => if (lhs._2 < rhs._2) lhs else rhs)
+    ).map(_._1)
+    
   }
 }
 

@@ -41,5 +41,13 @@ class CollectBucketsVisitorSpec extends WavesSpec
                 visitor.result should contain theSameElementsInOrderAs (leafs)
             }
         }
+        "visiting an n-way split" should {
+          "find the n-way split's children" in {
+            val leafs = nway.children
+            val visitor = new CollectBucketsVisitor[String]()
+            nway.accept(visitor)
+            visitor.result should contain theSameElementsInOrderAs (leafs)
+          }
+        }
     }
 }

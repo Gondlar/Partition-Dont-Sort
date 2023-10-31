@@ -79,6 +79,9 @@ abstract class NavigatePathVisitor[Payload](
     override def visit(root: Spill[Payload]): Unit
       = navigate[SpillPath,Spill[Payload]](root)
 
+    override def visit(nway: EvenNWay[Payload]): Unit
+      = navigate[NWayPath,EvenNWay[Payload]](nway)
+
     private def navigate[Step <: PartitionTreePath, From <: TreeNode[Payload,Step]](from: From): Unit = {
       if (!iterator.hasNext) {
         endOfPath(from)

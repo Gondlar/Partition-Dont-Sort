@@ -10,6 +10,7 @@ import de.unikl.cs.dbis.waves.util.nested.schemas._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.monotonically_increasing_id
 
 import Math.min
 
@@ -56,7 +57,14 @@ case class ModelGini(
     = recState.size > maxBucketSize
 
   override protected def doRecursionStep(recState: SplitCandidateState, df: DataFrame): (Seq[SplitCandidateState], DataFrame => TreeNode.AnyNode[DataFrame]) = {
-    val split = findBestSplit(recState.graph, recState.path, recState.size).get  //TODO handle
+    val split = findBestSplit(recState.graph, recState.path, recState.size) match {
+      case Some(split) => split
+      case None => {
+        // No Split, found, just make sure the partitions are small enough
+        val numBuckets = (recState.size/maxBucketSize).ceil.toInt
+        return (Seq.empty, df => EvenNWay((0 until numBuckets).map(i => Bucket(df.filter((monotonically_increasing_id() % numBuckets) === i)))))
+      }
+    }
     val leftSize = split.leftFraction(recState.graph)
     val (leftGraph, rightGraph) = split.split(recState.graph).right.get
     val (leftStep, rightStep) = split.paths

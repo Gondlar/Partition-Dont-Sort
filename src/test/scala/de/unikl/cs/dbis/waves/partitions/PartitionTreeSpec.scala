@@ -256,6 +256,15 @@ class PartitionTreeSpec extends WavesSpec
               spillTree.shape should equal (Spill(SplitByPresence("b.d", (), ()), Bucket(())))
             }
         }
+        "it starts with an n-way split" should {
+          "be unchanged by JSON conversion" in {
+              When("we turn it into JSON and back again")
+              val json = nwayTree.toJson
+              val tree2 = PartitionTree.fromJson(json)
+              Then("the deserialized version is equal")
+              tree2 should equal (nwayTree)
+            }
+        }
     }
 }
 
@@ -263,11 +272,13 @@ case class MockVisitor(override val result: Int) extends SingleResultVisitor[Str
   var visitBucketCalled = false;
   var visitSplitCalled = false;
   var visitSpillCalled = false;
+  var visitNWayCalled = false;
   var visitValueCalled = false
-  def anyCalled = visitBucketCalled || visitSpillCalled || visitSplitCalled
+  def anyCalled = visitBucketCalled || visitSpillCalled || visitSplitCalled || visitNWayCalled || visitValueCalled
 
   override def visit(bucket: Bucket[String]): Unit = visitBucketCalled = true
   override def visit(node: SplitByPresence[String]): Unit = visitSplitCalled = true
   override def visit(node: SplitByValue[String]): Unit = visitValueCalled = true
   override def visit(root: Spill[String]): Unit = visitSpillCalled = true
+  override def visit(root: EvenNWay[String]): Unit = visitNWayCalled = true
 }

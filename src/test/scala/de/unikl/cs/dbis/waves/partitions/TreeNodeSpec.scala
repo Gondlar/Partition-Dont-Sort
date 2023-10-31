@@ -25,6 +25,7 @@ class TreeNodeSpec extends WavesSpec
         val visitor = MockVisitor(5)
         bucket.accept(visitor)
         visitor.visitBucketCalled shouldBe (true)
+        visitor.visitNWayCalled shouldBe (false)
         visitor.visitSpillCalled shouldBe (false)
         visitor.visitSplitCalled shouldBe (false)
         visitor.visitValueCalled shouldBe (false)
@@ -48,6 +49,7 @@ class TreeNodeSpec extends WavesSpec
         split.accept(visitor)
         visitor.visitBucketCalled shouldBe (false)
         visitor.visitSpillCalled shouldBe (false)
+        visitor.visitNWayCalled shouldBe (false)
         visitor.visitSplitCalled shouldBe (true)
         visitor.visitValueCalled shouldBe (false)
       }
@@ -70,6 +72,7 @@ class TreeNodeSpec extends WavesSpec
         median.accept(visitor)
         visitor.visitBucketCalled shouldBe (false)
         visitor.visitSpillCalled shouldBe (false)
+        visitor.visitNWayCalled shouldBe (false)
         visitor.visitSplitCalled shouldBe (false)
         visitor.visitValueCalled shouldBe (true)
       }
@@ -83,6 +86,7 @@ class TreeNodeSpec extends WavesSpec
         spill.accept(visitor)
         visitor.visitBucketCalled shouldBe (false)
         visitor.visitSpillCalled shouldBe (true)
+        visitor.visitNWayCalled shouldBe (false)
         visitor.visitSplitCalled shouldBe (false)
         visitor.visitValueCalled shouldBe (false)
       }
@@ -123,6 +127,9 @@ class TreeNodeSpec extends WavesSpec
       }
       "spill" in {
         PartitionTree.treeFromJson(spill.toJson) should equal (spill)
+      }
+      "n-way split" in {
+        PartitionTree.treeFromJson(nway.toJson) should equal (nway)
       }
     }
     "identify its buckets" when itIsA {

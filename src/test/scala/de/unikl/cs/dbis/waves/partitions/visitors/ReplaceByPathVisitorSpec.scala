@@ -104,5 +104,30 @@ class ReplaceByPathVisitorSpec extends WavesSpec
           an [ImpossibleReplacementException] should be thrownBy (spill.accept(visitor))
         }
       }
+      "visiting an n-way path" can replace {
+        "it entirely given an empty path" in {
+          val visitor = new ReplaceByPathVisitor(Seq.empty, bucket)
+          nway.accept(visitor)
+          visitor.result should equal (bucket)
+        }
+        "the first bucket" in {
+          val replacement = Bucket("replaced")
+          val visitor = new ReplaceByPathVisitor(Seq(NWayPath(0)), replacement)
+          nway.accept(visitor)
+          visitor.result should equal (EvenNWay(nway.children.updated(0, replacement)))
+        }
+        "the last bucket" in {
+          val replacement = Bucket("replaced")
+          val visitor = new ReplaceByPathVisitor(Seq(NWayPath(2)), replacement)
+          nway.accept(visitor)
+          visitor.result should equal (EvenNWay(nway.children.updated(2, replacement)))
+        }
+      }
+      "visiting an n-way split" should fail {
+        "for invalid paths" in {
+          val visitor = new ReplaceByPathVisitor(Seq(Absent), bucket)
+          an [InvalidPathException] should be thrownBy nway.accept(visitor)
+        }
+      }
     }
 }

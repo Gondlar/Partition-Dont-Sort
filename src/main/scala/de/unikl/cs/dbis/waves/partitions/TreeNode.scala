@@ -98,6 +98,36 @@ object Spill {
 }
 
 /**
+  * The EvenNWay node is used for partitioning the data into a fixed number of
+  * buckets of (approximately) even size.
+  * 
+  * While the node does not require its children to be buckets, it also
+  * provides no means of controlling which data goes into which bucket.
+  *
+  * @param children
+  */
+case class EvenNWay[+Payload](
+  children: IndexedSeq[AnyNode[Payload]]
+) extends TreeNode[Payload, NWayPath] {
+
+  override def accept(visitor: PartitionTreeVisitor[Payload]): Unit
+    = visitor.visit(this)
+
+  def apply(step: NWayPath) = children(step.position)
+
+  override val navigate: PartialFunction[PartitionTreePath,AnyNode[Payload]] = {
+    case step@NWayPath(index) if children.indices.contains(index) => apply(step)
+  }
+
+  def size = children.size
+}
+
+object EvenNWay {
+  val KIND = "even-nway"
+  val CHILDREN_KEY = "children"
+}
+
+/**
   * A SplitByPresence node represents a split based on the presence or absence of one node in the document
   *
   * @param key the path to the node whose presence we use to split
@@ -188,6 +218,20 @@ object SpillSerializer extends JsonSerializer[Spill[String]] {
     }
 }
 
+object EvenNWaySerializer extends JsonSerializer[EvenNWay[String]] {
+    override def serialize(node: EvenNWay[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
+        val obj = new JsonObject()
+        obj.addProperty(TreeNode.KIND_KEY, EvenNWay.KIND)
+        //Constructor with capacity only available starting gson-2.8.0
+        val children = new JsonArray(/*node.size*/)
+        for (child <- node.children) {
+          children.add(ctx.serialize(child))
+        }
+        obj.add(EvenNWay.CHILDREN_KEY, children)
+        obj
+    }
+}
+
 object PartitionByInnerNodeSerializer extends JsonSerializer[SplitByPresence[String]] {
     override def serialize(node: SplitByPresence[String], t: Type, ctx: JsonSerializationContext): JsonElement = {
         val obj = new JsonObject()
@@ -225,6 +269,7 @@ object TreeNodeDeserializer extends JsonDeserializer[AnyNode[String]] {
                   case SplitByPresence.KIND => ctx.deserialize[SplitByPresence[String]](obj, classOf[SplitByPresence[String]])
                   case SplitByValue.KIND => ctx.deserialize[SplitByValue[String]](obj, classOf[SplitByValue[String]])
                   case Spill.KIND => ctx.deserialize[Spill[String]](obj, classOf[Spill[String]])
+                  case EvenNWay.KIND => ctx.deserialize[EvenNWay[String]](obj, classOf[EvenNWay[String]])
                   case unknown => throw new JsonParseException(s"kind '$unknown' is unknown")
               }
           }
@@ -249,11 +294,27 @@ object BucketDeserializer extends JsonDeserializer[Bucket[String]] {
 object SpillDeserializer extends JsonDeserializer[Spill[String]] {
     override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): Spill[String] = {
         json match {
-          case obj: JsonObject => {//TODO hier aufgehört
+          case obj: JsonObject => {
               assert(obj.get(TreeNode.KIND_KEY).getAsString() == Spill.KIND)
               val rest = Bucket(obj.get(Spill.REST_KEY).getAsString())
               val partitioned = ctx.deserialize[AnyNode[String]](obj.get(Spill.PARTIOTIONED_KEY), classOf[AnyNode[String]])
               Spill(partitioned, rest)
+          }
+          case _ => throw new JsonParseException(s"$json is not an object")
+      }
+  }
+}
+
+object EvenNWayDeserializer extends JsonDeserializer[EvenNWay[String]] {
+    override def deserialize(json: JsonElement, t: Type, ctx: JsonDeserializationContext): EvenNWay[String] = {
+        json match {
+          case obj: JsonObject => {
+              assert(obj.get(TreeNode.KIND_KEY).getAsString() == EvenNWay.KIND)
+              val children = obj.getAsJsonArray(EvenNWay.CHILDREN_KEY)
+              val deserializedChildren = for (index <- 0 until children.size()) yield {
+                ctx.deserialize[AnyNode[String]](children.get(index), classOf[AnyNode[String]])
+              }
+              EvenNWay(deserializedChildren)
           }
           case _ => throw new JsonParseException(s"$json is not an object")
       }

@@ -6,6 +6,7 @@ import de.unikl.cs.dbis.waves.partitions.{
   TreeNode, Bucket, Spill, SplitByPresence, SplitByValue, PartitionTree
 }
 import de.unikl.cs.dbis.waves.sort.NoSorter
+import de.unikl.cs.dbis.waves.partitions.EvenNWay
 
 trait PartitionTreeFixture extends BeforeAndAfterEach
   with SchemaFixture { this: Suite =>
@@ -15,11 +16,13 @@ trait PartitionTreeFixture extends BeforeAndAfterEach
   var spill : Spill[String] = null
   var median : SplitByValue[String] = null
   var medianOnly : SplitByValue[String] = null
+  var nway: EvenNWay[String] = null
 
   var bucketTree : PartitionTree[String] = null
   var splitTree : PartitionTree[String] = null
   var spillTree : PartitionTree[String] = null
   var medianTree : PartitionTree[String] = null
+  var nwayTree : PartitionTree[String] = null
   
   override protected  def beforeEach(): Unit = {
     super.beforeEach()
@@ -29,10 +32,12 @@ trait PartitionTreeFixture extends BeforeAndAfterEach
     spill = Spill(split, Bucket("foo3"))
     median = SplitByValue(10, "foobar", bucket, split)
     medianOnly = SplitByValue(10, "foobar", bucket, Bucket("bar"))
+    nway = EvenNWay(IndexedSeq(Bucket("foo"), Bucket("bar"), Bucket("baz")))
 
     bucketTree = new PartitionTree(schema, NoSorter, bucket)
     splitTree = new PartitionTree(schema, NoSorter, split)
     spillTree = new PartitionTree(schema, NoSorter, spill)
     medianTree = new PartitionTree(schema, NoSorter, median)
+    nwayTree = new PartitionTree(schema, NoSorter, nway)
   }
 }

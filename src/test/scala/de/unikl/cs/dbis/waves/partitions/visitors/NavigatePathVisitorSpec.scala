@@ -168,6 +168,40 @@ class NavigatePathVisitorSpec extends WavesSpec
         visitor.last should contain (spill)
       }
     }
+    "visiting an n-way split" should {
+      "be able to navigate to the first element" in {
+        val visitor = TestNavigatePathVisitor(Seq(NWayPath(0)))
+        nway.accept(visitor)
+        visitor.last should contain (nway.children(0))
+      }
+      "be able to navigate to the last element" in {
+        val visitor = TestNavigatePathVisitor(Seq(NWayPath(2)))
+        nway.accept(visitor)
+        visitor.last should contain (nway.children(2))
+      }
+      "produce an error for other paths" in {
+        Given("a path and a visitor")
+        val testpath = Seq(Present)
+        val visitor = TestNavigatePathVisitor(testpath)
+
+        Then("visiting throws an exception")
+        val ex = the [InvalidPathException] thrownBy (nway.accept(visitor))
+
+        And("The correct callbacks were called")
+        visitor.last should contain (nway)
+        visitor.error shouldBe (true)
+        visitor.lastStep should contain (Present)
+
+        And("the exception contains the correct data")
+        ex.path should equal (testpath)
+        ex.step should equal (Present)
+      }
+      "return the root for empty paths" in {
+        val visitor = TestNavigatePathVisitor(Seq.empty)
+        spill.accept(visitor)
+        visitor.last should contain (spill)
+      }
+    }
   }
   
   case class TestNavigatePathVisitor(

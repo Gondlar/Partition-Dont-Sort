@@ -12,6 +12,8 @@ import de.unikl.cs.dbis.waves.util.PathKey
 import org.apache.spark.sql.functions.col
 import de.unikl.cs.dbis.waves.util.Versions
 import de.unikl.cs.dbis.waves.util.Leaf
+import de.unikl.cs.dbis.waves.partitions.EvenNWay
+import de.unikl.cs.dbis.waves.partitions.Bucket
 
 class ModelGiniSpec extends WavesSpec
   with DataFrameFixture with PipelineStateFixture {
@@ -78,6 +80,18 @@ class ModelGiniSpec extends WavesSpec
       buckets(1).collect should contain theSameElementsAs (df.filter(col("b").isNull && col("a").isNotNull).collect())
       buckets(2).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("a").isNull).collect())
       buckets(3).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("a").isNotNull).collect())
+    }
+    "create n-way splits if no others are eligible" in {
+      Given("A state and a very high bound")
+      val state = StructureMetadata(dummyDfState) = graphForDf
+      val step = ModelGini(.99, .98, false)
+
+      When("we apply the ExactGini step")
+      val result = step(state)
+
+      Then("the correct shape is stored")
+      Shape(result) should equal (EvenNWay(IndexedSeq(Bucket(()), Bucket(()))))
+      NumBuckets.get(result).value should equal (2)
     }
     "not throw exceptions if column metadata is missing" in {
       val graph = Versions(

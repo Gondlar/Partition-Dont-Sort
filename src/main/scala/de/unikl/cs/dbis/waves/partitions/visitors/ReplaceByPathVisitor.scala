@@ -37,6 +37,9 @@ final class ReplaceByPathVisitor[Payload](
           case Less => split.copy(less = res)
           case MoreOrNull => split.copy(more = res)
         }
+        case EvenNWay(children) => step match {
+          case NWayPath(position) if children.size > position => EvenNWay(children.updated(position, res))
+        }
         // to can never be a bucket because it has no children
       }
     }

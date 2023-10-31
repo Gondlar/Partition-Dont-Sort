@@ -47,6 +47,15 @@ final class CollectBucketMetadataVisitor[Payload](
     spill.partitioned.accept(this)
   }
 
+  override def visit(nway: EvenNWay[Payload]): Unit = {
+    val currentMetadata = metadata
+    for ((child, index) <- nway.children.zipWithIndex) {
+      metadata = currentMetadata.clone()
+      metadata.addStep(NWayPath(index))
+      child.accept(this)
+    }
+  }
+
   override def result = builder.result
 }
 

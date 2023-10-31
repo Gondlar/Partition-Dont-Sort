@@ -29,6 +29,11 @@ final class CollectBucketsVisitor[Payload]() extends SingleResultVisitor[Payload
         spill.partitioned.accept(this)
     }
 
+    override def visit(nway: EvenNWay[Payload]): Unit = {
+      for (child <- nway.children)
+        child.accept(this)
+    }
+
     override def result: Seq[Bucket[Payload]] = buckets.result
 }
 

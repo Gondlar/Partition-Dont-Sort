@@ -60,6 +60,11 @@ final class CollectFilteredBucketsVisitor[Payload](
         spill.partitioned.accept(this)
     }
 
+    override def visit(nway: EvenNWay[Payload]): Unit = {
+      for (child <- nway.children)
+        child.accept(this)
+    }
+
     override def result = buckets.result
 }
 

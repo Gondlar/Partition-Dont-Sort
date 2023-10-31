@@ -136,6 +136,26 @@ object FindBadSplits {
 
       override def visit(root: Spill[Option[(Long, Long)]]): Unit = ???
 
+      override def visit(nway: EvenNWay[Option[(Long, Long)]]): Unit = {
+        assert(nway.children.forall(_.isInstanceOf[Bucket[Option[(Long, Long)]]]))
+
+        val estimatedRows = currentNodeStructure.asInstanceOf[TotalFingerprint].total / nway.size
+        val childMetadata = for (child <- nway.children) yield {
+          val childMetadata = child.asInstanceOf[Bucket[Option[(Long, Long)]]].data
+          val actualRows = childMetadata.map(_._2).getOrElse(0L)
+          val error = (estimatedRows-actualRows).abs.toDouble / actualRows
+          bucketErrors = bucketErrors :+ (error, actualRows, estimatedRows)
+          childMetadata
+        }
+
+        val existingChildMetadata = childMetadata.flatten
+        if (existingChildMetadata.isEmpty) {
+          currentNodeMetadata = None
+        } else {
+          currentNodeMetadata = Some(existingChildMetadata.fold((0L, 0L))((lhs, rhs) => (lhs._1 + rhs._1, lhs._2 + rhs._2)))
+        }
+      }
+
       override def result: (Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)],Seq[(Double, Long, Long)])
         = (knownEmpty, sizeErrors, rowsErrors, bucketErrors)
 

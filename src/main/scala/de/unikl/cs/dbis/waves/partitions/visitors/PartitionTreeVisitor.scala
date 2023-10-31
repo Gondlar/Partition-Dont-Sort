@@ -7,4 +7,5 @@ trait PartitionTreeVisitor[-Payload] {
   def visit(node: SplitByPresence[Payload]) : Unit
   def visit(node: SplitByValue[Payload]): Unit
   def visit(root: Spill[Payload]) : Unit
+  def visit(root: EvenNWay[Payload]) : Unit
 }

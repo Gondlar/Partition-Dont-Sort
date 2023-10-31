@@ -52,6 +52,19 @@ class MapVisitorSpec extends WavesSpec
       visitor.getBucketCount should equal (3)
       visitor.result should equal (Spill(SplitByPresence(split.key, 4, 4), Bucket(4)))
     }
+    "transform n-way splits correctly" in {
+      var expectedIndex = 0
+      val visitor = new MapVisitor[String, Int]({(payload, index) =>
+        index should equal (expectedIndex)
+        expectedIndex += 1
+        payload.length
+      })
+      nway.accept(visitor)
+      visitor.getBucketCount should equal (3)
+      visitor.result should equal (
+        EvenNWay(IndexedSeq(Bucket(3), Bucket(3), Bucket(3)))
+      )
+    }
     "visit buckets in the same order as CollectBucketsVisitor" in {
       Given("a map visitor that puts indexes as the payoad and a collect visitor")
       val mapVisitor = new MapVisitor[String, Int]({(payload, index) => index})

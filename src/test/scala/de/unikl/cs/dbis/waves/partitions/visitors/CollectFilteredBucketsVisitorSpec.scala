@@ -109,5 +109,24 @@ class CollectFilteredBucketsVisitorSpec extends WavesSpec
                 visitor.result should contain theSameElementsAs (leafs)
             }
         }
+        "visiting an n-way split" should {
+          "find the n-way split's children without filters" in {
+            val leafs = nway.children
+            val visitor = new CollectFilteredBucketsVisitor[String](Seq.empty)
+            nway.accept(visitor)
+            visitor.result should contain theSameElementsAs (leafs)
+
+            And("find the same buckets as a CollectBucketsVisitor")
+            val visitor2 = new CollectBucketsVisitor[String]()
+            nway.accept(visitor2)
+            visitor.result should contain theSameElementsAs (visitor2.result)
+          }
+          "find the nway split's children with unrelated filters" in {
+            val leafs = nway.children
+            val visitor = new CollectFilteredBucketsVisitor[String](Seq(IsNull("bar.foo")))
+            nway.accept(visitor)
+            visitor.result should contain theSameElementsAs (leafs)
+          }
+        }
     }
 }

@@ -70,6 +70,19 @@ extends SingleResultVisitor[Payload,AnyNode[Payload]] {
         }
     }
 
+    override def visit(nway: EvenNWay[Payload]): Unit = {
+      if (nway eq needle) found() else {
+        for ((child, index) <- nway.children.zipWithIndex) {
+          child.accept(this)
+          if (replaced) {
+            theResult = EvenNWay(nway.children.updated(index, theResult))
+            return
+          }
+        }
+
+      }
+    }
+
     override def result = {
         if (!replaced) throw new ImpossibleReplacementException("Needle was not in haystack")
         assert(theResult != null)

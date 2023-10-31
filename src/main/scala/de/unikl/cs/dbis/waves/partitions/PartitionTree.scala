@@ -86,6 +86,8 @@ object PartitionTree {
         .registerTypeAdapter(classOf[Bucket[String]], BucketSerializer)
         .registerTypeAdapter(classOf[Spill[String]], SpillDeserializer)
         .registerTypeAdapter(classOf[Spill[String]], SpillSerializer)
+        .registerTypeAdapter(classOf[EvenNWay[String]], EvenNWaySerializer)
+        .registerTypeAdapter(classOf[EvenNWay[String]], EvenNWayDeserializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeDeserializer)
         .registerTypeAdapter(classOf[SplitByPresence[String]], PartitionByInnerNodeSerializer)
         .registerTypeAdapter(classOf[SplitByValue[String]], PartitionByValueDeserializer)

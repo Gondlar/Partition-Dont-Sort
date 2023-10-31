@@ -67,5 +67,14 @@ class FindBucketVisitorSpec extends WavesSpec
                 visitor.result should equal (spill.partitioned.asInstanceOf[SplitByPresence[String]].absentKey)
             }
         }
+        "visiting an n-way split" should {
+          "find a bucket from the partitioned subtree" in {
+            for (i <- 0 to 100) {
+              val visitor = new FindBucketVisitor[String](data(1), schema)
+              nway.accept(visitor)
+              nway.children should contain (visitor.result)
+            }
+          }
+        }
     }
 }

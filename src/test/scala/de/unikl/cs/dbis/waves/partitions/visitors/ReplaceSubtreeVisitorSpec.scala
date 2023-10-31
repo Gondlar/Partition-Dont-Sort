@@ -94,5 +94,31 @@ class ReplaceSubtreeVisitorSpec extends WavesSpec
                 an [ImpossibleReplacementException] should be thrownBy visitor.result
             }
         }
+        "visiting an n-way split" can {
+          "replace that split" in {
+            val replacement = Bucket("replaced")
+            val visitor = new ReplaceSubtreeVisitor(nway, replacement)
+            nway.accept(visitor)
+            visitor.result should equal (replacement)
+          }
+          "replace the split's first child" in {
+            val replacement = Bucket("replaced")
+            val visitor = new ReplaceSubtreeVisitor(nway.children(0), replacement)
+            nway.accept(visitor)
+            visitor.result should equal (EvenNWay(nway.children.updated(0, replacement)))
+          }
+          "replace the split's last child" in {
+            val replacement = Bucket("replaced")
+            val visitor = new ReplaceSubtreeVisitor(nway.children(2), replacement)
+            nway.accept(visitor)
+            visitor.result should equal (EvenNWay(nway.children.updated(2, replacement)))
+          }
+          "produce an error if no replacement happened" in {
+            val replacement = Bucket("replaced")
+              val visitor = new ReplaceSubtreeVisitor(Bucket("foo"), replacement)
+              nway.accept(visitor)
+              an [ImpossibleReplacementException] should be thrownBy visitor.result
+          }
+        }
     }
 }

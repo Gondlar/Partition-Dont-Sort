@@ -44,6 +44,14 @@ extends SingleResultVisitor[From,AnyNode[To]] {
       theResult = Spill(result, rest)
     }
 
+    override def visit(nway: EvenNWay[From]): Unit = {
+      val mappedChildren = for (child <- nway.children) yield {
+        child.accept(this)
+        result
+      }
+      theResult = EvenNWay(mappedChildren)
+    }
+
     override def result = {
         assert(visitedBuckets != 0) // there are no trees without buckets, so 0 visited buckets means visitor didn't run
         theResult

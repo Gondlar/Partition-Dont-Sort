@@ -43,5 +43,10 @@ class MetadataForPathVisitorSpec extends WavesSpec
       spill.accept(visitor)
       visitor.result should equal (PartitionMetadata(Seq(split.key), Seq.empty, Seq(Partitioned, Present)))
     }
+    "handle n-way splits" in {
+      val visitor = new MetadataForPathVisitor[String](Seq(NWayPath(1)))
+      nway.accept(visitor)
+      visitor.result should equal (PartitionMetadata(Seq.empty, Seq.empty, Seq(NWayPath(1))))
+    }
   }
 }

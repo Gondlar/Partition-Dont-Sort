@@ -5,6 +5,7 @@ import de.unikl.cs.dbis.waves.util.ColumnValue
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
+import scala.util.Random
 
 import TreeNode.AnyNode
 
@@ -12,6 +13,7 @@ final class FindBucketVisitor[Payload](
     row : Row,
     schema : StructType
 ) extends SingleResultVisitor[Payload,Bucket[Payload]] {
+    private val rand = new Random
     
     private var res : Bucket[Payload] = null
     override def result = res
@@ -31,6 +33,12 @@ final class FindBucketVisitor[Payload](
     }
 
     override def visit(root: Spill[Payload]): Unit = root.partitioned.accept(this)
+
+    override def visit(nway: EvenNWay[Payload]): Unit = {
+      // Highway to ~~Hell~~ Non-Determinism
+      val pick = rand.nextInt(nway.size)
+      nway.children(pick).accept(this)
+    }
 }
 
 trait FindBucketOperations {

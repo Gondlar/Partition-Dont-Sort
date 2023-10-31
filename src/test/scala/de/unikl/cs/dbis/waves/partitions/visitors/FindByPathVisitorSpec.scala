@@ -72,5 +72,30 @@ class FindByPathVisitorSpec extends WavesSpec
                 visitor.result should equal (None)
             }
         }
+        "visiting an n-way split" should {
+          "find the first node for an NWay(0) path" in {
+            val visitor = new FindByPathVisitor[String](Seq(NWayPath(0)))
+            nway.accept(visitor)
+            visitor.result.value should equal (nway.children(0))
+          }
+          "find the last node for an NWay path with the correct index" in {
+            val visitor = new FindByPathVisitor[String](Seq(NWayPath(2)))
+            nway.accept(visitor)
+            visitor.result.value should equal (nway.children(2))
+          }
+          "find nothing for an NWay path with a too high index" in {
+            val visitor = new FindByPathVisitor[String](Seq(NWayPath(3)))
+            nway.accept(visitor)
+            visitor.result should not be ('defined)
+          }
+          "not be able to contruct the path for a negative index" in {
+            an [IllegalArgumentException] shouldBe thrownBy (NWayPath(-1))
+          }
+          "find nothing for a different path" in {
+            val visitor = new FindByPathVisitor[String](Seq(Absent))
+            nway.accept(visitor)
+            visitor.result should not be ('defined)
+          }
+        }
     }
 }

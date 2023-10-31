@@ -30,6 +30,13 @@ sealed trait ValuePath extends PartitionTreePath
 sealed trait SpillPath extends PartitionTreePath
 
 /**
+  * Subtype for all steps that can be taken from a [[Spill]]
+  */
+sealed case class NWayPath(position: Int) extends PartitionTreePath {
+  require(position >= 0)
+}
+
+/**
   * Navigate to the "present" side of a SplitByPresence node
   */
 object Present extends SplitByPresencePath

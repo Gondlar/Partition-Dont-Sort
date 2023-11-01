@@ -46,7 +46,7 @@ object FindBadSplits {
     val bucketSizes = bucketSizesBuilder.result()
 
     // get VersionTree
-    val versionTree = StructureMetadata(CalculateTotalFingerprint(PipelineState(spark.read.json(jobConfig.inputPath), "")))
+    val versionTree = StructureMetadata(CalculateTotalFingerprint(PipelineState(spark.read.json(jobConfig.inputPath), ""))).asInstanceOf[TotalFingerprint]
 
     // analyze partition tree
     val visitor = new PartitionTreeVisitor[Option[(Long, Long)]] with SingleResultVisitor[Option[(Long, Long)],(Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)],Seq[(Double, Long, Long)])] {
@@ -68,7 +68,10 @@ object FindBadSplits {
 
       override def visit(node: SplitByPresence[Option[(Long, Long)]]): Unit = {
         val expectedRatio = currentNodeStructure.absoluteProbability(node.key)
-        val (absentStructure, presentStructure) = currentNodeStructure.splitBy(node.key).right.get
+        val (absentStructure, presentStructure) = currentNodeStructure.splitBy(node.key).right.getOrElse{
+          val emptySide = TotalFingerprint.empty(currentNodeStructure.names, currentNodeStructure.leafs)
+          if (expectedRatio == 0) (currentNodeStructure, emptySide) else (emptySide, currentNodeStructure)
+        }
 
         currentNodeStructure = absentStructure
         node.absentKey.accept(this)
@@ -102,7 +105,10 @@ object FindBadSplits {
 
       override def visit(node: SplitByValue[Option[(Long, Long)]]): Unit = {
         val expectedRatio = currentNodeStructure.absoluteProbability(node.key) * currentNodeStructure.separatorForLeaf(Some(node.key), .5).right.get._2
-        val (lessStrcture, moreStructure) = currentNodeStructure.splitBy(node.key, .5).right.get
+        val (lessStrcture, moreStructure) = currentNodeStructure.splitBy(Some(node.key), .5).right.getOrElse{
+          val emptySide = TotalFingerprint.empty(currentNodeStructure.names, currentNodeStructure.leafs)
+          if (expectedRatio == 0) (emptySide, currentNodeStructure) else (currentNodeStructure, emptySide)
+        }
 
         currentNodeStructure = lessStrcture
         node.less.accept(this)

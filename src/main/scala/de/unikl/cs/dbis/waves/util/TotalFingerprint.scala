@@ -164,10 +164,17 @@ object TotalFingerprint {
     leafs: IndexedSeq[String]
   ): TotalFingerprint = TotalFingerprint(names, fingerprints.toSeq, leafMetadata, leafs, fingerprintSums(fingerprints), fingerprintTotal(fingerprints))
 
-  def fingerprintTotal(fingerprints: Iterable[(IndexedSeq[Boolean], Long)])
+  def empty(names: IndexedSeq[String], leafs: IndexedSeq[String]) : TotalFingerprint = {
+    val fingerprints = Seq((IndexedSeq.fill(names.size)(false), 0L))
+    val sums = IndexedSeq.fill(names.length)(0L)
+    val leafMetadata = IndexedSeq.fill(leafs.length)(None)
+    TotalFingerprint(names, fingerprints, leafMetadata, leafs, sums, 0L)
+  }
+
+  private def fingerprintTotal(fingerprints: Iterable[(IndexedSeq[Boolean], Long)])
     = fingerprints.iterator.map(_._2).sum
 
-  def fingerprintSums(fingerprints: Iterable[(IndexedSeq[Boolean], Long)]) = {
+  private def fingerprintSums(fingerprints: Iterable[(IndexedSeq[Boolean], Long)]) = {
     val sum = Array.fill(fingerprints.head._1.size)(0L)
     for ((fingerprint, count) <- fingerprints.iterator) {
       for {

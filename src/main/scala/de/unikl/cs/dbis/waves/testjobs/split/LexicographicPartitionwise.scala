@@ -11,10 +11,11 @@ object LexicographicPartitionwise extends SplitRunner {
     val jobConfig = JobConfig.fromArgs(args)
     val numPartitions = jobConfig.numPartitions.getOrElse(8)
     val exact = jobConfig.useExactCardinalities
+    val sampler = jobConfig.useSampler
     val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Partitionwise $numPartitions${if (exact) " (exact)" else ""}")
 
     val splitter = new Pipeline(Seq(
-      sort.GlobalOrder(if (exact) sort.ExactCardinalities else sort.EstimatedCardinalities),
+      sort.GlobalOrder(if (exact) sort.ExactCardinalities(sampler) else sort.EstimatedCardinalities(sampler)),
       split.ParallelEvenBuckets(numPartitions),
       util.FlatShapeBuilder,
       sort.ParallelSorter),

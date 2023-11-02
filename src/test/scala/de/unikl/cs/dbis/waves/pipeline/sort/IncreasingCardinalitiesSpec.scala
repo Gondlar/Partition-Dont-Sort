@@ -13,23 +13,23 @@ class IncreasingCardinalitiesSpec extends WavesSpec
 
   "The ExactCardinalities Orderer" should {
     "always be supported" in {
-      (ExactCardinalities supports dummyState) shouldBe (true)
+      (ExactCardinalities() supports dummyState) shouldBe (true)
     }
     "return the columns in increasing cardinality order" in {
       val order = Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"))
-        .map(ExactCardinalities.definitionLevel(_))
-      ExactCardinalities.sort(null, df) should contain theSameElementsInOrderAs (order)
+        .map(IncreasingCardinalities.definitionLevel(_))
+      ExactCardinalities().sort(null, df) should contain theSameElementsInOrderAs (order)
     }
   }
 
   "The EstimatedCardinalities Orderer" should {
     "always be supported" in {
-      (EstimatedCardinalities supports dummyState) shouldBe (true)
+      (EstimatedCardinalities() supports dummyState) shouldBe (true)
     }
     "return the columns in increasing cardinality order" in {
       val order = Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"))
-        .map(EstimatedCardinalities.definitionLevel(_))
-      EstimatedCardinalities.sort(null, df) should contain theSameElementsInOrderAs (order)
+        .map(IncreasingCardinalities.definitionLevel(_))
+      EstimatedCardinalities().sort(null, df) should contain theSameElementsInOrderAs (order)
     }
   }
 }

@@ -98,6 +98,6 @@ class Pipeline(
 object Pipeline {
   def mapLegacySorter(sorter: Sorter) = sorter match {
     case NoSorter => Seq.empty
-    case LexicographicSorter => Seq(LocalOrder(ExactCardinalities), DataframeSorter)
+    case LexicographicSorter => Seq(LocalOrder(ExactCardinalities()), DataframeSorter)
   }
 }

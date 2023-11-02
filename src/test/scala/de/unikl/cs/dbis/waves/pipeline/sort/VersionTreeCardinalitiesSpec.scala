@@ -52,7 +52,7 @@ class VersionTreeCardinalitiesSpec extends WavesSpec
         
         Then("it should be correct")
         val order = Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"))
-          .map(ExactCardinalities.definitionLevel(_)) :+ col("a")
+          .map(IncreasingCardinalities.definitionLevel(_)) :+ col("a")
         result should contain theSameElementsInOrderAs (order)
       }
       "the graph is a total fingerprint" in {
@@ -77,7 +77,7 @@ class VersionTreeCardinalitiesSpec extends WavesSpec
         
         Then("it should be correct")
         val order = Seq(PathKey("a"), PathKey("b.c"), PathKey("b.d"))
-          .map(ExactCardinalities.definitionLevel(_)) :+ col("a")
+          .map(IncreasingCardinalities.definitionLevel(_)) :+ col("a")
         result should contain theSameElementsInOrderAs (order)
       }
     }

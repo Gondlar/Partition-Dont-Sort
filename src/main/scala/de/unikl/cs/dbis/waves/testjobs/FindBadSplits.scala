@@ -46,7 +46,7 @@ object FindBadSplits {
     val bucketSizes = bucketSizesBuilder.result()
 
     // get VersionTree
-    val versionTree = StructureMetadata(CalculateTotalFingerprint(PipelineState(spark.read.json(jobConfig.inputPath), ""))).asInstanceOf[TotalFingerprint]
+    val versionTree = StructureMetadata(CalculateTotalFingerprint()(PipelineState(spark.read.json(jobConfig.inputPath), ""))).asInstanceOf[TotalFingerprint]
 
     // analyze partition tree
     val visitor = new PartitionTreeVisitor[Option[(Long, Long)]] with SingleResultVisitor[Option[(Long, Long)],(Seq[NamedTreePath],Seq[(NamedTreePath, Double)],Seq[(NamedTreePath, Double)],Seq[(Double, Long, Long)])] {

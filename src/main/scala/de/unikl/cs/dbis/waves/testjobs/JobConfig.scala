@@ -2,6 +2,7 @@ package de.unikl.cs.dbis.waves.testjobs
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import de.unikl.cs.dbis.waves.pipeline.sample._
 
 /**
   * Configuration for our jobs 
@@ -44,6 +45,18 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   )
 
   /**
+    * fetch the value for the option with the given name as a Double
+    *
+    * @param key case-insensitive option name
+    * @return the value or None if it is unset or not a Double
+    */
+  def getDouble(key: String) = getString(key).flatMap(v =>
+    try Some(v.toDouble) catch {
+      case e : NumberFormatException => None
+    }
+  )
+
+  /**
     * fetch the value for the option with the given name as a Boolean
     *
     * @param key case-insensitive option name
@@ -75,6 +88,15 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def numPartitions = getInt("numPartitions")
   def useColumnSplits = getBool("useColumnSplits").getOrElse(true)
   def useExactCardinalities = getBool("useExactCardinalities").getOrElse(false)
+  def useSampler = getString("sampler").map(str => {str match {
+      case "uniform" if myOptions.contains("uniformRate") => UniformSampler(getDouble("uniformRate").get)
+      case "init" if myOptions.contains("perPartition") => InitSample(getInt("perPartition").get)
+      case _ => {
+        System.err.println(s"WARN: Ignoring unknown sampler option '$str'")
+        NullSampler
+      }
+    }
+  }).getOrElse(NullSampler)
 
   def wavesPath = getString("wavesPath").getOrElse(s"$filesystem/out/")
   def useWaves = getBool("useWaves").getOrElse(true)

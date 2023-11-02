@@ -16,7 +16,7 @@ object StructuralMetadataCardinalities extends ColumnOrderer {
 
   override def sort(state: PipelineState, df: DataFrame): Seq[Column] = {
     val (dlColumns, columns) = colsFromStrucutralMetadata(StructureMetadata(state))
-    val spark1 = dlColumns.map{case (path, distinct) => (ExactCardinalities.definitionLevel(path.get), distinct)}
+    val spark1 = dlColumns.map{case (path, distinct) => (IncreasingCardinalities.definitionLevel(path.get), distinct)}
     val spark2 = columns.map{case (path, distinct) => (path.get.toCol, distinct)}
     (spark1 ++ spark2).filter(_._2 > 1).sortBy(_._2).map(_._1)
   }

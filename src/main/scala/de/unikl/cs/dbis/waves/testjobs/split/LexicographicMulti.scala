@@ -8,12 +8,13 @@ object LexicographicMulti extends SplitRunner {
     val jobConfig = JobConfig.fromArgs(args)
     val numPartitions = jobConfig.numPartitions.getOrElse(8)
     val exact = jobConfig.useExactCardinalities
+    val sampler = jobConfig.useSampler
     val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Multi $numPartitions ${if (exact) "(exact)" else ""}")
 
     val splitter = new Pipeline(Seq(
       split.EvenBuckets(numPartitions),
       util.FlatShapeBuilder,
-      sort.LocalOrder(if (exact) sort.ExactCardinalities else sort.EstimatedCardinalities),
+      sort.LocalOrder(if (exact) sort.ExactCardinalities(sampler) else sort.EstimatedCardinalities(sampler)),
       sort.DataframeSorter),
       sink.DataframeSink
     )

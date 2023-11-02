@@ -7,11 +7,12 @@ object LexicographicMono extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
     val exact = jobConfig.useExactCardinalities
+    val sampler = jobConfig.useSampler
     val spark = jobConfig.makeSparkSession(s"Autopartition Lexicographic Mono${if (exact) " (exact)" else ""}")
 
     val splitter = new Pipeline(Seq(
       split.SingleBucket,
-      sort.GlobalOrder(if (exact) sort.ExactCardinalities else sort.EstimatedCardinalities),
+      sort.GlobalOrder(if (exact) sort.ExactCardinalities(sampler) else sort.EstimatedCardinalities(sampler)),
       sort.DataframeSorter),
       sink.DataframeSink
     )

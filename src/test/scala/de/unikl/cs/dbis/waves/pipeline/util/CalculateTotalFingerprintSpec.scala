@@ -36,11 +36,11 @@ class CalculateTotalFngerprintSpec extends WavesSpec
   }
   it should {
     "always be supported" in {
-      (CalculateTotalFingerprint supports dummyState) shouldBe (true)
+      (CalculateTotalFingerprint() supports dummyState) shouldBe (true)
     }
     "calculate the correct VersionedStructure for the state" in {
       When("we apply the CalculateVersionedStructure step")
-      val result = CalculateTotalFingerprint(dummyDfState)
+      val result = CalculateTotalFingerprint()(dummyDfState)
 
       Then("the correct VersionedStructure is stored")
       (StructureMetadata isDefinedIn result) shouldBe (true)

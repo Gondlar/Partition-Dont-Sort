@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.pipeline.util
 
 import de.unikl.cs.dbis.waves.pipeline._
+import de.unikl.cs.dbis.waves.pipeline.sample.{Sampler, NullSampler}
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 import de.unikl.cs.dbis.waves.util.nested.DataTypeVisitor
 
@@ -30,12 +31,19 @@ import java.util.UUID
   * Set the StructureMetadata field of the Pipeline State to a VersionTree
   * calculated from the state's data.
   */
-object CalculateTotalFingerprint extends PipelineStep with NoPrerequisites {
+case class CalculateTotalFingerprint(
+  sampler: Sampler = NullSampler
+) extends PipelineStep with NoPrerequisites {
+
+  import CalculateTotalFingerprint._
 
   override def run(state: PipelineState): PipelineState = {
-    val tree = fromDataFrame(state.data, Schema(state))
+    val tree = fromDataFrame(sampler(state.data), Schema(state))
     StructureMetadata(state) = tree
   }
+}
+
+object CalculateTotalFingerprint {
 
   /**
     * Construct a VersionTree which holds the metadata of a given DataFrame and
@@ -67,7 +75,7 @@ object CalculateTotalFingerprint extends PipelineStep with NoPrerequisites {
     )
   }
 
-  def columnsForLeaf(path: PathKey, tpe: DataType): Seq[Column] = tpe match {
+  private def columnsForLeaf(path: PathKey, tpe: DataType): Seq[Column] = tpe match {
     case BooleanType => Seq(count(when(!path.toCol, 1)),count(when(path.toCol, 1)))
     case _ => Seq(min(path.toCol), max(path.toCol), approx_count_distinct(path.toCol))
   }

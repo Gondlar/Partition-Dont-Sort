@@ -1,7 +1,7 @@
 package de.unikl.cs.dbis.waves.pipeline.split
 
 import de.unikl.cs.dbis.waves.pipeline._
-import de.unikl.cs.dbis.waves.pipeline.sort.ExactCardinalities
+import de.unikl.cs.dbis.waves.pipeline.sort.IncreasingCardinalities
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
 import de.unikl.cs.dbis.waves.util.PathKey
@@ -55,7 +55,7 @@ object ExactGini {
     require(size > 0)
     val leafPaths = df.schema.leafPaths
     val gini = leafPaths.par.map({ column =>
-      1 - df.groupBy(ExactCardinalities.definitionLevel(column))
+      1 - df.groupBy(IncreasingCardinalities.definitionLevel(column))
         .count()
         .select(((col("count")/size)*(col("count")/size)).as("squareProbability"))
         .agg(sum(col("squareProbability")))

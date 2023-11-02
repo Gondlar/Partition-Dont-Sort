@@ -11,17 +11,20 @@ import org.apache.spark.sql.functions.{
   when, min, max, approx_count_distinct, count, array, struct
 }
 import org.apache.spark.sql.types.{StructType, DataType, ArrayType, MapType, BooleanType}
+import org.apache.spark.sql.util.QueryExecutionListener
+import org.apache.spark.sql.execution.QueryExecution
 
-import de.unikl.cs.dbis.waves.util.{VersionTree, Leaf, Versions}
 import de.unikl.cs.dbis.waves.util.PathKey
-import de.unikl.cs.dbis.waves.util.nested.SingleResult
 import de.unikl.cs.dbis.waves.util.ColumnValue
 import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.util.BooleanColumnMetadata
-import de.unikl.cs.dbis.waves.util.operators.TempColumn
-import de.unikl.cs.dbis.waves.util.operators.collect_set_with_count
 import de.unikl.cs.dbis.waves.util.ColumnMetadata
 import de.unikl.cs.dbis.waves.util.TotalFingerprint
+
+import scala.concurrent.Promise
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import java.util.UUID
 
 /**
   * Set the StructureMetadata field of the Pipeline State to a VersionTree
@@ -46,43 +49,19 @@ object CalculateTotalFingerprint extends PipelineStep with NoPrerequisites {
     val sortedLeafs = schema.leafPaths.sortBy(_.toString())
     val sortedOptionalNodes = schema.paths.sortBy(_.toString())
 
-    val fingerprint = collect_set_with_count[IndexedSeq[Boolean]].apply(array(sortedOptionalNodes.map(_.toCol.isNotNull):_*))
     val aggregates = for {
       leafpath <- sortedLeafs
       leaf <- leafpath.retrieveFrom(schema).toSeq
       feature <- columnsForLeaf(leafpath, leaf)
-     } yield feature
-    val info = df.agg(fingerprint, aggregates:_*).collect()(0)
-
-    val nextPosition = (1 to info.size).iterator
-    val leafs = for {
-      leafpath <- sortedLeafs
-      leaf <- leafpath.retrieveFrom(schema).toSeq
-    } yield {
-      val foo: Option[ColumnMetadata] = leaf match {
-        case BooleanType => {
-          val falseIndex = nextPosition.next()
-          val trueIndex = nextPosition.next()
-          BooleanColumnMetadata.fromCounts(info.getLong(falseIndex), info.getLong(trueIndex))
-        }
-        case _ => {
-          val minIndex = nextPosition.next()
-          val maxIndex = nextPosition.next()
-          val distinctIndex = nextPosition.next()
-          for {
-            min <- ColumnValue.fromRow(info, minIndex)
-            max <- ColumnValue.fromRow(info, maxIndex)
-          } yield {
-            val distinct = info.getLong(distinctIndex)
-            UniformColumnMetadata(min, max, distinct)
-          }
-        }
-      }
-      foo
-    }
+    } yield feature
+    val fingerprintColumn = array(sortedOptionalNodes.map(_.toCol.isNotNull):_*) as "fingerprint"
+    val (observedDf, future) = observeAggregates(df, aggregates)
+    val fingerprints = observedDf.groupBy(fingerprintColumn).count().collect()
+    val leafs = parseLeafMetadata(sortedLeafs, schema, Await.result(future, Duration(1L, "min")))
+    
     TotalFingerprint(
       sortedOptionalNodes.map(_.toString()).toIndexedSeq,
-      parseFingerprints(info.getSeq[Row](0), sortedOptionalNodes.size),
+      parseFingerprints(fingerprints, sortedOptionalNodes.size),
       leafs.toIndexedSeq,
       sortedLeafs.map(_.toString()).toIndexedSeq
     )
@@ -104,4 +83,63 @@ object CalculateTotalFingerprint extends PipelineStep with NoPrerequisites {
         Seq((IndexedSeq.fill(structWidth)(false), 0L))
       } else fingerprints
     }
+
+  private def parseLeafMetadata(sortedLeafs: Iterable[PathKey], schema: StructType, row: Row) = {
+    val nextPosition = (0 until row.size).iterator
+    val result = for {
+      leafpath <- sortedLeafs
+      leaf <- leafpath.retrieveFrom(schema).toSeq
+    } yield {
+      val foo: Option[ColumnMetadata] = leaf match {
+        case BooleanType => {
+          val falseIndex = nextPosition.next()
+          val trueIndex = nextPosition.next()
+          BooleanColumnMetadata.fromCounts(row.getLong(falseIndex), row.getLong(trueIndex))
+        }
+        case _ => {
+          val minIndex = nextPosition.next()
+          val maxIndex = nextPosition.next()
+          val distinctIndex = nextPosition.next()
+          for {
+            min <- ColumnValue.fromRow(row, minIndex)
+            max <- ColumnValue.fromRow(row, maxIndex)
+          } yield {
+            val distinct = row.getLong(distinctIndex)
+            UniformColumnMetadata(min, max, distinct)
+          }
+        }
+      }
+      foo
+    }
+    result.toIndexedSeq
+  }
+
+  private def observeAggregates(df: DataFrame, aggregates: Seq[Column]) = {
+    val manager = df.sparkSession.listenerManager
+    val name = "leafs-" + UUID.randomUUID()
+    val listener = new LeafMetadataListener(name, manager.unregister)
+    manager.register(listener)
+    (df.observe(name, aggregates.head, aggregates.tail:_*), listener.future)
+  }
+
+  class LeafMetadataListener(myName: String, unregisterAction: LeafMetadataListener => Unit) extends QueryExecutionListener {
+    private val promise = Promise[Row]()
+
+    def future = promise.future
+
+    override def onSuccess(funcName: String, qe: QueryExecution, durationNs: Long): Unit
+      = qe.observedMetrics.get(myName) match {
+        case Some(value) => {
+          promise.success(value)
+          unregisterAction(this)
+        }
+        case None => ()
+      }
+
+    override def onFailure(funcName: String, qe: QueryExecution, exception: Exception): Unit
+      = if (qe.observedMetrics.contains(myName)) {
+        promise.failure(exception)
+        unregisterAction(this)
+      }
+  }
 }

@@ -32,6 +32,17 @@ class CalculateTotalFngerprintSpec extends WavesSpec
           )
         )
       }
+      "we only keep the top percent" in {
+        CalculateTotalFingerprint.fromDataFrame(df, schema, Some(.5)) should equal (TotalFingerprint(
+          IndexedSeq("a", "b", "b.c", "b.d", "e"),
+          Set(
+            (IndexedSeq(true, false, false, false, true), 2L),
+            (IndexedSeq(false, false, false, false, true), 2L),
+          ),
+          IndexedSeq(Some(UniformColumnMetadata(5,5,1)), Some(UniformColumnMetadata(1,1,1)), Some(UniformColumnMetadata(5,5,1)), Some(UniformColumnMetadata(42,42,1))),
+          IndexedSeq("a", "b.c", "b.d", "e")
+        ))
+      }
     }
   }
   it should {

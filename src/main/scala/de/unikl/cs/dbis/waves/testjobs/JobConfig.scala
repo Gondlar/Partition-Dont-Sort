@@ -88,6 +88,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def numPartitions = getInt("numPartitions")
   def useColumnSplits = getBool("useColumnSplits").getOrElse(true)
   def useSearchSpacePruning = getBool("useSearchSpacePruning").getOrElse(false)
+  def useFingerprintPruning = getDouble("useFingerprintPruning")
   def useExactCardinalities = getBool("useExactCardinalities").getOrElse(false)
   def useSampler = getString("sampler").map(str => {str match {
       case "uniform" if myOptions.contains("uniformRate") => UniformSampler(getDouble("uniformRate").get)

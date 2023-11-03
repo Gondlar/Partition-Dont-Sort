@@ -12,11 +12,12 @@ object ModelGini extends SplitRunner {
     val numPartitions = jobConfig.numPartitions.getOrElse(8)
     val useColumnSplits = jobConfig.useColumnSplits
     val useSearchSpacePruning = jobConfig.useSearchSpacePruning
+    val useFingerprintPruning = jobConfig.useFingerprintPruning
     val sampler = jobConfig.useSampler
     val spark = jobConfig.makeSparkSession(s"Autopartition Model Gini $numPartitions")
 
     val splitter = new Pipeline(Seq(
-      util.CalculateTotalFingerprint(sampler),
+      util.CalculateTotalFingerprint(sampler, useFingerprintPruning),
       split.ModelGini(1.0/numPartitions, useColumnSplits, useSearchSpacePruning),
       util.ShuffleByShape),
       sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)

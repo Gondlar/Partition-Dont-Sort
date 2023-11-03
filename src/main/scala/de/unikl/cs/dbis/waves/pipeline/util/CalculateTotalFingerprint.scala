@@ -32,13 +32,15 @@ import java.util.UUID
   * calculated from the state's data.
   */
 case class CalculateTotalFingerprint(
-  sampler: Sampler = NullSampler
+  sampler: Sampler = NullSampler,
+  keepPercent: Option[Double] = None
 ) extends PipelineStep with NoPrerequisites {
+  assert(keepPercent.forall(p => p > 0 && p < 1))
 
   import CalculateTotalFingerprint._
 
   override def run(state: PipelineState): PipelineState = {
-    val tree = fromDataFrame(sampler(state.data), Schema(state))
+    val tree = fromDataFrame(sampler(state.data), Schema(state), keepPercent)
     StructureMetadata(state) = tree
   }
 }
@@ -53,7 +55,7 @@ object CalculateTotalFingerprint {
     * @param schema the schema of the df
     * @return the constructed VersionTree
     */
-  def fromDataFrame(df: DataFrame, schema: StructType): TotalFingerprint = {
+  def fromDataFrame(df: DataFrame, schema: StructType, keepPercent: Option[Double] = None): TotalFingerprint = {
     val sortedLeafs = schema.leafPaths.sortBy(_.toString())
     val sortedOptionalNodes = schema.paths.sortBy(_.toString())
 
@@ -64,12 +66,14 @@ object CalculateTotalFingerprint {
     } yield feature
     val fingerprintColumn = array(sortedOptionalNodes.map(_.toCol.isNotNull):_*) as "fingerprint"
     val (observedDf, future) = observeAggregates(df, aggregates)
-    val fingerprints = observedDf.groupBy(fingerprintColumn).count().collect()
+    val rawFingerprints = observedDf.groupBy(fingerprintColumn).count().collect()
     val leafs = parseLeafMetadata(sortedLeafs, schema, Await.result(future, Duration(1L, "min")))
     
+    val fingerprints = parseFingerprints(rawFingerprints, sortedOptionalNodes.size)
+    val prunedFingerprints = keepPercent.map(p => pruneFingerprints(fingerprints, p)).getOrElse(fingerprints)
     TotalFingerprint(
       sortedOptionalNodes.map(_.toString()).toIndexedSeq,
-      parseFingerprints(fingerprints, sortedOptionalNodes.size),
+      prunedFingerprints,
       leafs.toIndexedSeq,
       sortedLeafs.map(_.toString()).toIndexedSeq
     )
@@ -91,6 +95,16 @@ object CalculateTotalFingerprint {
         Seq((IndexedSeq.fill(structWidth)(false), 0L))
       } else fingerprints
     }
+
+  private def pruneFingerprints(fingerprints: Seq[(IndexedSeq[Boolean], Long)], keepPercent: Double) = {
+    val sortedFingerprints = fingerprints.sortBy(-_._2)
+    val threshold = (sortedFingerprints.iterator.map(_._2).sum * keepPercent).ceil.toLong
+    var sum = 0L
+    sortedFingerprints.takeWhile({ case (_, count) =>
+      sum += count
+      sum <= threshold
+    })
+  }
 
   private def parseLeafMetadata(sortedLeafs: Iterable[PathKey], schema: StructType, row: Row) = {
     val nextPosition = (0 until row.size).iterator

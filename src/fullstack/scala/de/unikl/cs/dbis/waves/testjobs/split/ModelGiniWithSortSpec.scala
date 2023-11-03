@@ -35,7 +35,7 @@ class ModelGiniWithSortSpec extends WavesSpec
   ) = {
     And("the partition schema has the correct shape")
     // The order is non-deterministic if multiple splits have the same gini score
-    partitionSchema.buckets should have length (8)
+    partitionSchema.buckets should have length (11)
 
     And("the correct sorter is used")
     partitionSchema.sorter should equal (NoSorter)

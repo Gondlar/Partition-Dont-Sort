@@ -28,4 +28,6 @@ final case class InitSample(
     df.mapPartitions(p => p.take(count))
   }
 
+  override def explain = s"Init $count"
+
 }

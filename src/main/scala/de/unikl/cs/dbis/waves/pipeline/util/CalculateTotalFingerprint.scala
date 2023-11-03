@@ -21,6 +21,7 @@ import de.unikl.cs.dbis.waves.util.UniformColumnMetadata
 import de.unikl.cs.dbis.waves.util.BooleanColumnMetadata
 import de.unikl.cs.dbis.waves.util.ColumnMetadata
 import de.unikl.cs.dbis.waves.util.TotalFingerprint
+import de.unikl.cs.dbis.waves.util.Logger
 
 import scala.concurrent.Promise
 import scala.concurrent.Await
@@ -40,7 +41,10 @@ case class CalculateTotalFingerprint(
   import CalculateTotalFingerprint._
 
   override def run(state: PipelineState): PipelineState = {
+    Logger.log("parameter-sampler", sampler.explain)
+    Logger.log("parameter-fingerprintPruning", keepPercent.getOrElse("Off"))
     val tree = fromDataFrame(sampler(state.data), Schema(state), keepPercent)
+    Logger.log("metadata-fingerprintCount", tree.fingerprints.length)
     StructureMetadata(state) = tree
   }
 }

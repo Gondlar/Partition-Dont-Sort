@@ -40,6 +40,7 @@ class LexicographicMonoSpec extends WavesSpec
       "'start-DataframeSorter'", "'end-DataframeSorter'",
       "'start-Finalizer'", "'end-Finalizer'",
       "'start-DataframeSink'", "'end-DataframeSink'",
+      "'metadata-bucketCount'",
       "'split-done'",
       "'split-cleanup-end'"
     ))

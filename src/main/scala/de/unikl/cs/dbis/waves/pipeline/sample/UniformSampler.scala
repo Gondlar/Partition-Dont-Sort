@@ -14,4 +14,6 @@ final case class UniformSampler(
 
   override def apply(df: DataFrame): DataFrame
     = df.sample(probability)
+
+  override def explain = s"Uniform $probability"
 }

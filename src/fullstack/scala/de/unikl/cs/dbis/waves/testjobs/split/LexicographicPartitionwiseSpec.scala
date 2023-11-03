@@ -40,6 +40,7 @@ class LexicographicPartitionwiseSpec extends WavesSpec
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-ParallelSorter'", "'end-ParallelSorter'",
       "'start-ParallelSink'", "'end-ParallelSink'",
+      "'metadata-bucketCount'",
       "'split-done'",
       "'split-cleanup-end'"
     ))

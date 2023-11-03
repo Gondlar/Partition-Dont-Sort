@@ -12,6 +12,7 @@ import de.unikl.cs.dbis.waves.pipeline.util.SchemaModifier
 import de.unikl.cs.dbis.waves.sort.{Sorter,NoSorter,LexicographicSorter}
 import de.unikl.cs.dbis.waves.pipeline.sort._
 import de.unikl.cs.dbis.waves.util.PartitionFolder
+import de.unikl.cs.dbis.waves.util.Logger
 
 /**
   * A splitter implemented in terms of a sequence of loosely coupled steps.
@@ -82,6 +83,7 @@ class Pipeline(
 
     // write metadata
     require(Shape isDefinedIn finalState)
+    Logger.log("metadata-bucketCount", buckets.size)
     val shape = treeByShape(buckets, Shape(finalState))
     val tree = new PartitionTree(Schema(finalState), NoSorter, shape)
     finalState.hdfs.write(tree)

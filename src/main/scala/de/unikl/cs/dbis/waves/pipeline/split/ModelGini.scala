@@ -4,6 +4,7 @@ import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions._
 import de.unikl.cs.dbis.waves.split.recursive.ObjectCounter
 import de.unikl.cs.dbis.waves.util.StructuralMetadata
+import de.unikl.cs.dbis.waves.util.Logger
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.schemas._
 
@@ -44,6 +45,10 @@ case class ModelGini(
     = StructureMetadata isDefinedIn state
 
   override protected def initialRecursionState(state: PipelineState): SplitCandidateState = {
+    Logger.log("parameter-maxSize", maxBucketSize)
+    Logger.log("parameter-minSize", minBucketSize)
+    Logger.log("parameter-useColumnSplits", useColumnSplits)
+    Logger.log("parameter-useSearchSpacePruning", useSearchSpacePruning)
     val schema = Schema(state)
 
     val spark = state.data.sparkSession

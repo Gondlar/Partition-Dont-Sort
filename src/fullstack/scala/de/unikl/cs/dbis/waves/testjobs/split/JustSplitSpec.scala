@@ -37,6 +37,7 @@ class JustSplitSpec extends WavesSpec
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-ParallelSink'", "'end-ParallelSink'",
+      "'metadata-bucketCount'",
       "'split-done'",
       "'split-cleanup-end'"
     ))

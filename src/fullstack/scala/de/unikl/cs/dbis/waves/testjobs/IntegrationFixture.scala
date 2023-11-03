@@ -34,7 +34,7 @@ with ParquetFixture { this: Suite =>
       "master=local",
       s"inputPath=file://$inputPath",
       s"wavesPath=file://$wavesPath",
-      s"fallbackBlocksize=${8*1024*1024}" 
+      s"fallbackBlocksize=${8*1024*1024}"
     )
   }
 

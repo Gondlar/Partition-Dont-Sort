@@ -29,7 +29,8 @@ import scala.collection.parallel.ParSeq
 case class ModelGini(
   maxBucketSize: Double,
   minBucketSize: Double,
-  useColumnSplits: Boolean
+  useColumnSplits: Boolean,
+  useSearchSpacePruning: Boolean
 ) extends Recursive[SplitCandidateState] {
   import ModelGini._
 
@@ -46,7 +47,7 @@ case class ModelGini(
     val schema = Schema(state)
 
     val spark = state.data.sparkSession
-    splitLocations = (schema.optionalPaths.map(PresenceSplitCandidate(_)) ++
+    splitLocations = (schema.optionalPaths.map(PresenceSplitCandidate(_, useSearchSpacePruning)) ++
       (if (useColumnSplits) schema.leafPaths.map(MedianSplitCandidate(_)) else Seq.empty)).par
     
     SplitCandidateState(StructureMetadata(state), 1, Seq.empty)
@@ -97,8 +98,8 @@ case class ModelGini(
 
 object ModelGini {
 
-  def apply(maxBucketSize: Double, useColumnSplits: Boolean = true): ModelGini
-    = apply(maxBucketSize, maxBucketSize/2, useColumnSplits)
+  def apply(maxBucketSize: Double, useColumnSplits: Boolean = true, useSearchSpacePruning: Boolean = false): ModelGini
+    = apply(maxBucketSize, maxBucketSize/2, useColumnSplits, useSearchSpacePruning)
 
   def mergeOptions[A](fn: (A, A) => A)(lhs: Option[A], rhs: Option[A]): Option[A] = {
     if (lhs.isEmpty) return rhs
@@ -116,11 +117,12 @@ sealed trait SplitCandidate {
 }
 
 final case class PresenceSplitCandidate(
-  path: PathKey
+  path: PathKey,
+  requireParentPresent: Boolean
 ) extends SplitCandidate {
 
   override def isValidFor(graph: StructuralMetadata): Boolean
-    = graph.isValidSplitLocation(path)
+    = (!requireParentPresent || graph.absoluteProbability(path.parent) == 1) && graph.isValidSplitLocation(path)
 
   override def split(graph: StructuralMetadata): Either[String,(StructuralMetadata, StructuralMetadata)]
     = graph.splitBy(path).map(_.swap)

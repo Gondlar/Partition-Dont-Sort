@@ -27,7 +27,11 @@ class SplitCandidateSpec extends WavesSpec
           (presenceCandidate isValidFor testGraph(0, 1)) shouldBe (false)
         }
         "the path does not exist" in {
-          (PresenceSplitCandidate(PathKey("foobar")) isValidFor testGraph(1, 1)) shouldBe (false)
+          (PresenceSplitCandidate(PathKey("foobar"), false) isValidFor testGraph(1, 1)) shouldBe (false)
+        }
+        "it requires a present parent" in {
+          (PresenceSplitCandidate(PathKey("a"), true) isValidFor testGraph(.5, .5)) shouldBe (true)
+          (PresenceSplitCandidate(PathKey("a.b"), true) isValidFor testGraph(.5, .5)) shouldBe (false)
         }
         "the path is valid" in {
           (presenceCandidate isValidFor graph) shouldBe (true)
@@ -118,7 +122,7 @@ class SplitCandidateSpec extends WavesSpec
     }
   }
 
-  val presenceCandidate = PresenceSplitCandidate(PathKey("a"))
+  val presenceCandidate = PresenceSplitCandidate(PathKey("a"), false)
   val medianCandidate = MedianSplitCandidate(PathKey("a.b"))
 
   def testGraph(probA: Double, probB: Double, min: Int = 0, max: Int = 9, distinct: Long = 6) = Versions(

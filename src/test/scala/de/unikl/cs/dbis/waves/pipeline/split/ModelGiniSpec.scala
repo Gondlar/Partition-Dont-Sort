@@ -36,16 +36,16 @@ class ModelGiniSpec extends WavesSpec
   }
   it should {
     "not be constructable for non-percentage values of maxBucketSize" in {
-      an [AssertionError] shouldBe thrownBy (ModelGini(-1, .5, false))
-      an [AssertionError] shouldBe thrownBy (ModelGini(2, .5, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(-1, .5, false, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(2, .5, false, false))
     }
     "not be constructable for non-percentage values of minBucketSize" in {
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, -1, false))
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, 2, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, -1, false, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, 2, false, false))
     }
     "not be constructable if minBucketSize >= maxBucketSize" in {
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .8, false))
-      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .5, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .8, false, false))
+      an [AssertionError] shouldBe thrownBy (ModelGini(.5, .5, false, false))
     }
     "not be supported when no VersionTree is given in the state" in {
       val step = ModelGini(.5)
@@ -81,10 +81,35 @@ class ModelGiniSpec extends WavesSpec
       buckets(2).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("b.d").isNull).collect())
       buckets(3).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("b.d").isNotNull).collect())
     }
+    "split the dataset according to the best gini gain and tree-order" in {
+      Given("A state and a number of partitions")
+      val state = StructureMetadata(dummyDfState) = graphForDf
+      val step = ModelGini(.25, useSearchSpacePruning = true)
+
+      When("we apply the ExactGini step")
+      val result = step(state)
+
+      Then("the correct shape is stored")
+      Shape(result) should equal (
+        SplitByPresence(PathKey("b"),
+          SplitByPresence("b.d", (), ()),
+          SplitByPresence("a", (), ())
+        )
+      )
+      NumBuckets.get(result).value should equal (4)
+
+      And("the buckets have the right data")
+      val buckets = Buckets(result)
+      buckets should have length (4)
+      buckets(0).collect should contain theSameElementsAs (df.filter(col("b").isNull && col("a").isNull).collect())
+      buckets(1).collect should contain theSameElementsAs (df.filter(col("b").isNull && col("a").isNotNull).collect())
+      buckets(2).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("b.d").isNull).collect())
+      buckets(3).collect should contain theSameElementsAs (df.filter(col("b").isNotNull && col("b.d").isNotNull).collect())
+    }
     "create n-way splits if no others are eligible" in {
       Given("A state and a very high bound")
       val state = StructureMetadata(dummyDfState) = graphForDf
-      val step = ModelGini(.99, .98, false)
+      val step = ModelGini(.99, .98, false, false)
 
       When("we apply the ExactGini step")
       val result = step(state)

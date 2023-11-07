@@ -33,13 +33,14 @@ class JustSplitSpec extends WavesSpec
 
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
+      "'read-dataframe'",
       "'split-start'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-ParallelSink'", "'end-ParallelSink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'split-cleanup-end'"
+      "'metadata-bytesize'"
     ))
   }
 }

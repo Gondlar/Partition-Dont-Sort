@@ -21,13 +21,13 @@ trait SplitRunner {
     if (jobConfig.cleanWavesPath)
       PartitionTreeHDFSInterface(spark, jobConfig.wavesPath).fs
         .delete(new Path(jobConfig.wavesPath), true)
-    Logger.log("split-start", this.getClass().getName())
+    Logger.log("read-dataframe", jobConfig.inputPath)
     val df = spark.read.json(jobConfig.inputPath)
+    Logger.log("split-start", this.getClass().getName())
     job(df)
+    Logger.log("split-done")
     val relation = spark.read.waves(jobConfig.wavesPath).getWavesTable.get
-    Logger.log("split-done", relation.diskSize())
-    relation.vacuum()
-    Logger.log("split-cleanup-end", relation.diskSize())
+    Logger.log("metadata-bytesize", relation.diskSize())
 
     Logger.flush(spark.sparkContext.hadoopConfiguration)
     spark.stop()

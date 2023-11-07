@@ -34,7 +34,10 @@ class LexicographicMultiSpec extends WavesSpec
     partitionSchema should haveTheSameStructureAs(tree)
 
     And("the log contains what happened")
-    events should contain theSameElementsInOrderAs (Seq(
+    val (cardinalityEvents, otherEvents) = events.partition(_ == "'done-cardinalities'")
+    cardinalityEvents should have length (8)
+    otherEvents should contain theSameElementsInOrderAs (Seq(
+      "'read-dataframe'",
       "'split-start'",
       "'start-EvenBuckets'", "'end-EvenBuckets'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
@@ -44,7 +47,7 @@ class LexicographicMultiSpec extends WavesSpec
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'split-cleanup-end'"
+      "'metadata-bytesize'"
     ))
   }
 }

@@ -4,6 +4,7 @@ import de.unikl.cs.dbis.waves.pipeline.PipelineState
 import de.unikl.cs.dbis.waves.pipeline.sample.{Sampler,NullSampler}
 import de.unikl.cs.dbis.waves.util.PathKey
 import de.unikl.cs.dbis.waves.util.nested.schemas._
+import de.unikl.cs.dbis.waves.util.Logger
 
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
@@ -24,6 +25,7 @@ abstract class IncreasingCardinalities(
     // get all cardinalities
     val withCount = cols.map(distinctValueCounter(_))
     val cardinalities = sampler(df).agg(withCount.head, withCount.tail:_*).head()
+    Logger.log("done-cardinalities")
 
     // order in increasing order ignoring those with card 1
     cols.indices.map(cardinalities.getLong(_)).zip(cols) // map cardinalities to columns

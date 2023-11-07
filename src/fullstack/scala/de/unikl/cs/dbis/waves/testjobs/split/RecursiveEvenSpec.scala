@@ -37,6 +37,6 @@ class RecursiveEvenSpec extends WavesSpec
     partitionSchema.sorter should equal (NoSorter)
 
     And("the log contains what happened")
-    events should contain allOf ("'split-start'", "'split-done'", "'split-cleanup-end'")
+    events should contain allOf ("'read-dataframe'", "'split-start'", "'split-done'", "'metadata-bytesize'")
   }
 }

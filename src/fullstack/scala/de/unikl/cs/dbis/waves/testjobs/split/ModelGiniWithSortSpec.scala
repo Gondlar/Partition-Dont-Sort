@@ -42,6 +42,7 @@ class ModelGiniWithSortSpec extends WavesSpec
 
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
+      "'read-dataframe'",
       "'split-start'",
       "'start-CalculateTotalFingerprint'",
         "'parameter-sampler'",
@@ -64,7 +65,7 @@ class ModelGiniWithSortSpec extends WavesSpec
       "'start-PrioritySink'", "'writer-chosen'", "'end-PrioritySink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'split-cleanup-end'"
+      "'metadata-bytesize'"
     ))
   }
 }

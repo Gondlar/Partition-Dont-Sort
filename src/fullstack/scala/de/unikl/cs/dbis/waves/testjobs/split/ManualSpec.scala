@@ -50,6 +50,7 @@ class ManualSpec extends WavesSpec
 
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
+      "'read-dataframe'",
       "'split-start'",
       "'start-Predefined'", "'end-Predefined'",
       "'start-BucketsFromShape'", "'end-BucketsFromShape'",
@@ -60,7 +61,7 @@ class ManualSpec extends WavesSpec
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'split-cleanup-end'"
+      "'metadata-bytesize'"
     ))
   }
 }

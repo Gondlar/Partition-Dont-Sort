@@ -12,6 +12,7 @@ import de.unikl.cs.dbis.waves.WavesTable._
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
 
 import java.nio.charset.StandardCharsets
+import java.util.Scanner
 
 trait SplitRunner {
   def runSplitter[T](spark: SparkSession, jobConfig: JobConfig, splitter: Splitter[T])
@@ -44,7 +45,7 @@ trait SplitRunner {
     val hdfsPath = new Path(path)
     val in = hdfsPath.getFileSystem(spark.sparkContext.hadoopConfiguration).open(hdfsPath)
     try {
-      val json = new String(in.readAllBytes(), StandardCharsets.UTF_8)
+      val json = new Scanner(in, StandardCharsets.UTF_8.displayName()).useDelimiter("\\Z").next()
       DataType.fromJson(json).asInstanceOf[StructType]
     } finally in.close()
   }

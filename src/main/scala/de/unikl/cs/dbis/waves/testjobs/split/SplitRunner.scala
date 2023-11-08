@@ -1,6 +1,7 @@
 package de.unikl.cs.dbis.waves.testjobs.split
 
 import org.apache.spark.sql.{SparkSession,DataFrame}
+import org.apache.spark.sql.types.{DataType,StructType}
 import org.apache.spark.sql.SaveMode
 import org.apache.hadoop.fs.Path
 
@@ -9,6 +10,8 @@ import de.unikl.cs.dbis.waves.split.Splitter
 import de.unikl.cs.dbis.waves.testjobs.JobConfig
 import de.unikl.cs.dbis.waves.WavesTable._
 import de.unikl.cs.dbis.waves.partitions.PartitionTreeHDFSInterface
+
+import java.nio.charset.StandardCharsets
 
 trait SplitRunner {
   def runSplitter[T](spark: SparkSession, jobConfig: JobConfig, splitter: Splitter[T])
@@ -21,8 +24,12 @@ trait SplitRunner {
     if (jobConfig.cleanWavesPath)
       PartitionTreeHDFSInterface(spark, jobConfig.wavesPath).fs
         .delete(new Path(jobConfig.wavesPath), true)
+    val optionalSchema = jobConfig.inputSchemaPath.map(readSchema(_, spark))
     Logger.log("read-dataframe", jobConfig.inputPath)
-    val df = spark.read.json(jobConfig.inputPath)
+    val df = optionalSchema match {
+      case None => spark.read.json(jobConfig.inputPath)
+      case Some(schema) => spark.read.schema(schema).json(jobConfig.inputPath)
+    }
     Logger.log("split-start", this.getClass().getName())
     job(df)
     Logger.log("split-done")
@@ -31,5 +38,14 @@ trait SplitRunner {
 
     Logger.flush(spark.sparkContext.hadoopConfiguration)
     spark.stop()
+  }
+
+  private def readSchema(path: String, spark: SparkSession) = {
+    val hdfsPath = new Path(path)
+    val in = hdfsPath.getFileSystem(spark.sparkContext.hadoopConfiguration).open(hdfsPath)
+    try {
+      val json = new String(in.readAllBytes(), StandardCharsets.UTF_8)
+      DataType.fromJson(json).asInstanceOf[StructType]
+    } finally in.close()
   }
 }

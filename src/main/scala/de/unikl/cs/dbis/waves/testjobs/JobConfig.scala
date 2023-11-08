@@ -80,6 +80,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def master = getString("master")
 
   def inputPath = getString("inputPath").getOrElse("file:///cluster-share/benchmarks/json/twitter/109g_multiple")
+  def inputSchemaPath = getString("inputSchemaPath")
   def filesystem = getString("filesystem").getOrElse(
       if (isLocal) "file://" + System.getProperty("user.dir") else "hdfs://namenode:9000"
   )

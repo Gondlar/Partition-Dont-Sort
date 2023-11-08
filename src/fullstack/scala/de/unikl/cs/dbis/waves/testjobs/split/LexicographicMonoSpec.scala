@@ -34,12 +34,12 @@ class LexicographicMonoSpec extends WavesSpec
 
     And("the log contains what happened")
     events should contain theSameElementsInOrderAs (Seq(
+      "'parameter-shufflePartitions'",
       "'read-dataframe'",
       "'split-start'",
       "'start-SingleBucket'", "'end-SingleBucket'",
       "'start-GlobalOrder'", "'done-cardinalities'", "'end-GlobalOrder'",
       "'start-DataframeSorter'", "'end-DataframeSorter'",
-      "'start-Finalizer'", "'end-Finalizer'",
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'metadata-bucketCount'",
       "'split-done'",

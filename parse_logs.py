@@ -85,7 +85,7 @@ def parse_optional_metadata(run, name):
 
 # Prepare Data
 files = [read_run(logdir + '/' + filename) for filename in os.listdir(logdir) if filename.endswith(".csv")]
-print("type,dataset,total_time,size_bytes,bucket_count,setup_time,gather_data_time,split_time,sort_order_time,write_time,max_size,min_size,colum_splits,pruning,fingerprint_count,fingerprint_pruning,sampling")
+print("type,dataset,total_time,size_bytes,bucket_count,setup_time,gather_data_time,split_time,sort_order_time,write_time,max_size,min_size,colum_splits,pruning,fingerprint_count,fingerprint_pruning,sampling,shuffle_partitions")
 for run in files:
     type = run.get("split-start")[1]
     dataset = run.get("read-dataframe")[1]
@@ -104,4 +104,5 @@ for run in files:
     fingerprint_count = parse_optional_metadata(run, "metadata-fingerprintCount")
     fingerprint_pruning = parse_optional_metadata(run, "parameter-fingerprintPruning")
     sampling = parse_optional_metadata(run, "parameter-sampler")
-    print(f"{type},{dataset},{total_time},{size_bytes},{bucket_count},{setup_time},{gather_data_time},{split_time},{sort_order_time},{write_time},{max_size},{min_size},{colum_splits},{pruning},{fingerprint_count},{fingerprint_pruning},{sampling}")
+    shuffle_partitions = parse_optional_metadata(run, "parameter-shufflePartitions")
+    print(f"{type},{dataset},{total_time},{size_bytes},{bucket_count},{setup_time},{gather_data_time},{split_time},{sort_order_time},{write_time},{max_size},{min_size},{colum_splits},{pruning},{fingerprint_count},{fingerprint_pruning},{sampling},{shuffle_partitions}")

@@ -43,7 +43,8 @@ class LexicographicPartitionwiseSpec extends WavesSpec
       "'start-ParallelSink'", "'end-ParallelSink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'metadata-bytesize'"
+      "'metadata-bytesize'",
+      "'metadata-treeLocation'"
     ))
   }
 }

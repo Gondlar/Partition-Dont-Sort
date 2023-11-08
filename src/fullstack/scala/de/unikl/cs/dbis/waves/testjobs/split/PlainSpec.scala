@@ -33,6 +33,12 @@ class PlainSpec extends WavesSpec
     partitionSchema should haveTheSameStructureAs(tree)
 
     And("the log contains what happened")
-    events should contain theSameElementsInOrderAs (Seq("'read-dataframe'", "'split-start'", "'split-done'", "'metadata-bytesize'"))
+    events should contain theSameElementsInOrderAs (Seq(
+      "'read-dataframe'",
+      "'split-start'",
+      "'split-done'",
+      "'metadata-bytesize'",
+      "'metadata-treeLocation'"
+    ))
   }
 }

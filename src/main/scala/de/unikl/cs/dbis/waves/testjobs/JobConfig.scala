@@ -102,6 +102,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   }).getOrElse(NullSampler)
 
   def wavesPath = getString("wavesPath").getOrElse(s"$filesystem/out/")
+  def treeStorageDirectory = getString("treeStorageDirectory").getOrElse(s"./trees")
   def useWaves = getBool("useWaves").getOrElse(true)
   def cleanWavesPath = getBool("cleanWavesPath").getOrElse(false)
   def modifySchema = getBool("modifySchema").getOrElse(false)

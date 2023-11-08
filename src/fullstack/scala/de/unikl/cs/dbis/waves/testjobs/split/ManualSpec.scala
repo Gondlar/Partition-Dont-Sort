@@ -61,7 +61,8 @@ class ManualSpec extends WavesSpec
       "'start-DataframeSink'", "'end-DataframeSink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'metadata-bytesize'"
+      "'metadata-bytesize'",
+      "'metadata-treeLocation'"
     ))
   }
 }

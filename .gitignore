@@ -23,5 +23,6 @@ project/target
 # project specific
 out/
 log/
+trees/
 evaluate.png
 evaluate.pdf

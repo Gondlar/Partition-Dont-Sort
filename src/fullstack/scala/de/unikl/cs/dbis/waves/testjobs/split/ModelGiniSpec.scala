@@ -63,7 +63,8 @@ class ModelGiniSpec extends WavesSpec
       "'start-PrioritySink'", "'writer-chosen'", "'end-PrioritySink'",
       "'metadata-bucketCount'",
       "'split-done'",
-      "'metadata-bytesize'"
+      "'metadata-bytesize'",
+      "'metadata-treeLocation'"
     ))
   }
 }

@@ -23,14 +23,13 @@ object Manual extends SplitRunner {
                                                         )
                                        )
     val (manualShape, manualSorter) = jobConfig.getString("knownSchemaPath").map { path =>
-      val loadedTree = PartitionTreeHDFSInterface(spark, path).read().get
+      val loadedTree = PartitionTreeHDFSInterface.withExactLocation(spark, path).read().get
       (loadedTree.root, loadedTree.sorter)
     }.getOrElse((defaultShape, NoSorter))
     val splitter = new Pipeline(Seq(
       split.Predefined(manualShape.shape),
-      util.BucketsFromShape) ++
-      Pipeline.mapLegacySorter(manualSorter),
-      sink.DataframeSink
+      if (jobConfig.modifySchema) util.BucketsFromShape else util.ShuffleByShape),
+      sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)
     )
 
     runSplitter(spark, jobConfig, splitter)

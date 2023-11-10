@@ -17,6 +17,8 @@ import java.util.Scanner
 import java.util.UUID
 
 trait SplitRunner {
+  import SplitRunner._
+
   def runSplitter[T](spark: SparkSession, jobConfig: JobConfig, splitter: Splitter[T])
     = run(spark, jobConfig, (df) => df.saveAsWaves(splitter.modifySchema(jobConfig.modifySchema), jobConfig.wavesPath))
 
@@ -45,15 +47,6 @@ trait SplitRunner {
     spark.stop()
   }
 
-  private def readSchema(path: String, spark: SparkSession) = {
-    val hdfsPath = new Path(path)
-    val in = hdfsPath.getFileSystem(spark.sparkContext.hadoopConfiguration).open(hdfsPath)
-    try {
-      val json = new Scanner(in, StandardCharsets.UTF_8.displayName()).useDelimiter("\\Z").next()
-      DataType.fromJson(json).asInstanceOf[StructType]
-    } finally in.close()
-  }
-
   private def storeTree(tree: PartitionTree[String], directory: String, spark: SparkSession) = {
     val name = s"$directory/${UUID.randomUUID()}.json"
     val path = new Path(name)
@@ -61,5 +54,16 @@ trait SplitRunner {
     out.write(tree.toJson.getBytes(StandardCharsets.UTF_8))
     out.close()
     name
+  }
+}
+
+object SplitRunner {
+  def readSchema(path: String, spark: SparkSession) = {
+    val hdfsPath = new Path(path)
+    val in = hdfsPath.getFileSystem(spark.sparkContext.hadoopConfiguration).open(hdfsPath)
+    try {
+      val json = new Scanner(in, StandardCharsets.UTF_8.displayName()).useDelimiter("\\Z").next()
+      DataType.fromJson(json).asInstanceOf[StructType]
+    } finally in.close()
   }
 }

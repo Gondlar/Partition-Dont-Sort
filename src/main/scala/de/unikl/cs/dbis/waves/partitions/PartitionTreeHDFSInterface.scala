@@ -55,7 +55,7 @@ object PartitionTreeHDFSInterface {
     * @param basePath the path to the root directory of the table
     * @return the path to the file
     */
-  private def schemaPath(basePath: String) = new Path(s"$basePath/schema.json")
+  private def schemaPath(basePath: String) = s"$basePath/schema.json"
 
   /**
     * Construct a PartitionTreeHDFSInterface from a SparkSession and a base path
@@ -65,11 +65,8 @@ object PartitionTreeHDFSInterface {
     * @param basePath the path to the root directory of the table
     * @return the created PartitionTreeHDFSInterface
     */
-  def apply(spark: SparkSession, basePath: String) : PartitionTreeHDFSInterface = {
-    val mySchemaPath = schemaPath(basePath)
-    val fs = mySchemaPath.getFileSystem(spark.sparkContext.hadoopConfiguration)
-    new PartitionTreeHDFSInterface(fs, mySchemaPath)
-  }
+  def apply(spark: SparkSession, basePath: String) : PartitionTreeHDFSInterface
+    = withExactLocation(spark, schemaPath(basePath))
 
   /**
     * Construct a PartitionTreeHDFSInterface from a FileSystem and a base path
@@ -79,5 +76,30 @@ object PartitionTreeHDFSInterface {
     * @return the created PartitionTreeHDFSInterface
     */
   def apply(fs: FileSystem, basePath: String) : PartitionTreeHDFSInterface
-    = new PartitionTreeHDFSInterface(fs, schemaPath(basePath))
+    = withExactLocation(fs, schemaPath(basePath))
+
+  /**
+    * Construct a PartitionTreeHDFSInterface from a SparkSession and a path to
+    * the schema.  We use the spark session and the path to automatically find
+    * the correct file system.
+    *
+    * @param spark the spark session
+    * @param path the path to the root directory of the table
+    * @return the created PartitionTreeHDFSInterface
+    */
+  def withExactLocation(spark: SparkSession, path: String) = {
+    val mySchemaPath = new Path(path)
+    val fs = mySchemaPath.getFileSystem(spark.sparkContext.hadoopConfiguration)
+    new PartitionTreeHDFSInterface(fs, mySchemaPath)
+  }
+
+  /**
+    * Construct a PartitionTreeHDFSInterface from a FileSystem and a path
+    *
+    * @param fs the file system 
+    * @param path the path to the root directory of the table
+    * @return the created PartitionTreeHDFSInterface
+    */
+  def withExactLocation(fs: FileSystem, path: String)
+    = new PartitionTreeHDFSInterface(fs, new Path(path))
 }

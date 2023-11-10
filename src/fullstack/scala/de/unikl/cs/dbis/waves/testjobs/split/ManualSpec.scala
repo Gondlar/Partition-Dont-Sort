@@ -53,12 +53,14 @@ class ManualSpec extends WavesSpec
       "'read-dataframe'",
       "'split-start'",
       "'start-Predefined'", "'end-Predefined'",
+    ) ++ (if (modifySchema) Seq(
       "'start-BucketsFromShape'", "'end-BucketsFromShape'",
-    ) ++ (if (!modifySchema) Seq.empty else Seq(
-      "'start-SchemaModifier'", "'end-SchemaModifier'"
-    )) ++ Seq(
+      "'start-SchemaModifier'", "'end-SchemaModifier'",
       "'start-Finalizer'", "'end-Finalizer'",
-      "'start-DataframeSink'", "'end-DataframeSink'",
+    ) else Seq(
+      "'start-ShuffleByShape'", "'end-ShuffleByShape'"
+    )) ++ Seq(
+      "'start-PrioritySink'", "'writer-chosen'", "'end-PrioritySink'",
       "'metadata-bucketCount'",
       "'split-done'",
       "'metadata-bytesize'",

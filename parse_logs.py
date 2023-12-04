@@ -42,7 +42,7 @@ def parse_gather_data(run):
     type = run.get("split-start")[1]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.ModelGini$" or type == "de.unikl.cs.dbis.waves.testjobs.split.ModelGiniWithSort$":
         return run.get("end-CalculateTotalFingerprint")[0] - run.get("start-CalculateTotalFingerprint")[0]
-    if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicMono$" or type == "de.unikl.cs.dbis.waves.testjobs.split.Lexicographicpartitionwise$":
+    if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicMono$" or type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicPartitionwise$":
         return run.get("done-cardinalities")[0] - run.get("start-GlobalOrder")[0]
     raise ValueError("unknown split type: " + type)
 
@@ -54,7 +54,7 @@ def parse_sort_order(run):
         return run.get("end-GlobalOrder")[0] - run.get("start-GlobalOrder")[0] + run.get("end-PriorityStep")[0] - run.get("start-PriorityStep")[0]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicMono$":
         return run.get("end-DataframeSorter")[0] - run.get("done-cardinalities")[0]
-    if type == "de.unikl.cs.dbis.waves.testjobs.split.Lexicographicpartitionwise$":
+    if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicPartitionwise$":
         return run.get("end-GlobalOrder")[0] - run.get("done-cardinalities")[0] + run.get("end-ParallelSorter")[0] - run.get("start-ParallelSorter")[0]
     raise ValueError("unknown split type: " + type)
 
@@ -64,7 +64,7 @@ def parse_split(run):
         return run.get("end-ModelGini")[0] - run.get("start-ModelGini")[0] + run.get("end-ShuffleByShape")[0] - run.get("start-ShuffleByShape")[0]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicMono$":
         return run.get("end-SingleBucket")[0] - run.get("start-SingleBucket")[0]
-    if type == "de.unikl.cs.dbis.waves.testjobs.split.Lexicographicpartitionwise$":
+    if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicPartitionwise$":
         return run.get("end-FlatShapeBuilder")[0] - run.get("start-ParallelEvenBuckets")[0]
     raise ValueError("unknown split type: " + type)
 
@@ -74,7 +74,7 @@ def parse_write(run):
         return run.get("end-PrioritySink")[0] - run.get("start-PrioritySink")[0]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicMono$":
         return run.get("end-DataframeSink")[0] - run.get("start-DataframeSink")[0]
-    if type == "de.unikl.cs.dbis.waves.testjobs.split.Lexicographicpartitionwise$":
+    if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicPartitionwise$":
         return run.get("end-ParallelSink")[0] - run.get("start-ParallelSink")[0]
     raise ValueError("unknown split type: " + type)
 

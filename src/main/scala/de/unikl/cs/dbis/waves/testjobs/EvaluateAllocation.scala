@@ -17,7 +17,7 @@ object EvaluateAllocation {
 
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
-    val spark = jobConfig.makeSparkSession(s"EvaluateAllocation ${jobConfig.treeStorageDirectory} for ${jobConfig.inputPath}")
+    val spark = jobConfig.makeSparkSession(s"EvaluateAllocation for ${jobConfig.wavesPath}")
 
     val hdfs = PartitionTreeHDFSInterface(spark, jobConfig.wavesPath)
     implicit val fs = hdfs.fs
@@ -52,7 +52,7 @@ object EvaluateAllocation {
       sb ++= columnContained.mkString(",")
       sb += '\n'
     }
-    val path = new Path(s"partitionAllocation.txt")
+    val path = new Path(jobConfig.getString("reportName").getOrElse("partitionAllocation.csv"))
     val out = fs.create(path)
     out.write(sb.toString.getBytes(StandardCharsets.UTF_8))
     out.close()

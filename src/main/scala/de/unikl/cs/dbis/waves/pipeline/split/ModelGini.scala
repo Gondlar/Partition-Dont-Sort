@@ -22,10 +22,13 @@ import scala.collection.parallel.ParSeq
   * The RSIGgraph must have been calculated beforehand.
   * 
   * @see [[CalculateVersionTree]] for how to calculate the VersionTree
-  * @param maxBuckets
-  * @param minimumBucketFill the minimum size - relative to an even distribution
-  *                          - that a bucket may be expected to have for the
-  *                          split to be considered. Defaults to 50%
+  * @param maxBucketSize the maximum allowed size of a bucket in percent of total rows
+  * @param minBucketSize the minimum required size of a bucket in percent of total rows
+  *                      this number may only be understepped if there is no eigliable
+  *                      split and we need to split evenly
+  * @param useColumnSplits split based on column values not just structure
+  * @param useSearchSpacePruning prune the serach space by only allowing splits whose
+  *                              parent in known present
   */
 case class ModelGini(
   maxBucketSize: Double,

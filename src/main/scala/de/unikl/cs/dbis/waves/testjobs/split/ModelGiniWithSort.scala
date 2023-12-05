@@ -11,6 +11,8 @@ object ModelGiniWithSort extends SplitRunner {
   def main(args: Array[String]) : Unit = {
     val jobConfig = JobConfig.fromArgs(args)
     val numPartitions = jobConfig.numPartitions.getOrElse(8)
+    val maxSize = 1.0/numPartitions
+    val minSize = maxSize * jobConfig.relativeMinSize
     val useColumnSplits = jobConfig.useColumnSplits
     val useSearchSpacePruning = jobConfig.useSearchSpacePruning
     val useFingerprintPruning = jobConfig.useFingerprintPruning
@@ -19,7 +21,7 @@ object ModelGiniWithSort extends SplitRunner {
 
     val splitter = new Pipeline(Seq(
       util.CalculateTotalFingerprint(sampler, useFingerprintPruning),
-      split.ModelGini(1.0/numPartitions, useColumnSplits, useSearchSpacePruning),
+      split.ModelGini(maxSize, minSize, useColumnSplits, useSearchSpacePruning),
       util.ShuffleByShape,
       sort.GlobalOrder(StructuralMetadataCardinalities),
       util.PriorityStep(sort.ParallelSorter, sort.DataframeSorter)),

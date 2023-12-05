@@ -87,6 +87,7 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def fallbackBlocksize = getLong("fallbackBlocksize").getOrElse(128*1024*1024L)
   def sampleSize = getLong("sampleSize").getOrElse(10*1024*1024L)
   def numPartitions = getInt("numPartitions")
+  def relativeMinSize = getDouble("relativeMinSize").getOrElse(.5)
   def useColumnSplits = getBool("useColumnSplits").getOrElse(true)
   def useSearchSpacePruning = getBool("useSearchSpacePruning").getOrElse(false)
   def useFingerprintPruning = getDouble("useFingerprintPruning")

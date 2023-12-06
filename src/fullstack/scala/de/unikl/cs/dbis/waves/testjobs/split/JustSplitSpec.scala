@@ -36,6 +36,7 @@ class JustSplitSpec extends WavesSpec
       "'read-dataframe'",
       "'split-start'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
+      "'start-Preshuffled'", "'end-Preshuffled'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-ParallelSink'", "'end-ParallelSink'",
       "'metadata-bucketCount'",

@@ -21,11 +21,14 @@ object ModelGiniWithSort extends SplitRunner {
 
     val splitter = new Pipeline(Seq(
       util.CalculateTotalFingerprint(sampler, useFingerprintPruning),
-      split.ModelGini(maxSize, minSize, useColumnSplits, useSearchSpacePruning),
-      util.ShuffleByShape,
+      split.ModelGini(maxSize, minSize, useColumnSplits, useSearchSpacePruning)) ++
+      (if (jobConfig.modifySchema) Seq.empty else Seq(
+        util.ShuffleByShape,
+        util.Shuffle
+      )) ++ Seq(
       sort.GlobalOrder(StructuralMetadataCardinalities),
       util.PriorityStep(sort.ParallelSorter, sort.DataframeSorter)),
-      sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)
+      sink.PrioritySink(sink.ParallelSink, sink.DataframeSink)
     )
 
     runSplitter(spark, jobConfig, splitter)

@@ -136,6 +136,14 @@ object Shape extends StateValue[AnyNode[Unit]]("state")
 object Buckets extends StateValue[Seq[DataFrame]]("buckets")
 
 /**
+  * Stores the name of the DataFrame column which stores which partition a row
+  * belongs to. This is used for parallel operations.
+  * 
+  * The column must contain an Integer from 0 to the number of Buckets
+  */
+object ShuffleColumn extends StateValue[String]("shuffleColumn")
+
+/**
   * Stores a sequence of Spark Columns by which all Buckets are to be sorted.
   * This assumes a recursive sorting algorithm such as Lexicographic Sorting or
   * Gray Orders.

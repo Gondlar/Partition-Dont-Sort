@@ -55,7 +55,10 @@ class ModelGiniWithSortSpec extends WavesSpec
         "'parameter-useColumnSplits'",
         "'parameter-useSearchSpacePruning'",
       "'end-ModelGini'",
-      "'start-ShuffleByShape'", "'end-ShuffleByShape'",
+      ) ++ (if (modifySchema) Seq.empty else Seq(
+        "'start-ShuffleByShape'", "'end-ShuffleByShape'",
+        "'start-Shuffle'", "'end-Shuffle'",
+      )) ++ Seq(
       "'start-GlobalOrder'", "'end-GlobalOrder'",
       "'start-PriorityStep'", "'step-chosen'", "'end-PriorityStep'",
     ) ++ (if (!modifySchema) Seq.empty else Seq(

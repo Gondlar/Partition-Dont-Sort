@@ -61,7 +61,7 @@ def parse_sort_order(run):
 def parse_split(run):
     type = run.get("split-start")[1]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.ModelGini$" or type == "de.unikl.cs.dbis.waves.testjobs.split.ModelGiniWithSort$":
-        return run.get("end-ModelGini")[0] - run.get("start-ModelGini")[0] + run.get("end-ShuffleByShape")[0] - run.get("start-ShuffleByShape")[0]
+        return run.get("end-ModelGini")[0] - run.get("start-ModelGini")[0] + run.get("end-Shuffle")[0] - run.get("start-ShuffleByShape")[0]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicMono$":
         return run.get("end-SingleBucket")[0] - run.get("start-SingleBucket")[0]
     if type == "de.unikl.cs.dbis.waves.testjobs.split.LexicographicPartitionwise$":

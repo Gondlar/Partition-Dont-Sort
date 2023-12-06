@@ -11,9 +11,10 @@ object JustSplit extends SplitRunner {
 
     val splitter = new Pipeline(Seq(
       split.ParallelEvenBuckets(numPartitions),
+      util.Preshuffled,
       util.FlatShapeBuilder
       ),
-      sink.ParallelSink.byPartition
+      sink.ParallelSink
     )
 
     runSplitter(spark, jobConfig, splitter)

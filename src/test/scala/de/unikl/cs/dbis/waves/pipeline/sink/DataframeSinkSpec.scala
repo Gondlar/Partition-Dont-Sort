@@ -19,6 +19,13 @@ class DataframeSinkSpec extends WavesSpec
         (DataframeSink supports dummyState) shouldBe (false)
       }
     }
+    "a shuffle column is defined" should {
+      "not be supported" in {
+        val withBuckets = Buckets(dummyState) = Seq()
+        val withShuffleColumn = ShuffleColumn(withBuckets) = "test"
+        (DataframeSink supports withShuffleColumn) shouldBe (false)
+      }
+    }
     "buckets are defined" should {
       "be supported" in {
         val withBuckets = Buckets(dummyState) = Seq()

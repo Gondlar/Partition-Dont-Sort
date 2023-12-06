@@ -11,7 +11,7 @@ import de.unikl.cs.dbis.waves.util.PartitionFolder
 object DataframeSink extends PipelineSink {
 
   override def supports(state: PipelineState): Boolean
-    = Buckets isDefinedIn state
+    = (Buckets isDefinedIn state) && !(ShuffleColumn isDefinedIn state)
 
   override def run(state: PipelineState): (PipelineState, Seq[PartitionFolder]) = {
     val buckets = Buckets(state)

@@ -17,9 +17,10 @@ object LexicographicPartitionwise extends SplitRunner {
     val splitter = new Pipeline(Seq(
       sort.GlobalOrder(if (exact) sort.ExactCardinalities(sampler) else sort.EstimatedCardinalities(sampler)),
       split.ParallelEvenBuckets(numPartitions),
+      util.Preshuffled,
       util.FlatShapeBuilder,
       sort.ParallelSorter),
-      sink.ParallelSink.byPartition
+      sink.ParallelSink
     )
 
     runSplitter(spark, jobConfig, splitter)

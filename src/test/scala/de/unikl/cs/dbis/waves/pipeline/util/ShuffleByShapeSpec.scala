@@ -8,6 +8,8 @@ import de.unikl.cs.dbis.waves.pipeline._
 import de.unikl.cs.dbis.waves.partitions.Bucket
 import de.unikl.cs.dbis.waves.partitions.SplitByPresence
 
+import org.apache.spark.sql.functions.{col,when}
+
 class ShuffleByShapeSpec extends WavesSpec
   with DataFrameFixture with PipelineStateFixture {
 
@@ -15,6 +17,13 @@ class ShuffleByShapeSpec extends WavesSpec
     "no shape is given" should {
       "not be supported" in {
         (ShuffleByShape supports dummyState) shouldBe (false)
+      }
+    }
+    "a shuffle column is already defined" should {
+      "not be supported" in {
+        val withShape = Shape(dummyState) = Bucket(())
+        val withShuffleColumn = ShuffleColumn(withShape) = "test"
+        (ShuffleByShape supports withShuffleColumn) shouldBe (false)
       }
     }
     "a shape is given" should {
@@ -25,18 +34,19 @@ class ShuffleByShapeSpec extends WavesSpec
         Given("A state with buckets")
         val state = Shape(dummyDfState) = SplitByPresence("a", (), ())
 
-        When("we apply the FlatShapeBuilder step")
+        When("we apply the ShuffleByShape step")
         val result = ShuffleByShape(state)
 
-        Then("the correct shape is stored")
-        df.rdd.getNumPartitions should equal (2)
+        Then("there is a shuffle column")
+        (ShuffleColumn isDefinedIn result) shouldBe (true)
+        val shuffleColumn = ShuffleColumn(result)
 
-        val valuesPerPartition = df.rdd.mapPartitions{ iter => 
-          Iterator(iter.map(_.isNullAt(0)).toSet)
-        }.collect()
-        valuesPerPartition should have length (2)
-        valuesPerPartition(0).intersect(valuesPerPartition(1)) shouldBe empty
-        valuesPerPartition(0).union(valuesPerPartition(1)) should equal (Set(false, true))
+        And("that column has the correct values")
+        result.data.count() should equal (df.count())
+        val invalidRows = result.data
+          .filter((col(shuffleColumn) =!= when(col("a").isNull, 0).otherwise(1)).as("test"))
+          .count()
+        invalidRows should equal (0)
       }
     }
   }

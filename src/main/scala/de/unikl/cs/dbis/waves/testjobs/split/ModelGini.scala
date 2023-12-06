@@ -20,9 +20,12 @@ object ModelGini extends SplitRunner {
 
     val splitter = new Pipeline(Seq(
       util.CalculateTotalFingerprint(sampler, useFingerprintPruning),
-      split.ModelGini(maxSize, minSize, useColumnSplits, useSearchSpacePruning),
-      util.ShuffleByShape),
-      sink.PrioritySink(sink.ParallelSink.byShape, sink.DataframeSink)
+      split.ModelGini(maxSize, minSize, useColumnSplits, useSearchSpacePruning))
+      ++ (if (jobConfig.modifySchema) Seq.empty else Seq(
+        util.ShuffleByShape,
+        util.Shuffle
+      )),
+      sink.PrioritySink(sink.ParallelSink, sink.DataframeSink)
     )
 
     runSplitter(spark, jobConfig, splitter)

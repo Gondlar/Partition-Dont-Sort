@@ -38,6 +38,7 @@ class LexicographicPartitionwiseSpec extends WavesSpec
       "'split-start'",
       "'start-GlobalOrder'", "'done-cardinalities'", "'end-GlobalOrder'",
       "'start-ParallelEvenBuckets'", "'end-ParallelEvenBuckets'",
+      "'start-Preshuffled'", "'end-Preshuffled'",
       "'start-FlatShapeBuilder'", "'end-FlatShapeBuilder'",
       "'start-ParallelSorter'", "'end-ParallelSorter'",
       "'start-ParallelSink'", "'end-ParallelSink'",

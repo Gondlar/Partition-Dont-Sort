@@ -4,6 +4,8 @@ import org.scalatest.Inspectors._
 import de.unikl.cs.dbis.waves.WavesSpec
 import de.unikl.cs.dbis.waves.SparkFixture
 
+import de.unikl.cs.dbis.waves.pipeline.sample._
+
 class JobConfigSpec extends WavesSpec {
 
   def valueWithDefault[T](fn: Symbol, value: T, default: T, env: Seq[(String, String)] = Seq.empty) = {
@@ -20,6 +22,16 @@ class JobConfigSpec extends WavesSpec {
   }
 
   "A JobConfig" can {
+    "check if options are set" when {
+      "they exist" in {
+        val config = new JobConfig(Map(("Foo", "123")))
+        config.isSet("foO") should be (true)
+      }
+      "they do not exist" in {
+        val config = new JobConfig()
+        config.isSet("foO") should be (false)
+      }
+    }
     "fetch string options" when {
       "they exist" in {
         val config = new JobConfig(Map(("Foo", "123")))
@@ -114,6 +126,20 @@ class JobConfigSpec extends WavesSpec {
       "it is not set and the master is remote" in {
         val config = new JobConfig()
         config.filesystem should startWith ("hdfs://namenode:9000")
+      }
+    }
+    "fetch the sampler" when {
+      "no sampler is set" in {
+        val config = new JobConfig()
+        config.useSampler should equal (NullSampler)
+      }
+      "a uniform sampler is set" in {
+        val config = new JobConfig(Map(("sampler", "uniform"),("uniformRate", "0.5")))
+        config.useSampler should equal (UniformSampler(0.5))
+      }
+      "an init sampler is set" in {
+        val config = new JobConfig(Map(("sampler", "init"),("perPartition", "200")))
+        config.useSampler should equal (InitSample(200))
       }
     }
     behave like valueWithDefault('inputPath, "/test", "file:///cluster-share/benchmarks/json/twitter/109g_multiple")

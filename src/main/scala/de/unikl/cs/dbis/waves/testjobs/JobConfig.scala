@@ -13,6 +13,15 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   private val myOptions = options.map({ case (key, value) => (key.toLowerCase, value)})
 
   /**
+    * Check if the given key is set in this configuration. If it isn't , it will
+    * yield the default value (if any).
+    *
+    * @param key the key
+    * @return true iff it is explicitly set
+    */
+  def isSet(key: String) = myOptions.contains(key.toLowerCase())
+
+  /**
     * fetch the value for the option with the given name as a String
     *
     * @param key case-insensitive option name
@@ -93,8 +102,8 @@ class JobConfig(options: Map[String, String] = Map.empty) {
   def useFingerprintPruning = getDouble("useFingerprintPruning")
   def useExactCardinalities = getBool("useExactCardinalities").getOrElse(false)
   def useSampler = getString("sampler").map(str => {str match {
-      case "uniform" if myOptions.contains("uniformRate") => UniformSampler(getDouble("uniformRate").get)
-      case "init" if myOptions.contains("perPartition") => InitSample(getInt("perPartition").get)
+      case "uniform" if isSet("uniformRate") => UniformSampler(getDouble("uniformRate").get)
+      case "init" if isSet("perPartition") => InitSample(getInt("perPartition").get)
       case _ => {
         System.err.println(s"WARN: Ignoring unknown sampler option '$str'")
         NullSampler

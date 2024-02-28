@@ -10,7 +10,10 @@ import de.unikl.cs.dbis.waves.partitions.visitors.operations._
 
 trait QueryRunner {
 
-  def run(spark: SparkSession, jobConfig: JobConfig, query: DataFrame => String) = {
+  def run(spark: SparkSession, jobConfig: JobConfig, query: DataFrame => String): Unit
+    = run(spark, jobConfig, Seq(query))
+
+  def run(spark: SparkSession, jobConfig: JobConfig, queries: Seq[DataFrame => String]) = {
     // Prepare the stuff we do not want to measure
     val basePath = jobConfig.wavesPath
     val tree = PartitionTreeHDFSInterface(spark, basePath).read().get
@@ -31,12 +34,18 @@ trait QueryRunner {
     }
 
     // Run the query
-    Logger.log("query-run", useWaves)
-    val toLog = query(df)
+    Logger.log("parameter-use-waves", useWaves)
+    for ((query, index) <- queries.zipWithIndex) {
+      Logger.log(s"query-run-$index")
+      val toLog = query(df)
+      Logger.log(s"query-end-$index", toLog)
+    }
 
     // Log finished and perform cleanup
-    Logger.log("query-end", toLog)
     Logger.flush(spark.sparkContext.hadoopConfiguration)
     spark.stop()
   }
+
+  def runWithVoid(spark: SparkSession, jobConfig: JobConfig, queries: Seq[DataFrame => Unit]): Unit
+    = run(spark, jobConfig, queries.map(query => (df: DataFrame) => {query(df); ""}))
 }

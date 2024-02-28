@@ -24,9 +24,9 @@ trait QueryFixture extends IntegrationFixture {
       Then("the log contains what happened")
       val (events, data) = assertLogProperties()
       val modeLogs = if (mode) Seq("'build-scan'", "'chose-buckets'", "'scan-built'") ++ additionalLogs else Seq.empty
-      events should contain theSameElementsInOrderAs ((Seq("'query-start'","'query-run'") ++ modeLogs) :+ "'query-end'")
-      data(events.indexOf("'query-run'")) should equal (s"'$mode'")
-      data(events.indexOf("'query-end'")) should equal (s"'$result'")
+      events should contain theSameElementsInOrderAs ((Seq("'query-start'", "'parameter-use-waves'","'query-run-0'") ++ modeLogs) :+ "'query-end-0'")
+      data(events.indexOf("'parameter-use-waves'")) should equal (s"'$mode'")
+      data(events.indexOf("'query-end-0'")) should equal (s"'$result'")
     }
   }
 }

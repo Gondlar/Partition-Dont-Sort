@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import os
 import time
 
-plot_width = .7
-logdir = "/home/patrick/currentBatchLogs/queriesSwitch"
+#logdir = "/home/patrick/Promotion/Publications/partition-dont-sort/results/twitter-sample-init2/log"
+logdir = "/home/patrick/log_fixed"
 
 def quotes(s: str):
     """
@@ -93,11 +93,16 @@ for run in files:
     size_bytes = run.get("metadata-bytesize")[1]
     tree_location = run.get("metadata-treeLocation")[1]
     bucket_count = run.get("metadata-bucketCount")[1]
+    #bucket_count = 0
     setup_time = run.get("split-start")[0] - run.get("read-dataframe")[0]
     gather_data_time = parse_gather_data(run)
+    #gather_data_time = 0
     split_time = parse_split(run)
+    #split_time = 0
     sort_order_time = parse_sort_order(run)
+    #sort_order_time = 0
     write_time = parse_write(run)
+    #write_time = 0
     max_size = parse_optional_metadata(run, "parameter-maxSize")
     min_size = parse_optional_metadata(run, "parameter-minSize")
     colum_splits = parse_optional_metadata(run, "parameter-useColumnSplits")

@@ -1,11 +1,9 @@
 #!/bin/bash
 
+source ./config.sh
+
 NUMBER_OF_EXPERIMENT_RUNS=10
 NUMBER_OF_WARMUP_RUNS=5
-
-SOURCE="file:///cluster-share/benchmarks/json/twitter/109g_multiple"
-TARGET="hdfs://namenode:9000/benchmark"
-SCHEMA="./schemas/twitter.json"
 
 function submit_task {
     /spark/bin/spark-submit --driver-memory 96g --master spark://`hostname`:7077 --executor-memory 96G \

@@ -1,10 +1,8 @@
 #!/bin/bash
 
-partitions=150
+source ./config.sh
 
-SOURCE="file:///cluster-share/benchmarks/json/twitter/109g_multiple"
-TARGET="hdfs://namenode:9000/benchmark"
-SCHEMA="./schemas/twitter.json"
+partitions=150
 
 function submit_task {
     /spark/bin/spark-submit --driver-memory 96g --master spark://`hostname`:7077 --executor-memory 96G \

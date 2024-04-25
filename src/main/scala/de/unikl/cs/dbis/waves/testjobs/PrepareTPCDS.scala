@@ -187,6 +187,7 @@ object PrepareTPCDS {
   def merge(df: DataFrame*)
     = df.reduce((lhs, rhs) => lhs.unionByName(rhs, true)).orderBy(rand())
 
+  // Schemas adapted from https://github.com/dhiraa/spark-tpcds/blob/master/src/main/scala/org/apache/spark/sql/tpcds/TPCDSTables.scala
   val customerAddressSchema = StructType(Array(
     StructField("address_sk",              IntegerType),
     StructField("address_id",              StringType),

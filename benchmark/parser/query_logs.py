@@ -5,9 +5,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import os
 import time
+import sys
 
-#logdir = "/home/patrick/Promotion/Publications/partition-dont-sort/results/queries/ModelGini-250-90"
-logdir = "/home/patrick/query_logs/ModelGini-250-0.5"
+logdir = sys.argv[1]
 
 def quotes(s: str):
     """

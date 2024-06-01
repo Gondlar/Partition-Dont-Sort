@@ -15,9 +15,11 @@ for N in $(seq 1 1 $NUMBER_OF_EXPERIMENT_RUNS)
 do
     submit_task query.BetzeTwitter useWaves=true
     # submit_task query.BetzeGithub useWaves=true
+    # submit_task query.TPCDS useWaves=true
 done
 for N in $(seq 1 1 $NUMBER_OF_EXPERIMENT_RUNS)
 do
     submit_task query.BetzeTwitter useWaves=false
     # submit_task query.BetzeGithub useWaves=false
+    # submit_task query.BetzeTPCDS useWaves=false
 done

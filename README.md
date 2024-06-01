@@ -35,6 +35,8 @@ The Spark Jobs run for evaluation are the following:
  * [Allocation Measurement](src/main/scala/de/unikl/cs/dbis/waves/testjobs/EvaluateAllocation.scala)
  * [BETZE Queries Twitter](src/main/scala/de/unikl/cs/dbis/waves/testjobs/query/BetzeTwitter.scala)
  * [BETZE Queries GitHub](src/main/scala/de/unikl/cs/dbis/waves/testjobs/query/BetzeGithub.scala)
+ * [TPC-DS Dataset Transformation](src/main/scala/de/unikl/cs/dbis/waves/testjobs/PrepareTPCDS.scala)
+ * [TPC-DS Queries](src/main/scala/de/unikl/cs/dbis/waves/testjobs/query/TPCDS.scala)
 
 # Benchmark
 

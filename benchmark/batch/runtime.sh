@@ -7,6 +7,9 @@ NUMBER_OF_WARMUP_RUNS=5
 
 function submit_task {
     /spark/bin/spark-submit --driver-memory 96g --master spark://`hostname`:7077 --executor-memory 96G \
+                            --conf spark.driver.maxResultSize=3g \
+                            --conf spark.driver.extraJavaOptions="-Xss4m -XX:+UseG1GC" \
+                            --conf spark.executor.extraJavaOptions="-Xss4m" \
                             --class de.unikl.cs.dbis.waves.testjobs.$1 waves.jar \
                             inputPath=$SOURCE wavesPath=$TARGET inputSchemaPath=$SCHEMA \
                             useColumnSplits=false cleanWavesPath=true ${@:2}
